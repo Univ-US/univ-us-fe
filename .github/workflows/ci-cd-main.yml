@@ -1,0 +1,68 @@
+# ===================================================================
+# CI-CD Main: 정기적으로 dev를 검사한 뒤 통과하면 main에 자동 병합 - 프론트엔드
+#  - 한국시간 매일 06시에 1회 실행 (+ Discord 성공/실패 알림)
+#  - ⚠️ 스케줄 워크플로우라 반드시 '기본 브랜치(현재 dev)'에 있어야 작동함
+# ===================================================================
+
+name: CI-CD Main (Scheduled Dev to Main)
+
+on:
+  schedule:
+    - cron: '0 21 * * *'   # KST 06시 (cron은 UTC 기준 → UTC 21시)
+  workflow_dispatch:        # 수동 실행 버튼
+
+permissions:
+  contents: write                  # main에 push(병합) 권한
+
+jobs:
+  test-and-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (dev)       # dev 브랜치를 받아옴 (검사 대상이 dev)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0           # 병합하려면 전체 히스토리 필요
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build & Test (dev)   # dev 코드 검증 (실패 시 중단)
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Merge dev into main  # 검증 통과 시 dev를 main에 병합
+        id: merge
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          BEFORE=$(git rev-parse HEAD)
+          git merge dev --no-ff -m "chore: 정기 병합 dev → main (CI 통과)"
+          git push origin main
+          AFTER=$(git rev-parse HEAD)
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify success (Discord)
+        if: success() && steps.merge.outputs.merged == 'true'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"✅ [FE/main] 정기 병합 성공 — dev 변경이 main에 반영되었습니다."}' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Notify failure (Discord)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"❌ [FE/main] 정기 dev→main 검사/병합 실패 — 확인 필요:\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
