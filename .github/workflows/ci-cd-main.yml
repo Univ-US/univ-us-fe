@@ -37,9 +37,6 @@ jobs:
           npm run lint
           npm run build
 
-      - name: (임시) 실패 테스트     # ⬅️ 검증 후 반드시 삭제
-        run: exit 1
-
       - name: Merge dev into main  # 검증 통과 시 dev를 main에 병합
         id: merge
         run: |
