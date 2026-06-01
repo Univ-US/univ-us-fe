@@ -1,0 +1,73 @@
+name: CI-CD Dev (feat → dev)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - dev
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: merge-to-dev
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'feat/')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (static export → out/)
+        run: npm run build
+
+      - name: Notify test failure (Discord)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"❌ [FE/dev] PR #${{ github.event.pull_request.number }} (${{ github.head_ref }} → ${{ github.base_ref }}) 검증 실패로 병합이 거부되었습니다.\n로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+  auto-merge:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Merge PR into dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --merge \
+            --repo ${{ github.repository }}
+
+      - name: Notify merge success (Discord)
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"✅ [FE/dev] PR #${{ github.event.pull_request.number }} (${{ github.head_ref }} → ${{ github.base_ref }}) 검증 통과 후 dev에 자동 병합되었습니다."}' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Notify merge failure (Discord)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"⚠️ [FE/dev] PR #${{ github.event.pull_request.number }} (${{ github.head_ref }} → ${{ github.base_ref }}) 은 검증은 통과했으나 자동 병합에 실패했습니다(충돌/권한 등). 수동 확인 필요:\n${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}"}' \
+            "${{ secrets.DISCORD_WEBHOOK }}"
