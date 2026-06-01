@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
+  const broken: number = "CI 실패 테스트";  // ❌ 의도적 타입 오류 (string → number)
   return (
     <div className="flex flex-col items-center justify-center min-h-screen space-y-6 bg-slate-50">
       <h1 className="text-4xl font-bold text-slate-900">
