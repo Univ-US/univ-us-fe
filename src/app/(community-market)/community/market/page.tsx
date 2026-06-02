@@ -1,9 +1,27 @@
-'use client';
+"use client";
+
+import { useState } from "react";
+import CommunityMarketList from "@/components/common/CommunityMarketList";
+import CommunityMarketDetail from "@/components/common/CommunityMarketDetail";
+import { SAMPLE_PRODUCTS } from "@/lib/sampleData";
+import type { Product } from "@/types/community";
 
 export default function MarketPage() {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  if (selectedProduct) {
+    return (
+      <CommunityMarketDetail
+        product={selectedProduct}
+        onBack={() => setSelectedProduct(null)}
+      />
+    );
+  }
+
   return (
-    <div className='mx-auto max-w-[1200px] px-6 py-8'>
-      <h1 className='text-2xl font-bold'>중고거래</h1>
-    </div>
+    <CommunityMarketList
+      products={SAMPLE_PRODUCTS}
+      onSelectProduct={setSelectedProduct}
+    />
   );
 }

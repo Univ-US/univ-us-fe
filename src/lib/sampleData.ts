@@ -114,6 +114,18 @@ export const SAMPLE_POSTS: Record<string, Post[]> = {
       isAnonymous: true,
       isHot: true,
     },
+    { 
+      postId: 16,
+      title: "특정 학우 비방하는 내용입니다", 
+      author: "익명", 
+      category: "잡담", 
+      createdAt: "3시간 전", 
+      likeCount: 0, 
+      commentCount: 4, 
+      viewCount: 0, 
+      isAnonymous: true, 
+      isBlind: true, 
+      reportCount: 7 }
   ],
   notice: [
     {

@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Search, Bell, UserRound } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Bell, UserRound } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
-  { href: '/community', label: '커뮤니티 홈', exact: true },
-  { href: '/community/free', label: '자유게시판' },
-  { href: '/community/secret', label: '익명게시판' },
-  { href: '/community/market', label: '중고거래' },
+  { href: "/community",        label: "커뮤니티 홈", exact: true },
+  { href: "/community/free",   label: "자유게시판" },
+  { href: "/community/secret", label: "익명게시판" },
+  { href: "/community/notice", label: "공지사항" },
+  { href: "/community/market", label: "중고거래" },
 ];
 
 export default function CommunityHeader() {
@@ -21,17 +22,28 @@ export default function CommunityHeader() {
     exact ? pathname === href : pathname.startsWith(href);
 
   return (
-    <header className='sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur'>
-      <div className='mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-6'>
+    <header className="sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-6">
+
         {/* 로고 */}
-        <Link href='/community' className='flex items-center'>
-          <span className='text-xl font-extrabold tracking-tight text-foreground'>
-            Univ<span className='text-primary'>Us</span>
+        <Link
+          href="/community"
+          className="flex items-center gap-2 shrink-0"
+        >
+          {/* 아이콘 마크 */}
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-white font-extrabold text-sm">
+            U
+          </div>
+          <span className="text-[20px] font-extrabold tracking-tight text-foreground">
+            Univ<span className="text-primary">Us</span>
           </span>
         </Link>
 
+        {/* 구분선 */}
+        <div className="h-5 w-px bg-border shrink-0" />
+
         {/* 네비게이션 */}
-        <nav className='hidden items-center gap-1 md:flex'>
+        <nav className="hidden items-center gap-0.5 md:flex">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href, item.exact);
             return (
@@ -39,15 +51,16 @@ export default function CommunityHeader() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative rounded-md px-3 py-2 text-[15px] font-semibold transition-colors',
+                  "relative rounded-md px-3.5 py-2 text-[14.5px] font-semibold transition-colors",
                   active
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? "text-primary"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                 )}
               >
                 {item.label}
+                {/* 활성 탭 밑줄 */}
                 {active && (
-                  <span className='absolute inset-x-2 -bottom-[17px] h-0.5 rounded-full bg-primary' />
+                  <span className="absolute inset-x-3 -bottom-[17px] h-[2.5px] rounded-full bg-primary" />
                 )}
               </Link>
             );
@@ -55,38 +68,38 @@ export default function CommunityHeader() {
         </nav>
 
         {/* 우측 액션 */}
-        <div className='ml-auto flex items-center gap-3'>
+        <div className="ml-auto flex items-center gap-2.5">
+
           {/* 검색창 */}
-          <div className='relative hidden lg:block'>
-            <Search className='pointer-events-none absolute left-3.5 top-1/2 size-[17px] -translate-y-1/2 text-muted-foreground' />
+          <div className="relative hidden lg:block">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
-              placeholder='게시글, 상품 검색'
-              className='h-10 w-64 rounded-full border border-input bg-muted pl-10 pr-4 text-sm outline-none focus:border-primary'
+              placeholder="게시글, 상품 검색"
+              className="h-9 w-60 rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
-          {/* 알림 */}
-          <Button
-            variant='outline'
-            size='icon'
-            className='relative rounded-full'
-          >
-            <Bell className='size-[19px]' />
-            <span className='absolute right-2.5 top-2.5 size-[7px] rounded-full border-2 border-card bg-destructive' />
-          </Button>
+          {/* 알림 버튼 */}
+          <button className="relative flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:border-primary hover:text-primary">
+            <Bell className="size-[18px]" />
+            {/* 알림 뱃지 */}
+            <span className="absolute right-2 top-2 size-[7px] rounded-full border-2 border-white bg-red-500" />
+          </button>
 
-          {/* 마이페이지 */}
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => router.push('/mypage')}
+          {/* 마이페이지 버튼 */}
+          <button
+            onClick={() => router.push("/community/mypage")}
             className={cn(
-              pathname.startsWith('/mypage') && 'border-primary text-primary',
+              "flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors",
+              pathname.startsWith("/community/mypage")
+                ? "border-primary bg-primary/5 text-primary"
+                : "border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary"
             )}
           >
-            <UserRound className='size-4' />
+            <UserRound className="size-4" />
             마이페이지
-          </Button>
+          </button>
+
         </div>
       </div>
     </header>
