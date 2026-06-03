@@ -1,70 +1,80 @@
+# ===================================================================
+# CI-CD Dev: feat/* 등 모든 브랜치가 dev로 보내는 PR을 검증하고, 통과 시 dev에 자동 병합 - 프론트엔드
+#  - 트리거: dev로 향하는 PR(opened/synchronize/reopened)
+#  - 흐름: test(빌드·lint) → 통과 시 auto-merge(dev 병합) → Discord 알림(#Git-fe)
+#  - ⚠️ dev 브랜치 보호룰셋(Ruleset)에서 아래 'test' 잡을 필수 상태체크로 지정함
+#        → CI 통과 안 한 PR은 (수동으로도) dev 병합 불가
+# ===================================================================
+
 name: CI-CD Dev (feat → dev)
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]   # PR 생성/추가커밋/재오픈 시 실행
     branches:
-      - dev
+      - dev                                   # base가 dev인 PR만 대상 (브랜치 이름 무관, 들어오는 곳이 dev면 검증)
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: write           # 병합(머지) 위해 필요
+  pull-requests: write      # gh pr merge 로 PR 병합하기 위해 필요
 
 concurrency:
-  group: merge-to-dev
-  cancel-in-progress: false
+  group: merge-to-dev       # dev 병합 작업을 하나의 그룹으로 묶어
+  cancel-in-progress: false # 진행 중인 병합을 취소하지 않고 순차 처리(동시 병합 충돌 방지)
 
 jobs:
+  # ── 1) 검증 잡: 의존성 설치 → lint → 빌드 (실패 시 여기서 중단, 병합 안 됨) ──
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout                  # PR 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: Set up Node 22
+      - name: Set up Node 22            # Node 22 + npm 캐시
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install dependencies      # 잠금파일 기준 정확히 설치
         run: npm ci
 
-      - name: Lint
+      - name: Lint                      # ESLint 검사
         run: npm run lint
 
-      - name: Build (static export → out/)
+      - name: Build (static export → out/)  # 정적 export 빌드 (타입/빌드 오류 차단)
         run: npm run build
 
-      - name: Notify test failure (Discord)
+      - name: Notify test failure (Discord)  # 검증 실패 시 ❌ 알림 (병합 거부)
         if: failure()
         run: |
           curl -H "Content-Type: application/json" \
             -d '{"content":"❌ [FE/dev] PR #${{ github.event.pull_request.number }} (${{ github.head_ref }} → ${{ github.base_ref }}) 검증 실패로 병합이 거부되었습니다.\n로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
             "${{ secrets.DISCORD_WEBHOOK }}"
 
+  # ── 2) 자동 병합 잡: test 통과(needs: test)해야만 실행 → PR을 dev에 병합 ──
   auto-merge:
-    needs: test
+    needs: test               # test 잡 성공이 전제 조건 (실패하면 이 잡은 안 돌음)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Merge PR into dev
+      - name: Merge PR into dev         # gh CLI로 해당 PR을 dev에 병합 (--merge: 머지 커밋)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # gh 인증용 토큰(별도 PAT 불필요)
         run: |
           gh pr merge ${{ github.event.pull_request.number }} \
             --merge \
             --repo ${{ github.repository }}
 
-      - name: Notify merge success (Discord)
+      - name: Notify merge success (Discord)   # 병합 성공 시 ✅ 알림
         if: success()
         run: |
           curl -H "Content-Type: application/json" \
             -d '{"content":"✅ [FE/dev] PR #${{ github.event.pull_request.number }} (${{ github.head_ref }} → ${{ github.base_ref }}) 검증 통과 후 dev에 자동 병합되었습니다."}' \
             "${{ secrets.DISCORD_WEBHOOK }}"
 
-      - name: Notify merge failure (Discord)
+      - name: Notify merge failure (Discord)   # 검증은 통과했지만 병합 실패(충돌/권한 등) 시 ⚠️ 알림
         if: failure()
         run: |
           curl -H "Content-Type: application/json" \

@@ -72,6 +72,12 @@ feat/* (또는 fix/, ui/ …)  ──PR──▶  dev  ──✋ 현재 자동 �
 GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)로 전송됩니다.
 > Repo Secret `DISCORD_WEBHOOK` 필요. 자동 병합은 `GITHUB_TOKEN` + 워크플로 `permissions: contents/pull-requests: write`로 동작(별도 PAT 불필요).
 
+**역할 한눈에**
+| 워크플로 | 역할 | 트리거 | 현재 상태 |
+|---|---|---|---|
+| `ci-cd-dev.yml` | `feat/*` 등 → **dev** PR 검증(빌드·lint) 후 **자동 병합** | dev로 향하는 모든 PR | ✅ 동작 중 |
+| `ci-cd-main.yml` | **dev → main** 정기 병합 (배포 라인) | ~~매일 KST 06시~~ + 수동 `workflow_dispatch` | ⛔ 자동 스케줄 정지 중 |
+
 ### 1) `ci-cd-dev.yml` — 모든 PR → dev 검증 & 자동 병합
 - **트리거**: **dev로 향하는 모든 PR** (opened/synchronize/reopened)
 - **동작**: `npm ci` → `npm run lint` → `npm run build`
@@ -89,6 +95,19 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
 > - **유지**: `workflow_dispatch`(수동 실행) → 필요 시 통제된 병합 가능. `ci-cd-dev.yml`(feat→dev 자동병합)은 영향 없음.
 > - **복구**: `ci-cd-main.yml`의 `schedule`/`cron` 2줄 주석 해제 → **dev에 반영**하면 매일 06시 자동병합 재개. (스케줄 워크플로라 기본 브랜치 dev 반영 필요)
 > - BE 레포(`univ-us-be`)도 서버/백엔드 담당이 별도로 동일 조치.
+
+### 🛡️ 브랜치 보호 (Ruleset) — `dev`
+검증을 건너뛴 병합(직접 push, CI 실패·미실행 PR의 수동 병합)을 막기 위해 **`dev`에 보호 룰셋**을 적용했습니다.
+(GitHub → **Settings → Rules → Rulesets**, Enforcement: **Active**, Target: 기본 브랜치 `dev`)
+
+| 규칙 | 효과 |
+|---|---|
+| **Require a pull request before merging** (승인 **0명**) | dev 직접 push 금지, PR로만 병합. 승인 0명이라 **봇 자동 병합은 그대로 동작** |
+| **Require status checks to pass** → `test` | `ci-cd-dev.yml`의 `test`(빌드·lint) **통과해야만 병합** ← 핵심 |
+| **Restrict deletions / Block force pushes** | dev 브랜치 삭제·강제 푸시 차단 |
+
+- 결과: **정상 CI 통과 PR(자동병합 포함)은 그대로 통과**, **검증 빠진 병합만 차단**.
+> `main`은 현재 자동병합 정지 상태이며, 보호 룰셋은 **CD 구축 시 함께** 설계 예정. (지금 main에 걸면 수동 dispatch 시의 `main` 직접 push 동작과 충돌 가능)
 
 ---
 
@@ -115,7 +134,7 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
    - **Vitest + React Testing Library** 추가 → 컴포넌트/로직 테스트 작성.
    - CI에 `npm run test` 스텝 추가 → 동작·회귀 버그를 빌드 단계에서 차단.
 2. **E2E 테스트** — **Playwright**로 핵심 플로우(로그인·글쓰기 등) 검증.
-3. **브랜치 보호규칙 추가** — 현재 dev/main에 보호규칙이 없어, 검증 실패/미실행 PR도 **사람이 수동 병합**할 수 있음. dev에 **"필수 상태체크(CI 통과) 후 병합" 규칙**을 걸면 빈틈이 사라짐.
+3. ~~**브랜치 보호규칙 추가**~~ → ✅ **dev 적용 완료** (Ruleset: PR 필수 + `test` 상태체크 필수 + 삭제·강제푸시 차단 → 위 [🛡️ 브랜치 보호] 참고). **`main`은 CD 구축 시 적용 예정.**
 4. **자동 병합 범위 제어(선택)** — 현재 통과한 모든 PR이 자동 병합됨. 검토가 필요한 PR은 **Draft PR**로 올리거나, 워크플로에 `draft == false` 조건 추가.
 5. **보안 점검** — `npm audit` 스텝 또는 **Dependabot** 활성화.
 6. **액션 버전 업** — `actions/checkout@v4`, `actions/setup-node@v4` → `@v5` (Node 20 deprecated 경고 제거).
