@@ -43,3 +43,9 @@ next-env.d.ts
 # Claude
 CLAUDE.md
 .claude/
+
+# IDE - JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
