@@ -1,0 +1,6 @@
+apiVersion: v2
+name: univ-us-fe
+description: Univ-US 프론트엔드 (Next.js Static Export → Apache httpd 정적 서빙)
+type: application
+version: 0.1.0
+appVersion: "1.0"

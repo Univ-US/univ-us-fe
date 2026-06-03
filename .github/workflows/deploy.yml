@@ -1,0 +1,48 @@
+name: Deploy FE (build → GHCR → helm)
+
+on:
+  workflow_dispatch:          # 수동 트리거(테스트용)
+  push:
+    branches: [main]          # 실제 CD: main 머지 시
+  # ⚠️ pull_request 트리거 금지 (public 레포 + self-hosted = fork RCE 방지)
+
+permissions:
+  contents: read
+  packages: write             # GHCR push 권한
+
+env:
+  IMAGE: ghcr.io/univ-us/univ-us-fe
+
+jobs:
+  build:                       # GitHub-hosted에서 빌드·푸시
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build      # Next static export → out/
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push image
+        run: |
+          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+  deploy:                      # self-hosted(VM)에서 배포
+    needs: build
+    runs-on: [self-hosted, univus-vm]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: helm upgrade
+        run: |
+          helm upgrade --install univ-us-fe ./charts/univ-us-fe \
+            --set image.tag=${{ github.sha }} \
+            -n univus --wait --timeout 3m
