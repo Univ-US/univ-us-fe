@@ -1,0 +1,12 @@
+replicaCount: 1
+image:
+  repository: ghcr.io/univ-us/univ-us-fe
+  tag: latest
+  pullPolicy: IfNotPresent
+imagePullSecret: ghcr-cred
+containerPort: 80
+service:
+  port: 80
+ingress:
+  entryPoint: web
+  pathPrefix: /
