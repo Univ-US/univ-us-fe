@@ -48,8 +48,8 @@ git checkout -b feat/작업내용     # 예: feat/login, fix/button-style, ui/co
 
 ### 흐름 요약
 ```
-feat/* (또는 fix/, ui/ …)  ──PR──▶  dev  ──매일 06시 정기 병합──▶  main
-        ↑ CI 검증 후 자동 병합              ↑ CI 검증 후 자동 병합
+feat/* (또는 fix/, ui/ …)  ──PR──▶  dev  ──✋ 현재 자동 스케줄 정지 / 수동 실행만──▶  main
+        ↑ CI 검증 후 자동 병합              ↑ dev→main 자동병합 일시 정지 (CD 구축 중, 아래 참고)
 ```
 
 ---
@@ -64,11 +64,18 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
 - **동작**: `npm ci` → `npm run lint` → `npm run build`
 - **통과 시**: dev로 **자동 병합** + ✅ 알림 / **실패 시**: 병합 거부 + ❌ 알림
 
-### 2) `ci-cd-main.yml` — dev → main 정기 병합
-- **트리거**: 매일 **KST 06시**(`cron: '0 21 * * *'`) + 수동 실행(`workflow_dispatch`)
+### 2) `ci-cd-main.yml` — dev → main 정기 병합  ⛔ **자동 스케줄 정지 중 (2026-06-03~, CD 구축 전까지)**
+- **트리거**: ~~매일 **KST 06시**(`cron: '0 21 * * *'`)~~ → **일시 정지(주석처리)** · 수동 실행(`workflow_dispatch`)은 **유지**
 - **동작**: dev 검증(`npm ci`/lint/build) 후 통과하면 **dev를 main에 병합**
 - 성공/실패 시 Discord 알림 (✅ / ❌)
 - ⚠️ 스케줄/수동 실행은 **기본 브랜치(현재 dev)의 파일만** 작동합니다.
+
+> ⛔ **[정지 안내]** 곧 붙을 CD는 *self-hosted runner가 `main` push/workflow_run을 트리거로 `helm upgrade`(실배포)* 하는 구조라,
+> CD가 붙는 순간 **`main` = 배포 스위치**가 됩니다. CD 안정화 전에 `dev→main` 자동병합이 계속 돌면 준비 안 된 배포가 나갈 위험이 있어 **자동 스케줄을 임시 정지**했습니다. (배포 시점은 수동 통제)
+> - **멈춘 것**: `schedule`(`cron` 매일 06시 자동병합) — `ci-cd-main.yml`에서 주석처리.
+> - **유지**: `workflow_dispatch`(수동 실행) → 필요 시 통제된 병합 가능. `ci-cd-dev.yml`(feat→dev 자동병합)은 영향 없음.
+> - **복구**: `ci-cd-main.yml`의 `schedule`/`cron` 2줄 주석 해제 → **dev에 반영**하면 매일 06시 자동병합 재개. (스케줄 워크플로라 기본 브랜치 dev 반영 필요)
+> - BE 레포(`univ-us-be`)도 서버/백엔드 담당이 별도로 동일 조치.
 
 ---
 

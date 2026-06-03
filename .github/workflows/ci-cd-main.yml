@@ -2,14 +2,20 @@
 # CI-CD Main: 정기적으로 dev를 검사한 뒤 통과하면 main에 자동 병합 - 프론트엔드
 #  - 한국시간 매일 06시에 1회 실행 (+ Discord 성공/실패 알림)
 #  - ⚠️ 스케줄 워크플로우라 반드시 '기본 브랜치(현재 dev)'에 있어야 작동함
+#  - ⛔ [2026-06-03 정지 중] CD 구축 전까지 schedule 자동병합 비활성화 (아래 on: 블록 참고)
 # ===================================================================
 
 name: CI-CD Main (Scheduled Dev to Main)
 
 on:
-  schedule:
-    - cron: '0 21 * * *'   # KST 06시 (cron은 UTC 기준 → UTC 21시)
-  workflow_dispatch:        # 수동 실행 버튼
+  # ⚠️ [정지: CD 구축 중] dev→main 자동병합 임시 중단 (2026-06-03).
+  #   사유: CD가 main push/workflow_run → helm upgrade(실배포)를 트리거하므로,
+  #         CD 안정화 전까지 준비 안 된 자동 배포 트리거를 막기 위함.
+  #   재개: 아래 schedule 2줄 주석 해제 → dev에 커밋/푸시하면 매일 KST 06시 자동병합 복구.
+  #   수동 통제: 그동안 필요한 병합은 아래 workflow_dispatch 수동 실행으로만 진행.
+  # schedule:
+  #   - cron: '0 21 * * *'   # KST 06시 (cron은 UTC 기준 → UTC 21시)
+  workflow_dispatch:        # 수동 실행 버튼 (유지)
 
 permissions:
   contents: write           # main에 push(병합) 권한
