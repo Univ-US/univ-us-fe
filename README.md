@@ -77,6 +77,7 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
 |---|---|---|---|
 | `ci-cd-dev.yml` | `feat/*` 등 → **dev** PR 검증(빌드·lint) 후 **자동 병합** | dev로 향하는 모든 PR | ✅ 동작 중 |
 | `ci-cd-main.yml` | **dev → main** 정기 병합 (배포 라인) | ~~매일 KST 06시~~ + 수동 `workflow_dispatch` | ⛔ 자동 스케줄 정지 중 |
+| `deploy.yml` | **build → GHCR push → `helm upgrade`** (K8s 실배포 = CD) | 수동 `workflow_dispatch` + **`main` push** | ✅ 동작(첫 배포 검증 완료) |
 
 ### 1) `ci-cd-dev.yml` — 모든 PR → dev 검증 & 자동 병합
 - **트리거**: **dev로 향하는 모든 PR** (opened/synchronize/reopened)
@@ -95,6 +96,36 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
 > - **유지**: `workflow_dispatch`(수동 실행) → 필요 시 통제된 병합 가능. `ci-cd-dev.yml`(feat→dev 자동병합)은 영향 없음.
 > - **복구**: `ci-cd-main.yml`의 `schedule`/`cron` 2줄 주석 해제 → **dev에 반영**하면 매일 06시 자동병합 재개. (스케줄 워크플로라 기본 브랜치 dev 반영 필요)
 > - BE 레포(`univ-us-be`)도 서버/백엔드 담당이 별도로 동일 조치.
+
+### 3) `deploy.yml` — build → GHCR → `helm upgrade` (CD, 실배포)  ✅ **신규 [2026-06-04]**
+프론트를 **쿠버네티스 클러스터에 실제 배포**하는 CD 워크플로. (서버팀이 구축한 self-hosted runner 사용)
+- **트리거**: 수동 `workflow_dispatch` + 자동 **`push: branches:[main]`**. → **`dev`→`main` 병합 시 자동 실배포.** 평소(dev 작업)엔 **안 돎.**
+  - ⚠️ **`pull_request` 트리거 없음** — public 레포 + self-hosted runner 조합의 **fork PR RCE**를 막기 위함(보안 필수).
+- **흐름 (2-잡)**:
+  1. **`build`** (GitHub-hosted `ubuntu-latest`): `npm ci` → `npm run build`(→`out/`) → 이미지 빌드 → **GHCR push** `ghcr.io/univ-us/univ-us-fe:<commit SHA>` (+`:latest`)
+  2. **`deploy`** (`runs-on: [self-hosted, univus-vm]`): 레포 체크아웃 → `helm upgrade --install univ-us-fe ./charts/univ-us-fe --set image.tag=<SHA> -n univus --wait`
+  3. K8s가 `ghcr-cred`(imagePullSecret)로 이미지 pull → 파드 롤링 업데이트
+- **관련 파일**: `charts/univ-us-fe/`(Helm 차트: Deployment/Service/IngressRoute), `Dockerfile`(`httpd:2.4`+`out/`), `.dockerignore`
+- **인프라(서버팀)**: 단일노드 kubeadm K8s + MetalLB(게이트웨이 IP `192.168.50.200`) + Traefik. 프론트=`/` 라우팅(IngressRoute), 백엔드=`/api`(예정).
+- **이미지 태그 = commit SHA(불변)** → 롤백은 `helm rollback univ-us-fe`(서버에서).
+
+> 💡 이번 첫 배포는 **`workflow_dispatch`를 `dev` ref로 수동 실행**해 검증했습니다(테스트). **운영 자동 배포는 `dev`→`main` 병합 시** `push:main` 트리거로 발동합니다. 두 트리거는 독립적입니다.
+
+### 🖥️ 배포 확인하는 방법 (GUI)
+| 무엇 | 어디서 | 확인 내용 |
+|---|---|---|
+| **파이프라인 실행** | 레포 → **Actions** 탭 → `Deploy FE (build → GHCR → helm)` | build/deploy 잡 성공 여부 + step별 로그 |
+| **빌드된 이미지** | org **Packages** (`github.com/orgs/Univ-US/packages`) → `univ-us-fe` | 푸시된 태그(`<SHA>`, `latest`) 목록 |
+| **self-hosted runner** | org **Settings → Actions → Runners** | `univus-vm-runner` 🟢 Idle/Active |
+
+**배포된 프론트 화면 직접 보기** — 게이트웨이 `192.168.50.200`은 학원 내부망 IP라(외부 노출 미설정), **SSH 터널**로 우회해서 봅니다:
+```bash
+# 맥/PC 터미널에서 (이 창은 켜둔 채로)
+ssh -p 49022 -L 8080:192.168.50.200:80 univus@happyjob.iptime.org
+```
+→ 그 상태로 브라우저에서 **`http://localhost:8080`** 접속 → 배포된 프론트 홈이 렌더되면 배포 성공. (`-L 로컬포트:대상IP:대상포트` = 로컬 8080 요청을 VM이 192.168.50.200:80으로 중계)
+
+> 서버에서 직접 보려면(VM SSH 후): `kubectl get all -n univus` / `helm list -n univus` / `curl -I http://192.168.50.200/`(→ `HTTP 200`)
 
 ### 🛡️ 브랜치 보호 (Ruleset) — `dev`
 검증을 건너뛴 병합(직접 push, CI 실패·미실행 PR의 수동 병합)을 막기 위해 **`dev`에 보호 룰셋**을 적용했습니다.
