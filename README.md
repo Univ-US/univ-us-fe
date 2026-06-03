@@ -42,6 +42,19 @@ git pull
 git checkout -b feat/작업내용     # 예: feat/login, fix/button-style, ui/community
 ```
 3) 작업 → 커밋 → 푸시 → **`<브랜치> → dev` PR 생성**
+```bash
+# 원격에 현재 브랜치 푸시
+git push -u origin <브랜치>
+# 예: git push -u origin feat/login
+
+# PR 생성 (base=dev, head=내 브랜치) — gh CLI 사용
+gh pr create --base dev --head <브랜치> --title "<제목>" --body "<설명>"
+# 예: gh pr create --base dev --head feat/login --title "feat: 로그인 화면 구현" --body "이메일/비밀번호 로그인 UI 추가"
+
+# PR 상태 확인 (state가 MERGED면 병합 완료)
+gh pr view <브랜치 또는 PR번호> --json number,state,mergedAt
+# 예: gh pr view feat/login --json number,state,mergedAt
+```
 
 > ⚠️ **`dev` / `main`에 직접 커밋 금지.** 반드시 브랜치를 따서 작업 후 **PR로 머지**합니다.
 > ✅ **브랜치 이름과 무관하게**, dev로 들어오는 **모든 PR이 CI 검증을 거칩니다.** (검증 통과해야만 병합)
