@@ -86,7 +86,7 @@ GitHub Actions 워크플로 2개. 알림은 Discord **#Git-fe**(`Univus-FE BOT`)
 
 ### 2) `ci-cd-main.yml` — dev → main 정기 병합  ⛔ **자동 스케줄 정지 중 (2026-06-03~, CD 구축 전까지)**
 - **트리거**: ~~매일 **KST 06시**(`cron: '0 21 * * *'`)~~ → **일시 정지(주석처리)** · 수동 실행(`workflow_dispatch`)은 **유지**
-- **동작**: dev 검증(`npm ci`/lint/build) 후 통과하면 **dev를 main에 병합**
+- **동작**: dev 검증(`npm ci`/lint/build) 후 통과하면 **dev→main PR을 생성·머지**(`gh pr create`/`gh pr merge`) — main 직접 push 금지 룰셋과 호환. main 병합 시 `deploy.yml`(push:main) 실배포 트리거.
 - 성공/실패 시 Discord 알림 (✅ / ❌)
 - ⚠️ 스케줄/수동 실행은 **기본 브랜치(현재 dev)의 파일만** 작동합니다.
 
@@ -138,7 +138,28 @@ ssh -p 49022 -L 8080:192.168.50.200:80 univus@happyjob.iptime.org
 | **Restrict deletions / Block force pushes** | dev 브랜치 삭제·강제 푸시 차단 |
 
 - 결과: **정상 CI 통과 PR(자동병합 포함)은 그대로 통과**, **검증 빠진 병합만 차단**.
-> `main`은 현재 자동병합 정지 상태이며, 보호 룰셋은 **CD 구축 시 함께** 설계 예정. (지금 main에 걸면 수동 dispatch 시의 `main` 직접 push 동작과 충돌 가능)
+
+### 🛡️ 브랜치 보호 (Ruleset) — `main`  ✅ **적용 완료 [2026-06-04]**
+**왜**: `main` = **배포 스위치**다. `deploy.yml`이 `push:main`에 실배포(GHCR 빌드 → `helm upgrade`)를 트리거하므로,
+**사람이 실수로 `main`에 직접 push하면 통제 안 된 배포**가 운영에 나갈 수 있다. 이를 막기 위해 `main`에도 보호 룰셋을 적용.
+
+**어떻게** (두 가지를 함께 적용해야 동작):
+1. **`ci-cd-main.yml`을 "직접 push → dev→main PR 머지"로 전환** — 봇이 `gh pr create`/`gh pr merge`(승인 0)로 병합 → "직접 push 금지" 룰과 공존. (직접 push 방식이면 룰셋에 막혀 봇 병합도 깨짐)
+2. **`main` 보호 룰셋** (Enforcement: **Active**, Target: `main`, Bypass: 없음):
+
+| 규칙 | 효과 |
+|---|---|
+| **Require a pull request before merging** (승인 **0명**) | **사람 직접 push 금지** ← 핵심. 승인 0이라 봇 PR 머지는 그대로 동작 |
+| **Restrict deletions / Block force pushes** | `main` 삭제·강제 푸시 차단 |
+| (Require status checks) | **일부러 미설정** — dev→main PR엔 `ci-cd-dev`의 `test`(base=dev 전용)가 안 돌아 **데드락 방지** |
+
+- **검증 완료**: `main`에 직접 push 시도 → `GH013: ... Changes must be made through a pull request`로 **거부됨** 확인.
+  ```bash
+  # 재현(거부돼야 정상): git commit --allow-empty -m test && git push origin main → rejected
+  # 정리: git reset --hard origin/main
+  ```
+> 두 룰셋의 목적이 다름 — **dev** = "검증 빠진 병합 차단"(`test` 필수), **main** = "사람 직접 push 차단"(배포 통제).
+> 향후 dev→main을 **사람 리뷰 게이트**로 바꾸려면 main 룰셋의 Required approvals를 ≥1로 올리면 됨(현재는 0=자동).
 
 ---
 
@@ -165,7 +186,7 @@ ssh -p 49022 -L 8080:192.168.50.200:80 univus@happyjob.iptime.org
    - **Vitest + React Testing Library** 추가 → 컴포넌트/로직 테스트 작성.
    - CI에 `npm run test` 스텝 추가 → 동작·회귀 버그를 빌드 단계에서 차단.
 2. **E2E 테스트** — **Playwright**로 핵심 플로우(로그인·글쓰기 등) 검증.
-3. ~~**브랜치 보호규칙 추가**~~ → ✅ **dev 적용 완료** (Ruleset: PR 필수 + `test` 상태체크 필수 + 삭제·강제푸시 차단 → 위 [🛡️ 브랜치 보호] 참고). **`main`은 CD 구축 시 적용 예정.**
+3. ~~**브랜치 보호규칙 추가**~~ → ✅ **dev·main 적용 완료** — dev(PR 필수 + `test` 상태체크 필수 + 삭제·강제푸시 차단), main(PR 필수=직접 push 금지 + 삭제·강제푸시 차단). 위 [🛡️ 브랜치 보호] 두 섹션 참고.
 4. **자동 병합 범위 제어(선택)** — 현재 통과한 모든 PR이 자동 병합됨. 검토가 필요한 PR은 **Draft PR**로 올리거나, 워크플로에 `draft == false` 조건 추가.
 5. **보안 점검** — `npm audit` 스텝 또는 **Dependabot** 활성화.
 6. **액션 버전 업** — `actions/checkout@v4`, `actions/setup-node@v4` → `@v5` (Node 20 deprecated 경고 제거).
