@@ -11,14 +11,14 @@ import type { Post } from "@/types/community";
 const SAMPLE_COMMENTS = [
   {
     commentId: 1,
-    author: "이준호",
+    authorName: "이준호",
     createdAt: "30분 전",
     content: "저요! 날짜만 맞으면 무조건 갑니다",
     likeCount: 8,
     replies: [
       {
         commentId: 11,
-        author: "김서연",
+        authorName: "김서연",
         createdAt: "28분 전",
         content: "오 좋아요! 날짜 정해지면 바로 공유할게요 :)",
         likeCount: 2,
@@ -27,7 +27,7 @@ const SAMPLE_COMMENTS = [
   },
   {
     commentId: 2,
-    author: "박지민",
+    authorName: "박지민",
     createdAt: "12분 전",
     content: "인원 대충 몇 명 정도 모이나요? 예산도 궁금합니다",
     likeCount: 1,
@@ -119,11 +119,11 @@ export default function CommunityBoardDetail({
             {/* 작성자 */}
             <div className="flex items-center gap-3 border-b border-border pb-4">
               <div className="flex size-[38px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm">
-                {isAnon ? "익" : post.author.slice(0, 1)}
+                {isAnon ? "익" : post.authorName.slice(0, 1)}
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-800">
-                  {isAnon ? "익명" : post.author}
+                  {isAnon ? "익명" : post.authorName}
                 </div>
                 <div className="text-xs text-slate-400">
                   {post.createdAt} · 조회 {post.viewCount ?? 0}
