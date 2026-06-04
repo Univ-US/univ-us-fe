@@ -1,16 +1,16 @@
 # ===================================================================
-# CI-CD Main: 정기적으로 dev를 검사한 뒤 통과하면 main에 자동 병합 - 프론트엔드
-#  - 한국시간 매일 06시에 1회 실행 (+ Discord 성공/실패 알림)
+# CI-CD Main: dev를 검사한 뒤 통과하면 main에 병합 - 프론트엔드
+#  - 병합 방식: dev→main "PR 생성 후 머지" (main 직접 push 금지 룰셋과 호환 / 봇이 PR로 머지)
+#  - main 병합 시 deploy.yml(push:main)이 트리거되어 실배포됨
 #  - ⚠️ 스케줄 워크플로우라 반드시 '기본 브랜치(현재 dev)'에 있어야 작동함
-#  - ⛔ [2026-06-03 정지 중] CD 구축 전까지 schedule 자동병합 비활성화 (아래 on: 블록 참고)
+#  - ⛔ [2026-06-03 정지 중] CD 안정화 전까지 schedule 자동병합 비활성화 (아래 on: 블록 참고)
 # ===================================================================
 
 name: CI-CD Main (Scheduled Dev to Main)
 
 on:
   # ⚠️ [정지: CD 구축 중] dev→main 자동병합 임시 중단 (2026-06-03).
-  #   사유: CD가 main push/workflow_run → helm upgrade(실배포)를 트리거하므로,
-  #         CD 안정화 전까지 준비 안 된 자동 배포 트리거를 막기 위함.
+  #   사유: main 병합 = deploy.yml(push:main)로 실배포 트리거. CD 안정화 전까지 자동 배포 차단.
   #   재개: 아래 schedule 2줄 주석 해제 → dev에 커밋/푸시하면 매일 KST 06시 자동병합 복구.
   #   수동 통제: 그동안 필요한 병합은 아래 workflow_dispatch 수동 실행으로만 진행.
   # schedule:
@@ -18,7 +18,8 @@ on:
   workflow_dispatch:        # 수동 실행 버튼 (유지)
 
 permissions:
-  contents: write           # main에 push(병합) 권한
+  contents: write           # 레포 콘텐츠
+  pull-requests: write      # gh pr create/merge (dev→main PR 생성·병합) 권한
 
 jobs:
   test-and-merge:
@@ -28,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: dev
-          fetch-depth: 0           # 병합하려면 전체 히스토리 필요
+          fetch-depth: 0           # 전체 히스토리
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node 22
@@ -37,38 +38,41 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Build & Test (dev)   # dev 코드 검증 (실패 시 중단)
+      - name: Build & Test (dev)   # dev 코드 검증 (실패 시 중단 → 병합 안 함)
         run: |
           npm ci
           npm run lint
           npm run build
 
-      - name: Merge dev into main  # 검증 통과 시 dev를 main에 병합
-        id: merge
+      - name: Merge dev → main (via PR)   # 검증 통과 시 dev→main PR 생성 후 머지
+        id: merge                          #   (main 직접 push 금지 룰셋과 호환: 봇이 PR로 머지)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
-          BEFORE=$(git rev-parse HEAD)
-          git merge dev --no-ff -m "chore: 정기 병합 dev → main (CI 통과)"
-          git push origin main
-          AFTER=$(git rev-parse HEAD)
-          if [ "$BEFORE" != "$AFTER" ]; then
-            echo "merged=true" >> "$GITHUB_OUTPUT"
-          else
+          # dev→main PR 생성 시도 (이미 열린 PR 있으면 재사용, 변경 없으면 스킵)
+          OUT=$(gh pr create --base main --head dev \
+                  --title "chore: 병합 dev → main (CI 통과)" \
+                  --body "ci-cd-main 자동 생성 — dev 검증 통과 후 main 병합 (deploy.yml 실배포 트리거)." 2>&1) || true
+          echo "$OUT"
+          if echo "$OUT" | grep -qi "No commits between"; then
+            echo "dev에 main 대비 새 변경 없음 — 스킵"
             echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # PR 머지 (head 브랜치 dev로 식별 → 방금 생성분 또는 기존 열린 PR)
+          gh pr merge dev --merge --repo "${{ github.repository }}"
+          echo "merged=true" >> "$GITHUB_OUTPUT"
 
       - name: Notify success (Discord)
         if: success() && steps.merge.outputs.merged == 'true'
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{"content":"✅ [FE/main] 정기 병합 성공 — dev 변경이 main에 반영되었습니다."}' \
+            -d '{"content":"✅ [FE/main] dev → main 병합 성공 — 실배포(deploy.yml)가 트리거됩니다."}' \
             "${{ secrets.DISCORD_WEBHOOK }}"
 
       - name: Notify failure (Discord)
         if: failure()
         run: |
           curl -H "Content-Type: application/json" \
-            -d '{"content":"❌ [FE/main] 정기 dev→main 검사/병합 실패 — 확인 필요:\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+            -d '{"content":"❌ [FE/main] dev→main 검사/병합 실패 — 확인 필요:\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
             "${{ secrets.DISCORD_WEBHOOK }}"
