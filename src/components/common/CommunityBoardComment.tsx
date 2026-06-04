@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 // ── 타입 ───────────────────────────────────────────────
 interface Comment {
   commentId: number;
-  author: string;
+  authorName: string;    // ← author → authorName
   createdAt: string;
   content: string;
   likeCount: number;
@@ -26,9 +26,7 @@ function Avatar({
 }) {
   const sizeClass = size === "sm" ? "size-[30px] text-xs" : "size-[38px] text-sm";
   return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white ${sizeClass}`}
-    >
+    <div className={`flex shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white ${sizeClass}`}>
       {name.slice(0, 1)}
     </div>
   );
@@ -55,7 +53,7 @@ function CommentItem({
       ...replies,
       {
         commentId: Date.now(),
-        author: "나", // TODO: 로그인 유저 정보로 교체
+        authorName: "나",
         createdAt: "방금",
         content: draft.trim(),
         likeCount: 0,
@@ -69,15 +67,18 @@ function CommentItem({
     <div className={`px-1 py-3 ${!isLast ? "border-b border-border" : ""}`}>
       {/* 댓글 본문 */}
       <div className="flex items-start gap-3">
-        <Avatar size="sm" name={isAnon ? "익" : comment.author} />
+        <Avatar
+          size="sm"
+          name={isAnon ? "익" : comment.authorName.slice(0, 1)}
+        />
         <div className="min-w-0 flex-1">
           {/* 작성자 정보 */}
           <div className="mb-1 flex items-center gap-2">
             <span className="text-[13px] font-bold">
-              {isAnon ? "익명" : comment.author}
+              {isAnon ? "익명" : comment.authorName}
             </span>
             {comment.isSeller && (
-              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
                 판매자
               </span>
             )}
@@ -114,19 +115,21 @@ function CommentItem({
       {/* 대댓글 목록 + 입력창 */}
       {(replies.length > 0 || replying) && (
         <div className="ml-[42px] mt-2.5 flex flex-col gap-3 border-l-2 border-border pl-3.5">
-          {/* 대댓글 목록 */}
           {replies.map((reply) => (
             <div key={reply.commentId} className="flex items-start gap-2">
               <CornerDownRight className="mt-2 size-3.5 shrink-0 text-muted-foreground/60" />
               <div className="flex min-w-0 flex-1 items-start gap-2">
-                <Avatar size="sm" name={isAnon ? "익" : reply.author} />
+                <Avatar
+                  size="sm"
+                  name={isAnon ? "익" : reply.authorName.slice(0, 1)}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center gap-2">
                     <span className="text-[13px] font-bold">
-                      {isAnon ? "익명" : reply.author}
+                      {isAnon ? "익명" : reply.authorName}
                     </span>
                     {reply.isSeller && (
-                      <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
                         판매자
                       </span>
                     )}
@@ -193,7 +196,7 @@ export default function CommunityBoardComment({
       ...comments,
       {
         commentId: Date.now(),
-        author: "나", // TODO: 로그인 유저 정보로 교체
+        authorName: "나",
         createdAt: "방금",
         content: draft.trim(),
         likeCount: 0,
@@ -212,7 +215,7 @@ export default function CommunityBoardComment({
       <h3 className="mb-3.5 text-[15px] font-bold">댓글 {totalCount}</h3>
 
       {/* 댓글 입력창 */}
-      <div className="mb-4 rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <Avatar size="sm" name="나" />
           <input
@@ -231,7 +234,7 @@ export default function CommunityBoardComment({
       </div>
 
       {/* 댓글 목록 */}
-      <div className="rounded-2xl border border-border bg-card px-5">
+      <div className="rounded-2xl border border-border bg-white px-5 shadow-sm">
         {comments.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             첫 번째 댓글을 남겨보세요!

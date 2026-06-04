@@ -17,14 +17,19 @@ function formatPrice(price: number) {
 
 // ── 상태 뱃지 ──────────────────────────────────────────
 function StatusBadge({ status }: { status: Product["productStatus"] }) {
-  const styles = {
-    판매중:  "bg-emerald-100 text-emerald-700",
-    예약중:  "bg-amber-100 text-amber-700",
-    거래완료: "bg-slate-100 text-slate-500",
+  const styles: Record<string, string> = {
+    SALE:    "bg-emerald-100 text-emerald-700",
+    RESERVE: "bg-amber-100 text-amber-700",
+    DONE:    "bg-slate-100 text-slate-500",
+  };
+  const labels: Record<string, string> = {
+    SALE:    "판매중",
+    RESERVE: "예약중",
+    DONE:    "거래완료",
   };
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${styles[status]}`}>
-      {status}
+      {labels[status]}
     </span>
   );
 }
@@ -41,7 +46,7 @@ function ProductCard({
   onToggleLike: () => void;
   onOpen: () => void;
 }) {
-  const sold = product.productStatus === "거래완료";
+  const sold = product.productStatus === "DONE";
 
   return (
     <div

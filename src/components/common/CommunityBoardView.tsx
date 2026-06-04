@@ -72,7 +72,7 @@ function PostRow({
       {/* 작성자 + 날짜 */}
       <div className="flex w-[140px] shrink-0 items-center justify-end gap-1 text-xs text-slate-400">
         <span className="truncate">
-          {isAnon ? "익명" : post.author}
+          {isAnon ? "익명" : post.authorName}
         </span>
         <span>·</span>
         <span className="shrink-0">{post.createdAt}</span>
