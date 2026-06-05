@@ -1,5 +1,5 @@
 "use client";
-
+import { formatDate } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -75,7 +75,7 @@ function PostRow({
           {isAnon ? "익명" : post.authorName}
         </span>
         <span>·</span>
-        <span className="shrink-0">{post.createdAt}</span>
+        <span className="shrink-0">{formatDate(post.createdAt)}</span>
       </div>
 
       {/* 좋아요 + 댓글 */}

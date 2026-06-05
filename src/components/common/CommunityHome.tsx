@@ -1,5 +1,5 @@
 "use client";
-
+import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import {
   ChevronRight, Flame, MessageSquare, VenetianMask,
@@ -100,7 +100,7 @@ function PostRow({
         </span>
       )}
       <span className="w-[46px] shrink-0 text-right text-[11.5px] text-slate-400">
-        {post.createdAt}
+        {formatDate(post.createdAt)}
       </span>
     </Link>
   );
@@ -172,7 +172,7 @@ function ProductRow({ product }: { product: Product }) {
         {formatPrice(product.price)}
       </span>
       <span className="w-[46px] shrink-0 text-right text-[11.5px] text-slate-400">
-        {product.createdAt}
+        {formatDate(product.createdAt)}
       </span>
     </Link>
   );
