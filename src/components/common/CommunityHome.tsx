@@ -12,6 +12,7 @@ import {
   Heart,
 } from 'lucide-react';
 import type { Post, Product } from '@/types/community';
+import { formatDate } from '@/lib/utils';
 
 function formatPrice(price: number) {
   return price === 0 ? '나눔' : price.toLocaleString('ko-KR') + '원';
@@ -108,14 +109,22 @@ function PostRow({
           HOT
         </span>
       )}
-      {post.commentCount > 0 && (
-        <span className='flex shrink-0 items-center gap-1 text-[11px] text-slate-400'>
-          <MessageSquare className='size-2.5' />
-          {post.commentCount}
-        </span>
-      )}
+      <div className='flex shrink-0 items-center gap-2 text-[11px] text-slate-400'>
+        {post.likeCount > 0 && (
+          <span className='flex items-center gap-0.5'>
+            <Heart className='size-2.5' />
+            {post.likeCount}
+          </span>
+        )}
+        {post.viewCount > 0 && (
+          <span className='flex items-center gap-0.5'>
+            <Eye className='size-2.5' />
+            {post.viewCount}
+          </span>
+        )}
+      </div>
       <span className='w-[42px] shrink-0 text-right text-[10.5px] text-slate-400'>
-        {post.createdAt}
+        {formatDate(post.createdAt)}
       </span>
     </Link>
   );

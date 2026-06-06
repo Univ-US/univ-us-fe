@@ -10,6 +10,7 @@ import {
   Heart,
   MessageCircle,
   EyeOff,
+  Eye,
   MessageSquare,
   VenetianMask,
   Megaphone,
@@ -18,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CommunityBoardDetail from '@/components/common/CommunityBoardDetail';
 import type { Post, BoardType } from '@/types/community';
@@ -160,17 +162,17 @@ function PostRow({
       <div
         className={cn(
           'flex shrink-0 items-center gap-2',
-          isNotice ? 'w-[110px]' : 'w-[90px]',
+          isNotice ? 'w-[110px]' : isAnon ? 'w-[90px]' : 'w-[130px]',
         )}
       >
         <span className='truncate text-[12px] text-slate-400'>
-          {isAnon ? '익명' : post.authorName} · {post.createdAt}
+          {isAnon ? '익명' : post.authorName} · {formatDate(post.createdAt)}
         </span>
       </div>
 
-      {/* 좋아요 + 댓글 — 고정 너비, 각각 고정 너비로 정렬 */}
+      {/* 좋아요 + 댓글 + 조회수 — 고정 너비, 각각 고정 너비로 정렬 */}
       {!post.tag && (
-        <div className='flex w-[90px] shrink-0 items-center justify-end gap-3 text-[12px] text-slate-400'>
+        <div className='flex w-[100px] shrink-0 items-center justify-end gap-1.5 text-[12px] text-slate-400'>
           <span className='flex items-center gap-0.5'>
             <Heart className='size-3 shrink-0' />
             <span className='inline-block w-[20px] tabular-nums'>
@@ -181,6 +183,12 @@ function PostRow({
             <MessageCircle className='size-3 shrink-0' />
             <span className='inline-block w-[20px] tabular-nums'>
               {post.commentCount}
+            </span>
+          </span>
+          <span className='flex items-center gap-0.5'>
+            <Eye className='size-3 shrink-0' />
+            <span className='inline-block w-[20px] tabular-nums'>
+              {post.viewCount}
             </span>
           </span>
         </div>
@@ -360,13 +368,14 @@ export default function CommunityBoardView({
     page * PAGE_SIZE,
   );
 
-  // 게시글 상세
+  // 게시글 클릭 시 상세 보여주기
   if (selectedPost) {
     return (
       <div className='min-h-screen bg-slate-50 px-[30px] py-6'>
         <CommunityBoardDetail
           post={selectedPost}
           isAnon={isAnon}
+          board={board}
           onBack={() => setSelectedPost(null)}
         />
       </div>
