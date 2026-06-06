@@ -1,55 +1,76 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Heart, Flag, EyeOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Heart, Flag, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CommunityBoardComment from '@/components/common/CommunityBoardComment';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
-import type { Post } from '@/types/community';
-
-const SAMPLE_COMMENTS = [
-  {
-    commentId: 1,
-    authorName: '이준호',
-    createdAt: '30분 전',
-    content: '저요! 날짜만 맞으면 무조건 갑니다',
-    likeCount: 8,
-    replies: [
-      {
-        commentId: 11,
-        authorName: '김서연',
-        createdAt: '28분 전',
-        content: '오 좋아요! 날짜 정해지면 바로 공유할게요 :)',
-        likeCount: 2,
-      },
-    ],
-  },
-  {
-    commentId: 2,
-    authorName: '박지민',
-    createdAt: '12분 전',
-    content: '인원 대충 몇 명 정도 모이나요? 예산도 궁금합니다',
-    likeCount: 1,
-    replies: [],
-  },
-];
+import { getPostById, deletePost, togglePostLike, getPostLikeStatus } from '@/lib/postApi';
+import type { Post, BoardType } from '@/types/community';
 
 interface CommunityBoardDetailProps {
   post: Post;
   isAnon: boolean;
+  board: BoardType;
   onBack: () => void;
 }
 
 export default function CommunityBoardDetail({
-  post,
+  post: initialPost,
   isAnon,
+  board,
   onBack,
 }: CommunityBoardDetailProps) {
+  const router = useRouter();
+  const [post, setPost] = useState<Post>(initialPost);
   const [liked, setLiked] = useState(false);
   const [reporting, setReporting] = useState(false);
 
-  // ── 블라인드 ───────────────────────────────────────
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const [data, likeStatus] = await Promise.all([
+          getPostById(initialPost.postId),
+          getPostLikeStatus(initialPost.postId),
+        ]);
+        setPost(data);
+        setLiked(likeStatus.liked);
+      } catch {
+        // 실패해도 기존 데이터 유지
+      }
+    };
+    fetchDetail();
+  }, [initialPost.postId]);
+
+  const handleLike = async () => {
+    try {
+      const result = await togglePostLike(post.postId);
+      setLiked(result.liked);
+      setPost((prev) => ({
+        ...prev,
+        likeCount: result.liked ? prev.likeCount + 1 : prev.likeCount - 1,
+      }));
+    } catch {
+      alert('좋아요 처리에 실패했어.');
+    }
+  };
+
+  const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
+
+  const handleDelete = async () => {
+    if (!confirm('게시글을 삭제할까요?')) return;
+    try {
+      await deletePost(post.postId);
+      onBack();
+    } catch {
+      alert('삭제에 실패했어. 다시 시도해줘.');
+    }
+  };
+
+  // 블라인드
   if (post.isBlind) {
     return (
       <div className='mx-auto max-w-[920px]'>
@@ -79,11 +100,9 @@ export default function CommunityBoardDetail({
     );
   }
 
-  // ── 정상 게시글 ────────────────────────────────────
   return (
     <>
       <div className='mx-auto max-w-[920px]'>
-        {/* 뒤로가기 */}
         <button
           onClick={onBack}
           className='mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700'
@@ -93,22 +112,40 @@ export default function CommunityBoardDetail({
 
         <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
           <div className='p-6'>
-            {/* 카테고리 + HOT */}
-            <div className='mb-3 flex items-center gap-2'>
-              {post.tag ? (
-                <span className='rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-600'>
-                  {post.tag}
-                </span>
-              ) : (
-                <span className='rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary'>
-                  {post.category}
-                </span>
-              )}
-              {post.isHot && (
-                <span className='rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-500'>
-                  HOT
-                </span>
-              )}
+            {/* 카테고리 + HOT + 수정/삭제 */}
+            <div className='mb-3 flex items-center justify-between'>
+              <div className='flex items-center gap-2'>
+                {post.tag ? (
+                  <span className='rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-600'>
+                    {post.tag}
+                  </span>
+                ) : (
+                  <span className='rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary'>
+                    {post.category}
+                  </span>
+                )}
+                {post.isHot && (
+                  <span className='rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-500'>
+                    HOT
+                  </span>
+                )}
+              </div>
+              <div className='flex items-center gap-1.5'>
+                <button
+                  onClick={handleEdit}
+                  className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-primary hover:text-primary'
+                >
+                  <Pencil className='size-3.5' />
+                  수정
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-red-400 hover:text-red-500'
+                >
+                  <Trash2 className='size-3.5' />
+                  삭제
+                </button>
+              </div>
             </div>
 
             {/* 제목 */}
@@ -126,7 +163,7 @@ export default function CommunityBoardDetail({
                   {isAnon ? '익명' : post.authorName}
                 </div>
                 <div className='text-xs text-slate-400'>
-                  {post.createdAt} · 조회 {post.viewCount ?? 0}
+                  {formatDate(post.createdAt)} · 조회 {post.viewCount ?? 0}
                 </div>
               </div>
             </div>
@@ -139,7 +176,7 @@ export default function CommunityBoardDetail({
             {/* 하단 액션 */}
             <div className='flex items-center justify-between border-t border-border pt-4'>
               <button
-                onClick={() => setLiked(!liked)}
+                onClick={handleLike}
                 className={cn(
                   'flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all',
                   liked
@@ -148,7 +185,7 @@ export default function CommunityBoardDetail({
                 )}
               >
                 <Heart className={cn('size-4', liked && 'fill-current')} />
-                좋아요 {post.likeCount + (liked ? 1 : 0)}
+                좋아요 {post.likeCount}
               </button>
               <button
                 onClick={() => setReporting(true)}
@@ -165,7 +202,7 @@ export default function CommunityBoardDetail({
         <CommunityBoardComment
           postId={post.postId}
           isAnon={isAnon}
-          initialComments={SAMPLE_COMMENTS}
+          initialComments={[]}
         />
       </div>
 

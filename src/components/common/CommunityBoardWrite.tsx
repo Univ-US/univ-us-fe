@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { createPost, updatePost, getPostById } from '@/lib/postApi';
 import type { BoardType } from '@/types/community';
 
 // ── 게시판별 카테고리 ──────────────────────────────────
@@ -74,17 +75,38 @@ export default function CommunityBoardWrite({
   board,
 }: CommunityBoardWriteProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const postId = searchParams.get('postId');
+  const isEdit = !!postId;
+
   const [category, setCategory] = useState(CATEGORIES[board][0]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [images, setImages] = useState<string[]>([]); // TODO: 실제 파일 업로드로 교체
+  const [images, setImages] = useState<string[]>([]); // TODO: 파일 업로드 구현 시 교체
 
   const isAnon = board === 'secret';
   const isNotice = board === 'notice';
 
+  // 수정 모드일 때 기존 데이터 불러오기
+  useEffect(() => {
+    if (!isEdit) return;
+    const fetchPost = async () => {
+      try {
+        const post = await getPostById(Number(postId));
+        setTitle(post.title);
+        setContent(post.content ?? '');
+        if (post.category) setCategory(post.category);
+      } catch {
+        alert('게시글을 불러오는 데 실패했어.');
+        router.back();
+      }
+    };
+    fetchPost();
+  }, [postId]);
+
   const handleBack = () => router.push(`/community/${board}`);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim()) {
       alert('제목을 입력해주세요.');
       return;
@@ -93,10 +115,35 @@ export default function CommunityBoardWrite({
       alert('내용을 입력해주세요.');
       return;
     }
-    // TODO: axios로 POST /api/posts 호출
-    console.log({ board, category, title, content });
-    alert('등록되었습니다.');
-    handleBack();
+
+    const BOARD_ID_MAP: Record<BoardType, number> = {
+      free:   1,
+      secret: 2,
+      notice: 3, // DB BOARD_TYPE 테이블 기준
+    };
+
+    try {
+      if (isEdit) {
+        await updatePost(Number(postId), {
+          title:    title.trim(),
+          content:  content.trim(),
+          category: category,
+        });
+        alert('수정되었습니다.');
+      } else {
+        await createPost({
+          boardId:  BOARD_ID_MAP[board],
+          title:    title.trim(),
+          content:  content.trim(),
+          category: category,
+        });
+        alert('등록되었습니다.');
+      }
+      handleBack();
+    } catch (err) {
+      console.error('writePost error:', err);
+      alert(isEdit ? '수정에 실패했어. 다시 시도해줘.' : '게시글 등록에 실패했어. 다시 시도해줘.');
+    }
   };
 
   return (
@@ -112,7 +159,7 @@ export default function CommunityBoardWrite({
         </button>
 
         <h2 className='mb-5 text-[22px] font-extrabold tracking-tight'>
-          {BOARD_LABEL[board]} 글쓰기
+          {isEdit ? `${BOARD_LABEL[board]} 수정` : `${BOARD_LABEL[board]} 글쓰기`}
         </h2>
 
         {/* 익명 안내 */}
@@ -188,7 +235,7 @@ export default function CommunityBoardWrite({
                 <ImagePlus className='size-[22px]' />
                 <span className='text-xs font-semibold'>사진 추가</span>
               </button>
-              {/* 미리보기 — TODO: 실제 이미지로 교체 */}
+              {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
               {images.map((img, i) => (
                 <div
                   key={i}
@@ -221,7 +268,7 @@ export default function CommunityBoardWrite({
           )}
           <Button onClick={handleSubmit}>
             <Send className='size-4' />
-            {isNotice ? '공지 게시' : '등록하기'}
+            {isNotice ? '공지 게시' : isEdit ? '수정 완료' : '등록하기'}
           </Button>
         </div>
       </div>

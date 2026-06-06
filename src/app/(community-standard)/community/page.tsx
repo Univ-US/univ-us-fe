@@ -1,20 +1,70 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import CommunityHome from '@/components/common/CommunityHome';
-import {
-  SAMPLE_POSTS,
-  SAMPLE_PRODUCTS,
-  SAMPLE_POPULAR,
-} from '@/lib/sampleData';
+import { getPostList } from '@/lib/postApi';
+import type { Post } from '@/types/community';
 
 export default function CommunityHomePage() {
+  const [freePosts, setFreePosts] = useState<Post[]>([]);
+  const [secretPosts, setSecretPosts] = useState<Post[]>([]);
+  const [noticePosts, setNoticePosts] = useState<Post[]>([]);
+  const [popular, setPopular] = useState<{ title: string; board: string; viewCount: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [freeData, secretData, noticeData] = await Promise.all([
+          getPostList({ boardId: 1, page: 1, size: 5 }),
+          getPostList({ boardId: 2, page: 1, size: 5 }),
+          getPostList({ boardId: 3, page: 1, size: 3 }),
+        ]);
+
+        const free: Post[]   = freeData.postList   ?? [];
+        const secret: Post[] = secretData.postList ?? [];
+        const notice: Post[] = noticeData.postList ?? [];
+
+        setFreePosts(free);
+        setSecretPosts(secret);
+        setNoticePosts(notice);
+
+        // 전체 게시글 합치서 조회수 TOP 5 인기글
+        const boardLabel: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
+        const all = [...free, ...secret, ...notice];
+        const top5 = all
+          .sort((a, b) => b.viewCount - a.viewCount)
+          .slice(0, 5)
+          .map((p) => ({
+            title: p.title,
+            board: boardLabel[p.boardId] ?? '기타',
+            viewCount: p.viewCount,
+          }));
+        setPopular(top5);
+      } catch (err) {
+        console.error('CommunityHomePage fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-slate-400 text-[14px]">
+        불러오는 중...
+      </div>
+    );
+  }
+
   return (
     <CommunityHome
-      freePosts={SAMPLE_POSTS.free.slice(0, 5)}
-      secretPosts={SAMPLE_POSTS.secret.slice(0, 5)}
-      noticePosts={SAMPLE_POSTS.notice.slice(0, 3)}
-      latestProducts={SAMPLE_PRODUCTS.slice(0, 5)}
-      popular={SAMPLE_POPULAR}
+      freePosts={freePosts}
+      secretPosts={secretPosts}
+      noticePosts={noticePosts}
+      latestProducts={[]}
+      popular={popular}
     />
   );
 }

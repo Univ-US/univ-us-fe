@@ -48,3 +48,15 @@ export const deletePost = async (postId: number) => {
   const res = await api.delete(`/api/posts/${postId}`);
   return res.data;
 };
+
+// 좋아요 토글
+export const togglePostLike = async (postId: number) => {
+  const res = await api.post(`/api/posts/${postId}/like`);
+  return res.data as { liked: boolean };
+};
+
+// 좋아요 여부 확인
+export const getPostLikeStatus = async (postId: number) => {
+  const res = await api.get(`/api/posts/${postId}/like`);
+  return res.data as { liked: boolean };
+};
