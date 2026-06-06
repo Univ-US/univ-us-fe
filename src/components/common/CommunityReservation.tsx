@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { BookOpen, Monitor, Check, CalendarCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// ── 독서실 데이터 ──────────────────────────────────────
 const STUDY_ROOMS = [
   {
     key: 'study1',
@@ -32,7 +31,6 @@ const STUDY_ROOMS = [
   },
 ];
 
-// 사용 중인 좌석 번호
 const TAKEN_SEATS: Record<string, number[]> = {
   study1: [
     2, 5, 7, 11, 14, 17, 21, 24, 26, 29, 3, 19, 33, 35, 38, 40, 1, 6, 9, 15, 20,
@@ -42,7 +40,6 @@ const TAKEN_SEATS: Record<string, number[]> = {
   lab: [1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19],
 };
 
-// ── 강의실/스터디룸 데이터 ─────────────────────────────
 const LECTURE_ROOMS = [
   { key: 'g201', label: '그룹스터디룸 201', cap: 6 },
   { key: 'g202', label: '그룹스터디룸 202', cap: 8 },
@@ -59,7 +56,6 @@ const BOOKED: Record<string, string[]> = {
   '강의실 301': ['11', '12', '13', '18'],
 };
 
-// ── 주간 날짜 ─────────────────────────────────────────
 const WEEK = [
   { wd: '금', d: 5, today: true },
   { wd: '토', d: 6, sat: true },
@@ -70,7 +66,6 @@ const WEEK = [
   { wd: '목', d: 11 },
 ];
 
-// ── 원형 진행바 ────────────────────────────────────────
 function Ring({
   free,
   total,
@@ -84,7 +79,6 @@ function Ring({
     stroke = 5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const pct = free / total;
   const color = danger ? '#E04E3A' : '#0FA896';
 
   return (
@@ -106,7 +100,7 @@ function Ring({
           stroke={color}
           strokeWidth={stroke}
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - pct)}
+          strokeDashoffset={c * (1 - free / total)}
           strokeLinecap='round'
           style={{ transition: 'stroke-dashoffset .5s' }}
         />
@@ -124,7 +118,6 @@ function Ring({
   );
 }
 
-// ── 독서실 좌석 배치도 ─────────────────────────────────
 function SeatMap({
   roomKey,
   total,
@@ -164,7 +157,6 @@ function SeatMap({
 
   return (
     <div className='mt-4 overflow-hidden rounded-2xl border border-border bg-slate-50 p-6'>
-      {/* 범례 */}
       <div className='mb-4 flex items-center justify-end gap-4 text-[12px] text-slate-500'>
         <span className='flex items-center gap-1.5'>
           <span className='size-3 rounded-sm bg-white border border-border' />빈
@@ -179,10 +171,7 @@ function SeatMap({
           사용중
         </span>
       </div>
-
-      {/* 배치도 */}
       <div className='flex gap-8 justify-center'>
-        {/* A 구역 */}
         <div>
           <div className='mb-2 text-center text-[11px] font-bold text-slate-400'>
             A 구역
@@ -193,13 +182,9 @@ function SeatMap({
             ))}
           </div>
         </div>
-
-        {/* 구분선 */}
-        <div className='flex flex-col items-center justify-center gap-1'>
+        <div className='flex flex-col items-center justify-center'>
           <div className='h-full w-px bg-border' />
         </div>
-
-        {/* B 구역 */}
         <div>
           <div className='mb-2 text-center text-[11px] font-bold text-slate-400'>
             B 구역
@@ -211,8 +196,6 @@ function SeatMap({
           </div>
         </div>
       </div>
-
-      {/* 입구 */}
       <div className='mt-4 text-center'>
         <span className='inline-block rounded-full border border-border bg-white px-6 py-1 text-[11px] font-bold text-slate-400'>
           입 구
@@ -222,7 +205,6 @@ function SeatMap({
   );
 }
 
-// ── 메인 컴포넌트 ──────────────────────────────────────
 export default function CommunityReservation() {
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
@@ -241,10 +223,10 @@ export default function CommunityReservation() {
         {/* 페이지 헤더 */}
         <div className='mb-6 flex items-end justify-between flex-wrap gap-4'>
           <div>
-            <h1 className='text-[26px] font-extrabold tracking-tight text-slate-900'>
+            <h1 className='text-[22px] font-extrabold tracking-tight text-slate-900'>
               시설 이용
             </h1>
-            <p className='mt-1.5 text-[13.5px] text-slate-400'>
+            <p className='mt-1.5 text-[13px] text-slate-400'>
               실시간 좌석·공간 현황을 확인하고 바로 예약하세요.
             </p>
           </div>
@@ -262,7 +244,7 @@ export default function CommunityReservation() {
               />
               실시간
             </span>
-            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12.5px] font-semibold text-slate-600'>
+            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600'>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
               공간 <b className='text-slate-900'>4</b>곳
             </span>
@@ -297,7 +279,7 @@ export default function CommunityReservation() {
           </button>
         </div>
 
-        {/* 주간 날짜 선택 */}
+        {/* 주간 날짜 */}
         <div className='mb-5 flex items-center gap-3 flex-wrap'>
           <span className='text-[13px] font-bold text-slate-400'>
             2026 · 6월
@@ -342,10 +324,9 @@ export default function CommunityReservation() {
           </div>
         </div>
 
-        {/* ── 독서실 좌석 탭 ── */}
+        {/* 독서실 좌석 탭 */}
         {tab === 'seat' && (
           <div>
-            {/* 독서실 카드 목록 */}
             <div className='mb-5 grid grid-cols-3 gap-4'>
               {STUDY_ROOMS.map((room) => (
                 <button
@@ -367,7 +348,7 @@ export default function CommunityReservation() {
                     danger={room.danger}
                   />
                   <div>
-                    <div className='text-[15px] font-bold text-slate-900'>
+                    <div className='text-[14px] font-bold text-slate-900'>
                       {room.label}
                     </div>
                     <div className='mt-0.5 text-[12px] text-slate-400'>
@@ -386,10 +367,8 @@ export default function CommunityReservation() {
                 </button>
               ))}
             </div>
-
-            {/* 좌석 배치도 */}
             <div className='overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
-              <div className='mb-1 text-[15px] font-bold text-slate-900'>
+              <div className='mb-1 text-[14px] font-bold text-slate-900'>
                 {currentRoom.label} 좌석 배치도
               </div>
               <SeatMap
@@ -399,26 +378,24 @@ export default function CommunityReservation() {
                 onSelect={setSelSeat}
               />
             </div>
-
-            {/* 예약 바 */}
             {selSeat && (
               <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
                 <div>
                   <div className='text-[11px] font-semibold text-primary'>
                     선택한 좌석
                   </div>
-                  <div className='mt-0.5 text-[15px] font-bold text-slate-900'>
+                  <div className='mt-0.5 text-[14px] font-bold text-slate-900'>
                     {currentRoom.label} · {selSeat}번 · 오늘 14:00 ~ 16:00
                   </div>
                 </div>
                 <button
-                  className='flex items-center gap-2 rounded-xl px-6 py-3 text-[14px] font-bold text-white transition-colors shadow-md'
+                  className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white transition-colors shadow-md'
                   style={{ background: '#0FA896' }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = 'var(--brand-hover)')
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = 'var(--brand)')
+                    (e.currentTarget.style.background = '#0FA896')
                   }
                 >
                   <CalendarCheck className='size-4' />
@@ -429,11 +406,10 @@ export default function CommunityReservation() {
           </div>
         )}
 
-        {/* ── 강의실/스터디룸 탭 ── */}
+        {/* 강의실/스터디룸 탭 */}
         {tab === 'room' && (
           <div>
             <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
-              {/* 타임라인 헤더 */}
               <div className='flex border-b border-border'>
                 <div className='w-[180px] shrink-0 border-r border-border px-4 py-3 text-[12px] font-bold text-slate-400'>
                   공간 / 시간
@@ -447,8 +423,6 @@ export default function CommunityReservation() {
                   </div>
                 ))}
               </div>
-
-              {/* 강의실 행 */}
               {LECTURE_ROOMS.map((room) => {
                 const booked = BOOKED[room.label] ?? [];
                 return (
@@ -502,8 +476,6 @@ export default function CommunityReservation() {
                 );
               })}
             </div>
-
-            {/* 범례 */}
             <div className='mt-3 flex items-center gap-4 text-[12px] text-slate-500'>
               <span className='flex items-center gap-1.5'>
                 <span className='size-3 rounded-sm border border-border bg-white' />
@@ -524,15 +496,13 @@ export default function CommunityReservation() {
                 선택
               </span>
             </div>
-
-            {/* 예약 바 */}
             {selSlot && (
               <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
                 <div>
                   <div className='text-[11px] font-semibold text-primary'>
                     선택한 시간
                   </div>
-                  <div className='mt-0.5 text-[15px] font-bold text-slate-900'>
+                  <div className='mt-0.5 text-[14px] font-bold text-slate-900'>
                     {selSlot.room} · 오늘 {selSlot.slot}:00 ~{' '}
                     {String(Number(selSlot.slot) + 1).padStart(2, '0')}:00 ·
                     정원{' '}
@@ -540,13 +510,13 @@ export default function CommunityReservation() {
                   </div>
                 </div>
                 <button
-                  className='flex items-center gap-2 rounded-xl px-6 py-3 text-[14px] font-bold text-white transition-colors shadow-md'
+                  className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white transition-colors shadow-md'
                   style={{ background: '#0FA896' }}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = 'var(--brand-hover)')
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = 'var(--brand)')
+                    (e.currentTarget.style.background = '#0FA896')
                   }
                 >
                   <CalendarCheck className='size-4' />

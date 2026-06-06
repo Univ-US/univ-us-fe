@@ -52,7 +52,7 @@ function HomeBanner() {
           <span className='size-[6px] animate-pulse rounded-full bg-primary' />
           지금 2,345명 접속 중
         </span>
-        <h2 className='mt-4 text-[24px] font-extrabold leading-[1.34] tracking-tight text-slate-900'>
+        <h2 className='mt-4 text-[22px] font-extrabold leading-[1.34] tracking-tight text-slate-900'>
           좋은 사람들이 모여
           <br />
           <span className='text-primary'>더 나은 캠퍼스</span>를 만들어요
@@ -95,12 +95,12 @@ function PostRow({
         </span>
       ) : (
         <span
-          className={`w-[30px] shrink-0 text-[10.5px] font-bold ${accentClass}`}
+          className={`w-[30px] shrink-0 text-[11px] font-bold ${accentClass}`}
         >
           {post.category}
         </span>
       )}
-      <span className='min-w-0 flex-1 truncate text-[12.5px] font-medium text-slate-700'>
+      <span className='min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700'>
         {post.title}
       </span>
       {post.isHot && (
@@ -109,7 +109,7 @@ function PostRow({
         </span>
       )}
       {post.commentCount > 0 && (
-        <span className='flex shrink-0 items-center gap-1 text-[10.5px] text-slate-400'>
+        <span className='flex shrink-0 items-center gap-1 text-[11px] text-slate-400'>
           <MessageSquare className='size-2.5' />
           {post.commentCount}
         </span>
@@ -142,7 +142,7 @@ function BoardCard({
         href={href}
         className='flex items-center justify-between border-b border-border px-[16px] py-3.5 transition-colors hover:bg-slate-50'
       >
-        <span className='flex items-center gap-2 text-[13.5px] font-bold tracking-tight text-slate-800'>
+        <span className='flex items-center gap-2 text-[14px] font-bold tracking-tight text-slate-800'>
           <span
             className={`flex size-[28px] items-center justify-center rounded-lg ${iconBg}`}
           >
@@ -150,7 +150,7 @@ function BoardCard({
           </span>
           {title}
         </span>
-        <span className='flex items-center gap-1 text-[11px] font-semibold text-slate-400'>
+        <span className='flex items-center gap-1 text-[12px] font-semibold text-slate-400'>
           더보기 <ChevronRight className='size-3' />
         </span>
       </Link>
@@ -177,13 +177,13 @@ function ProductRow({ product }: { product: Product }) {
       <div className='flex size-[34px] shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-primary to-teal-700'>
         <ShoppingBag className='size-3.5 text-white' />
       </div>
-      <span className='min-w-0 flex-1 truncate text-[12.5px] font-medium text-slate-700'>
+      <span className='min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700'>
         {product.productName}
       </span>
-      <span className='shrink-0 text-[12.5px] font-bold text-slate-800'>
+      <span className='shrink-0 text-[13px] font-bold text-slate-800'>
         {formatPrice(product.price)}
       </span>
-      <span className='w-[42px] shrink-0 text-right text-[10.5px] text-slate-400'>
+      <span className='w-[42px] shrink-0 text-right text-[11px] text-slate-400'>
         {product.createdAt}
       </span>
     </Link>
@@ -206,7 +206,7 @@ function PopularRail({
       <div className='sticky top-20 overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
         <div className='flex items-center gap-2 border-b border-border px-[16px] py-3.5'>
           <Flame className='size-[16px] text-orange-500' />
-          <span className='text-[13.5px] font-bold tracking-tight text-slate-800'>
+          <span className='text-[14px] font-bold tracking-tight text-slate-800'>
             인기글
           </span>
           <span className='ml-auto text-[11px] text-slate-400'>조회수 TOP</span>
@@ -224,10 +224,10 @@ function PopularRail({
                 {i + 1}
               </span>
               <div className='min-w-0 flex-1'>
-                <div className='truncate text-[12px] font-medium text-slate-700'>
+                <div className='truncate text-[13px] font-medium text-slate-700'>
                   {item.title}
                 </div>
-                <div className='mt-0.5 flex items-center gap-1 text-[10.5px] text-slate-400'>
+                <div className='mt-0.5 flex items-center gap-1 text-[11px] text-slate-400'>
                   <span>{item.board}게시판</span>
                   <span>·</span>
                   <span className='flex items-center gap-0.5'>
@@ -264,7 +264,7 @@ export default function CommunityHome({
       <div className='mx-auto max-w-[1140px]'>
         <HomeBanner />
         <div className='flex items-start gap-4'>
-          <div className='grid min-w-0 flex-1 grid-cols-2 gap-4'>
+          <div className='grid min-w-0 flex-1 grid-cols-2 gap-4 items-start'>
             <BoardCard
               title='자유게시판'
               href='/community/free'

@@ -1,24 +1,24 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, X, Save, Send } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import type { BoardType } from "@/types/community";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import type { BoardType } from '@/types/community';
 
 // ── 게시판별 카테고리 ──────────────────────────────────
 const CATEGORIES: Record<BoardType, string[]> = {
-  free:   ["일상", "정보", "질문", "잡담", "모임"],
-  secret: ["고민", "잡담", "질문"],
-  notice: ["학사", "시설", "생활", "장학"],
+  free: ['일상', '정보', '질문', '잡담', '모임'],
+  secret: ['고민', '잡담', '질문'],
+  notice: ['학사', '시설', '생활', '장학'],
 };
 
 // ── 게시판별 한글 이름 ─────────────────────────────────
 const BOARD_LABEL: Record<BoardType, string> = {
-  free:   "자유게시판",
-  secret: "익명게시판",
-  notice: "공지사항",
+  free: '자유게시판',
+  secret: '익명게시판',
+  notice: '공지사항',
 };
 
 // ── 칩 버튼 (카테고리 선택) ────────────────────────────
@@ -35,10 +35,10 @@ function Chip({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors",
+        'rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors',
         active
-          ? "border-primary bg-primary text-white"
-          : "border-border bg-card text-muted-foreground hover:bg-slate-50"
+          ? 'border-primary bg-primary text-white'
+          : 'border-border bg-card text-muted-foreground hover:bg-slate-50',
       )}
     >
       {label}
@@ -57,12 +57,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-[22px]">
-      <label className="mb-2.5 block text-[13.5px] font-bold">{label}</label>
+    <div className='mb-[22px]'>
+      <label className='mb-2.5 block text-[13px] font-bold'>{label}</label>
       {children}
-      {hint && (
-        <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>
-      )}
+      {hint && <p className='mt-1.5 text-xs text-muted-foreground'>{hint}</p>}
     </div>
   );
 }
@@ -77,64 +75,64 @@ export default function CommunityBoardWrite({
 }: CommunityBoardWriteProps) {
   const router = useRouter();
   const [category, setCategory] = useState(CATEGORIES[board][0]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
   const [images, setImages] = useState<string[]>([]); // TODO: 실제 파일 업로드로 교체
 
-  const isAnon = board === "secret";
-  const isNotice = board === "notice";
+  const isAnon = board === 'secret';
+  const isNotice = board === 'notice';
 
   const handleBack = () => router.push(`/community/${board}`);
 
   const handleSubmit = () => {
     if (!title.trim()) {
-      alert("제목을 입력해주세요.");
+      alert('제목을 입력해주세요.');
       return;
     }
     if (!content.trim()) {
-      alert("내용을 입력해주세요.");
+      alert('내용을 입력해주세요.');
       return;
     }
     // TODO: axios로 POST /api/posts 호출
     console.log({ board, category, title, content });
-    alert("등록되었습니다.");
+    alert('등록되었습니다.');
     handleBack();
   };
 
   return (
-    <div className="px-[30px] py-7">
-      <div className="mx-auto max-w-[760px]">
-
+    <div className='px-[30px] py-7'>
+      <div className='mx-auto max-w-[760px]'>
         {/* 뒤로가기 */}
         <button
           onClick={handleBack}
-          className="mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
+          className='mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground'
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className='size-4' />
           취소하고 돌아가기
         </button>
 
-        <h2 className="mb-5 text-2xl font-extrabold tracking-tight">
+        <h2 className='mb-5 text-[22px] font-extrabold tracking-tight'>
           {BOARD_LABEL[board]} 글쓰기
         </h2>
 
         {/* 익명 안내 */}
         {isAnon && (
-          <div className="mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700">
-            익명으로 작성돼요. 작성자 정보는 표시되지 않지만 서로 존중하는 글을 부탁드려요.
+          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700'>
+            익명으로 작성돼요. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
+            부탁드려요.
           </div>
         )}
 
         {/* 공지사항 안내 */}
         {isNotice && (
-          <div className="mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700">
+          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700'>
             공지사항은 운영 권한이 있는 계정만 게시할 수 있어요.
           </div>
         )}
 
         {/* 카테고리 */}
-        <Field label="카테고리">
-          <div className="flex flex-wrap gap-2">
+        <Field label='카테고리'>
+          <div className='flex flex-wrap gap-2'>
             {CATEGORIES[board].map((cat) => (
               <Chip
                 key={cat}
@@ -147,22 +145,24 @@ export default function CommunityBoardWrite({
         </Field>
 
         {/* 제목 */}
-        <Field label="제목">
+        <Field label='제목'>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={isNotice ? "공지 제목을 입력하세요" : "제목을 입력하세요"}
-            className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[15px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
+            placeholder={
+              isNotice ? '공지 제목을 입력하세요' : '제목을 입력하세요'
+            }
+            className='flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[14px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />
         </Field>
 
         {/* 내용 */}
         <Field
-          label="내용"
+          label='내용'
           hint={
             isAnon
-              ? "개인정보가 드러나지 않도록 주의해 주세요."
-              : "이미지는 아래 버튼으로 추가할 수 있어요."
+              ? '개인정보가 드러나지 않도록 주의해 주세요.'
+              : '이미지는 아래 버튼으로 추가할 수 있어요.'
           }
         >
           <textarea
@@ -171,31 +171,36 @@ export default function CommunityBoardWrite({
             rows={9}
             placeholder={
               isAnon
-                ? "익명으로 편하게 이야기를 들려주세요."
+                ? '익명으로 편하게 이야기를 들려주세요.'
                 : isNotice
-                ? "공지 내용을 입력하세요. 일정·대상·문의처를 함께 적어주세요."
-                : "자유롭게 이야기를 적어보세요."
+                  ? '공지 내용을 입력하세요. 일정·대상·문의처를 함께 적어주세요.'
+                  : '자유롭게 이야기를 적어보세요.'
             }
-            className="flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[14.5px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
+            className='flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />
         </Field>
 
         {/* 이미지 첨부 - 익명게시판 제외 */}
         {!isAnon && (
-          <Field label="사진 첨부">
-            <div className="flex gap-3">
-              <button className="flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100">
-                <ImagePlus className="size-[22px]" />
-                <span className="text-xs font-semibold">사진 추가</span>
+          <Field label='사진 첨부'>
+            <div className='flex gap-3'>
+              <button className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'>
+                <ImagePlus className='size-[22px]' />
+                <span className='text-xs font-semibold'>사진 추가</span>
               </button>
               {/* 미리보기 — TODO: 실제 이미지로 교체 */}
               {images.map((img, i) => (
-                <div key={i} className="relative size-24 overflow-hidden rounded-xl bg-slate-200">
+                <div
+                  key={i}
+                  className='relative size-24 overflow-hidden rounded-xl bg-slate-200'
+                >
                   <button
-                    onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                    className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white"
+                    onClick={() =>
+                      setImages(images.filter((_, idx) => idx !== i))
+                    }
+                    className='absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white'
                   >
-                    <X className="size-3.5" />
+                    <X className='size-3.5' />
                   </button>
                 </div>
               ))}
@@ -204,22 +209,21 @@ export default function CommunityBoardWrite({
         )}
 
         {/* 하단 버튼 */}
-        <div className="mt-1.5 flex justify-end gap-2 border-t border-border pt-3">
-          <Button variant="outline" onClick={handleBack}>
+        <div className='mt-1.5 flex justify-end gap-2 border-t border-border pt-3'>
+          <Button variant='outline' onClick={handleBack}>
             취소
           </Button>
           {!isNotice && (
-            <Button variant="ghost">
-              <Save className="size-4" />
+            <Button variant='ghost'>
+              <Save className='size-4' />
               임시저장
             </Button>
           )}
           <Button onClick={handleSubmit}>
-            <Send className="size-4" />
-            {isNotice ? "공지 게시" : "등록하기"}
+            <Send className='size-4' />
+            {isNotice ? '공지 게시' : '등록하기'}
           </Button>
         </div>
-
       </div>
     </div>
   );

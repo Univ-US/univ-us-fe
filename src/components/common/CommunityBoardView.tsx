@@ -108,7 +108,7 @@ function PostRow({
         className='flex w-full items-center gap-3 border-b border-border bg-slate-50 px-[18px] py-[15px] text-left last:border-0'
       >
         <EyeOff className='size-[17px] shrink-0 text-slate-300' />
-        <span className='min-w-0 flex-1 text-[14px] font-medium text-slate-400'>
+        <span className='min-w-0 flex-1 text-[13px] font-medium text-slate-400'>
           신고가 누적되어 블라인드 처리된 게시글이에요.
         </span>
         <span className='shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-500'>
@@ -138,7 +138,7 @@ function PostRow({
             {post.tag}
           </span>
         ) : (
-          <span className='rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500 whitespace-nowrap'>
+          <span className='rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500 whitespace-nowrap'>
             {post.category}
           </span>
         )}
@@ -146,11 +146,11 @@ function PostRow({
 
       {/* 제목 + HOT */}
       <div className='flex min-w-0 flex-1 items-center gap-2'>
-        <span className='truncate text-[14px] font-semibold text-slate-800'>
+        <span className='truncate text-[13px] font-semibold text-slate-800'>
           {post.title}
         </span>
         {post.isHot && (
-          <span className='shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-500'>
+          <span className='shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-500'>
             HOT
           </span>
         )}
@@ -255,7 +255,7 @@ function SidePopular({ posts }: { posts: Post[] }) {
     <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
       <div className='flex items-center gap-2 border-b border-border px-4 py-3.5'>
         <Heart className='size-4 text-red-400' />
-        <span className='text-[13px] font-bold text-slate-800'>
+        <span className='text-[14px] font-bold text-slate-800'>
           이 게시판 인기글
         </span>
       </div>
@@ -277,7 +277,7 @@ function SidePopular({ posts }: { posts: Post[] }) {
               <div className='truncate text-[12px] font-medium text-slate-700'>
                 {post.title}
               </div>
-              <div className='mt-0.5 flex items-center gap-2 text-[10.5px] text-slate-400'>
+              <div className='mt-0.5 flex items-center gap-2 text-[11px] text-slate-400'>
                 <span className='flex items-center gap-1'>
                   <Heart className='size-2.5' />
                   {post.likeCount}
@@ -302,7 +302,7 @@ function SideRules({ rules }: { rules: string[] }) {
       {/* 헤더 - 구분선 없이 패딩으로 */}
       <div className='flex items-center gap-2 px-4 pt-4 pb-1'>
         <Shield className='size-4 text-primary' />
-        <span className='text-[13px] font-bold text-slate-800'>
+        <span className='text-[14px] font-bold text-slate-800'>
           게시판 이용 안내
         </span>
       </div>
