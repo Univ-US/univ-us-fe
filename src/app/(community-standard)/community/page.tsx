@@ -10,9 +10,9 @@ import {
 export default function CommunityHomePage() {
   return (
     <CommunityHome
-      freePosts={SAMPLE_POSTS.free}
-      secretPosts={SAMPLE_POSTS.secret}
-      noticePosts={SAMPLE_POSTS.notice}
+      freePosts={SAMPLE_POSTS.free.slice(0, 5)}
+      secretPosts={SAMPLE_POSTS.secret.slice(0, 5)}
+      noticePosts={SAMPLE_POSTS.notice.slice(0, 3)}
       latestProducts={SAMPLE_PRODUCTS.slice(0, 5)}
       popular={SAMPLE_POPULAR}
     />
