@@ -1,44 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Monitor, Check, CalendarCheck } from 'lucide-react';
+import {
+  getReadingRoomAvailability,
+  getReadingSeatAvailability,
+  reserveReadingSeat,
+  type ReadingRoomAvailability,
+  type ReadingSeatAvailability,
+} from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
-
-const STUDY_ROOMS = [
-  {
-    key: 'study1',
-    label: '제1독서실',
-    total: 40,
-    free: 12,
-    note: '4층 · 정숙구역',
-    danger: false,
-  },
-  {
-    key: 'study2',
-    label: '제2독서실',
-    total: 32,
-    free: 20,
-    note: '5층 · 노트북 가능',
-    danger: false,
-  },
-  {
-    key: 'lab',
-    label: '노트북 열람실',
-    total: 24,
-    free: 5,
-    note: '5층 · 콘센트석',
-    danger: true,
-  },
-];
-
-const TAKEN_SEATS: Record<string, number[]> = {
-  study1: [
-    2, 5, 7, 11, 14, 17, 21, 24, 26, 29, 3, 19, 33, 35, 38, 40, 1, 6, 9, 15, 20,
-    22, 25, 28, 30, 32, 36, 37,
-  ],
-  study2: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23],
-  lab: [1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19],
-};
 
 const LECTURE_ROOMS = [
   { key: 'g201', label: '그룹스터디룸 201', cap: 6 },
@@ -66,6 +37,48 @@ const WEEK = [
   { wd: '목', d: 11 },
 ];
 
+const RESERVATION_YEAR = 2026;
+const RESERVATION_MONTH = 6;
+const SLOT_HOURS = 2;
+const MAX_SELECTED_SLOT_COUNT = 3;
+const DEFAULT_SLOT_INDEX = 3;
+const TIME_SLOTS = Array.from({ length: 8 }, (_, index) => {
+  const startHour = 8 + index * SLOT_HOURS;
+  return {
+    startHour,
+    endHour: startHour + SLOT_HOURS,
+  };
+});
+
+function formatHour(hour: number) {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+function toReservationDateTime(day: number, hour: number) {
+  const date = new Date(RESERVATION_YEAR, RESERVATION_MONTH - 1, day, hour);
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:00:00`;
+}
+
+function isContinuousSlotSelection(slotIndexes: number[]) {
+  return slotIndexes.every(
+    (slotIndex, index) => index === 0 || slotIndex === slotIndexes[index - 1] + 1,
+  );
+}
+
+function sortSeats(seats: ReadingSeatAvailability[]) {
+  return [...seats].sort((a, b) => {
+    const aNumber = Number(a.seatNumber);
+    const bNumber = Number(b.seatNumber);
+
+    if (Number.isNaN(aNumber) || Number.isNaN(bNumber)) {
+      return a.seatNumber.localeCompare(b.seatNumber);
+    }
+
+    return aNumber - bNumber;
+  });
+}
+
 function Ring({
   free,
   total,
@@ -80,6 +93,7 @@ function Ring({
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const color = danger ? '#E04E3A' : '#0FA896';
+  const ratio = total > 0 ? free / total : 0;
 
   return (
     <div className='relative shrink-0' style={{ width: size, height: size }}>
@@ -100,7 +114,7 @@ function Ring({
           stroke={color}
           strokeWidth={stroke}
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - free / total)}
+          strokeDashoffset={c * (1 - ratio)}
           strokeLinecap='round'
           style={{ transition: 'stroke-dashoffset .5s' }}
         />
@@ -119,38 +133,45 @@ function Ring({
 }
 
 function SeatMap({
-  roomKey,
-  total,
+  seats,
   selectedSeat,
   onSelect,
+  readingRoomId,
+  roomName,
 }: {
-  roomKey: string;
-  total: number;
-  selectedSeat: number | null;
-  onSelect: (n: number) => void;
+  seats: ReadingSeatAvailability[];
+  selectedSeat: ReadingSeatAvailability | null;
+  onSelect: (seat: ReadingSeatAvailability) => void;
+  readingRoomId?: number | null;
+  roomName?: string;
 }) {
-  const taken = TAKEN_SEATS[roomKey] ?? [];
-  const half = Math.ceil(total / 2);
-  const colsA = Array.from({ length: half }, (_, i) => i + 1);
-  const colsB = Array.from({ length: total - half }, (_, i) => half + i + 1);
+  const sortedSeats = sortSeats(seats);
+  const seatsA = sortedSeats.filter((seat) => seat.zoneName === 'A');
+  const seatsB = sortedSeats.filter((seat) => seat.zoneName === 'B');
+  const fallbackHalf = Math.ceil(sortedSeats.length / 2);
+  const colsA = seatsA.length > 0 ? seatsA : sortedSeats.slice(0, fallbackHalf);
+  const colsB = seatsB.length > 0 ? seatsB : sortedSeats.slice(fallbackHalf);
+  const isSecondReadingRoom =
+    readingRoomId === 2 || (roomName?.includes('제2') ?? false);
+  const gridCols = isSecondReadingRoom ? 'grid-cols-8' : 'grid-cols-4';
 
-  const SeatBtn = ({ n }: { n: number }) => {
-    const isTaken = taken.includes(n);
-    const isSelected = selectedSeat === n;
+  const SeatBtn = ({ seat }: { seat: ReadingSeatAvailability }) => {
+    const isDisabled = seat.seatStatus !== 'AVAILABLE';
+    const isSelected = selectedSeat?.seatId === seat.seatId;
     return (
       <button
-        disabled={isTaken}
-        onClick={() => onSelect(n)}
+        disabled={isDisabled}
+        onClick={() => onSelect(seat)}
         className={cn(
           'flex size-[44px] items-center justify-center rounded-lg text-[13px] font-bold transition-all',
-          isTaken
+          isDisabled
             ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
             : isSelected
               ? 'bg-primary text-white shadow-md'
               : 'bg-white border border-border text-slate-600 hover:border-primary hover:text-primary',
         )}
       >
-        {isSelected ? <Check className='size-4' /> : n}
+        {isSelected ? <Check className='size-4' /> : seat.seatNumber}
       </button>
     );
   };
@@ -176,9 +197,9 @@ function SeatMap({
           <div className='mb-2 text-center text-[11px] font-bold text-slate-400'>
             A 구역
           </div>
-          <div className='grid grid-cols-4 gap-2'>
-            {colsA.map((n) => (
-              <SeatBtn key={n} n={n} />
+          <div className={cn('grid gap-2', gridCols)}>
+            {colsA.map((seat) => (
+              <SeatBtn key={seat.seatId} seat={seat} />
             ))}
           </div>
         </div>
@@ -189,9 +210,9 @@ function SeatMap({
           <div className='mb-2 text-center text-[11px] font-bold text-slate-400'>
             B 구역
           </div>
-          <div className='grid grid-cols-4 gap-2'>
-            {colsB.map((n) => (
-              <SeatBtn key={n} n={n} />
+          <div className={cn('grid gap-2', gridCols)}>
+            {colsB.map((seat) => (
+              <SeatBtn key={seat.seatId} seat={seat} />
             ))}
           </div>
         </div>
@@ -208,14 +229,188 @@ function SeatMap({
 export default function CommunityReservation() {
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
-  const [selRoom, setSelRoom] = useState('study2');
-  const [selSeat, setSelSeat] = useState<number | null>(null);
+  const [selectedSlotIndexes, setSelectedSlotIndexes] = useState<number[]>([
+    DEFAULT_SLOT_INDEX,
+  ]);
+  const [rooms, setRooms] = useState<ReadingRoomAvailability[]>([]);
+  const [seats, setSeats] = useState<ReadingSeatAvailability[]>([]);
+  const [selRoomId, setSelRoomId] = useState<number | null>(null);
+  const [selSeat, setSelSeat] = useState<ReadingSeatAvailability | null>(null);
   const [selSlot, setSelSlot] = useState<{ room: string; slot: string } | null>(
     null,
   );
+  const [seatLoading, setSeatLoading] = useState(false);
+  const [seatError, setSeatError] = useState('');
+  const [reservationLoading, setReservationLoading] = useState(false);
 
-  const totalFree = STUDY_ROOMS.reduce((a, r) => a + r.free, 0);
-  const currentRoom = STUDY_ROOMS.find((r) => r.key === selRoom)!;
+  const selectedDay = WEEK[selDay];
+  const selectedSlots = useMemo(
+    () => selectedSlotIndexes.map((slotIndex) => TIME_SLOTS[slotIndex]),
+    [selectedSlotIndexes],
+  );
+  const selectedStartHour = selectedSlots[0].startHour;
+  const selectedEndHour = selectedSlots[selectedSlots.length - 1].endHour;
+  const selectedDurationHours = selectedSlotIndexes.length * SLOT_HOURS;
+  const startTime = useMemo(
+    () => toReservationDateTime(selectedDay.d, selectedStartHour),
+    [selectedDay.d, selectedStartHour],
+  );
+  const endTime = useMemo(
+    () => toReservationDateTime(selectedDay.d, selectedEndHour),
+    [selectedDay.d, selectedEndHour],
+  );
+  const totalFree = rooms.reduce(
+    (total, room) => total + room.availableSeatCount,
+    0,
+  );
+  const currentRoom = rooms.find((room) => room.readingRoomId === selRoomId);
+  const selectedDateLabel = selectedDay.today
+    ? '오늘'
+    : `${RESERVATION_MONTH}월 ${selectedDay.d}일`;
+  const selectedTimeLabel = `${selectedDateLabel} ${formatHour(selectedStartHour)} ~ ${formatHour(selectedEndHour)}`;
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadRooms() {
+      setSeatLoading(true);
+      setSeatError('');
+
+      try {
+        const data = await getReadingRoomAvailability(startTime, endTime);
+        if (!mounted) return;
+
+        setRooms(data);
+        if (data.length === 0) {
+          setSeats([]);
+          setSelSeat(null);
+        }
+        setSelRoomId((current) => {
+          if (current && data.some((room) => room.readingRoomId === current)) {
+            return current;
+          }
+
+          return data[0]?.readingRoomId ?? null;
+        });
+      } catch (error) {
+        console.error(error);
+        if (mounted) {
+          setSeatError('좌석 현황을 불러오지 못했습니다.');
+        }
+      } finally {
+        if (mounted) {
+          setSeatLoading(false);
+        }
+      }
+    }
+
+    loadRooms();
+
+    return () => {
+      mounted = false;
+    };
+  }, [startTime, endTime]);
+
+  useEffect(() => {
+    if (!selRoomId) {
+      return;
+    }
+
+    const readingRoomId = selRoomId;
+    let mounted = true;
+
+    async function loadSeats() {
+      setSeatLoading(true);
+      setSeatError('');
+
+      try {
+        const data = await getReadingSeatAvailability(
+          readingRoomId,
+          startTime,
+          endTime,
+        );
+        if (mounted) {
+          setSeats(data);
+        }
+      } catch (error) {
+        console.error(error);
+        if (mounted) {
+          setSeatError('좌석 배치도를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (mounted) {
+          setSeatLoading(false);
+        }
+      }
+    }
+
+    loadSeats();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selRoomId, startTime, endTime]);
+
+  function handleTimeSlotClick(slotIndex: number) {
+    setSelectedSlotIndexes((current) => {
+      const isSelected = current.includes(slotIndex);
+
+      if (isSelected) {
+        if (current.length === 1) {
+          return current;
+        }
+
+        const next = current.filter((currentSlotIndex) => currentSlotIndex !== slotIndex);
+        return isContinuousSlotSelection(next) ? next : [slotIndex];
+      }
+
+      const next = [...current, slotIndex].sort((a, b) => a - b);
+      if (!isContinuousSlotSelection(next)) {
+        return [slotIndex];
+      }
+
+      if (next.length <= MAX_SELECTED_SLOT_COUNT) {
+        return next;
+      }
+
+      const isAfterCurrentRange = slotIndex > current[current.length - 1];
+      return isAfterCurrentRange
+        ? next.slice(next.length - MAX_SELECTED_SLOT_COUNT)
+        : next.slice(0, MAX_SELECTED_SLOT_COUNT);
+    });
+    setSelSeat(null);
+  }
+
+  async function handleReserveSeat() {
+    if (!selSeat) return;
+
+    setReservationLoading(true);
+
+    try {
+      await reserveReadingSeat({
+        seatId: selSeat.seatId,
+        startTime,
+        endTime,
+      });
+      setSelSeat(null);
+
+      if (selRoomId) {
+        const [roomData, seatData] = await Promise.all([
+          getReadingRoomAvailability(startTime, endTime),
+          getReadingSeatAvailability(selRoomId, startTime, endTime),
+        ]);
+        setRooms(roomData);
+        setSeats(seatData);
+      }
+
+      window.alert('좌석 예약이 완료되었습니다.');
+    } catch (error) {
+      console.error(error);
+      window.alert('예약 요청에 실패했습니다. 로그인 상태와 좌석 상태를 확인해주세요.');
+    } finally {
+      setReservationLoading(false);
+    }
+  }
 
   return (
     <div className='min-h-screen bg-slate-50 px-[30px] py-6'>
@@ -246,7 +441,7 @@ export default function CommunityReservation() {
             </span>
             <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600'>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
-              공간 <b className='text-slate-900'>4</b>곳
+              공간 <b className='text-slate-900'>{rooms.length}</b>곳
             </span>
           </div>
         </div>
@@ -326,42 +521,88 @@ export default function CommunityReservation() {
 
         {/* 독서실 좌석 탭 */}
         {tab === 'seat' && (
+          <div className='mb-5 flex items-start gap-3 flex-wrap'>
+          <span className='pt-3 text-[13px] font-bold text-slate-400'>
+            이용 시간
+          </span>
+          <div className='flex flex-col gap-2'>
+            <div className='flex flex-wrap gap-2'>
+              {TIME_SLOTS.map((slot, index) => {
+                const isSelected = selectedSlotIndexes.includes(index);
+                const isStartSlot = index === selectedSlotIndexes[0];
+
+                return (
+                  <button
+                    key={slot.startHour}
+                    onClick={() => handleTimeSlotClick(index)}
+                    className={cn(
+                      'h-[44px] min-w-[104px] rounded-xl border px-3 text-[12px] font-bold transition-all',
+                      isSelected
+                        ? isStartSlot
+                          ? 'border-primary bg-primary text-white shadow-md'
+                          : 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-white text-slate-600 hover:border-primary hover:text-primary',
+                    )}
+                  >
+                    {formatHour(slot.startHour)} - {formatHour(slot.endHour)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className='flex flex-wrap items-center gap-2 text-[12px] font-bold'>
+              <span className='rounded-full bg-primary/10 px-3 py-1 text-primary'>
+                선택 시간 {formatHour(selectedStartHour)} ~{' '}
+                {formatHour(selectedEndHour)}
+              </span>
+              <span className='rounded-full bg-slate-100 px-3 py-1 text-slate-500'>
+                총 {selectedDurationHours}시간
+              </span>
+            </div>
+          </div>
+          </div>
+        )}
+
+        {tab === 'seat' && (
           <div>
             <div className='mb-5 grid grid-cols-3 gap-4'>
-              {STUDY_ROOMS.map((room) => (
+              {rooms.map((room) => (
                 <button
-                  key={room.key}
+                  key={room.readingRoomId}
                   onClick={() => {
-                    setSelRoom(room.key);
+                    setSelRoomId(room.readingRoomId);
                     setSelSeat(null);
                   }}
                   className={cn(
                     'flex items-center gap-4 rounded-2xl border p-5 text-left transition-all',
-                    selRoom === room.key
+                    selRoomId === room.readingRoomId
                       ? 'border-primary bg-primary/5 shadow-md'
                       : 'border-border bg-white hover:border-primary shadow-sm',
                   )}
                 >
                   <Ring
-                    free={room.free}
-                    total={room.total}
-                    danger={room.danger}
+                    free={room.availableSeatCount}
+                    total={room.totalSeatCount}
+                    danger={room.availableSeatCount <= 5}
                   />
                   <div>
                     <div className='text-[14px] font-bold text-slate-900'>
-                      {room.label}
+                      {room.roomName}
                     </div>
                     <div className='mt-0.5 text-[12px] text-slate-400'>
-                      {room.note}
+                      {[room.floorName, room.description]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </div>
                     <div
                       className={cn(
                         'mt-1.5 text-[12px] font-semibold',
-                        room.danger ? 'text-red-500' : 'text-primary',
+                        room.availableSeatCount <= 5
+                          ? 'text-red-500'
+                          : 'text-primary',
                       )}
                     >
-                      {room.danger ? '마감 임박' : '여유 있음'} · 전체{' '}
-                      {room.total}석
+                      {room.availableSeatCount <= 5 ? '마감 임박' : '여유 있음'} ·
+                      전체 {room.totalSeatCount}석
                     </div>
                   </div>
                 </button>
@@ -369,14 +610,29 @@ export default function CommunityReservation() {
             </div>
             <div className='overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
               <div className='mb-1 text-[14px] font-bold text-slate-900'>
-                {currentRoom.label} 좌석 배치도
+                {currentRoom?.roomName ?? '독서실'} 좌석 배치도
               </div>
-              <SeatMap
-                roomKey={selRoom}
-                total={currentRoom.total}
-                selectedSeat={selSeat}
-                onSelect={setSelSeat}
-              />
+              {seatError ? (
+                <div className='mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-8 text-center text-[13px] font-semibold text-red-500'>
+                  {seatError}
+                </div>
+              ) : seatLoading && seats.length === 0 ? (
+                <div className='mt-4 rounded-xl border border-border bg-slate-50 px-4 py-8 text-center text-[13px] font-semibold text-slate-400'>
+                  좌석 현황을 불러오는 중입니다.
+                </div>
+              ) : seats.length === 0 ? (
+                <div className='mt-4 rounded-xl border border-border bg-slate-50 px-4 py-8 text-center text-[13px] font-semibold text-slate-400'>
+                  등록된 좌석이 없습니다.
+                </div>
+              ) : (
+                <SeatMap
+                  seats={seats}
+                  selectedSeat={selSeat}
+                  onSelect={setSelSeat}
+                  readingRoomId={currentRoom?.readingRoomId}
+                  roomName={currentRoom?.roomName}
+                />
+              )}
             </div>
             {selSeat && (
               <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
@@ -385,10 +641,16 @@ export default function CommunityReservation() {
                     선택한 좌석
                   </div>
                   <div className='mt-0.5 text-[14px] font-bold text-slate-900'>
-                    {currentRoom.label} · {selSeat}번 · 오늘 14:00 ~ 16:00
+                    {currentRoom?.roomName} · {selSeat.seatNumber}번 ·{' '}
+                    {selectedTimeLabel}
+                  </div>
+                  <div className='mt-1 text-[12px] font-semibold text-slate-500'>
+                    총 {selectedDurationHours}시간
                   </div>
                 </div>
                 <button
+                  disabled={reservationLoading}
+                  onClick={handleReserveSeat}
                   className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white transition-colors shadow-md'
                   style={{ background: '#0FA896' }}
                   onMouseEnter={(e) =>
@@ -399,7 +661,7 @@ export default function CommunityReservation() {
                   }
                 >
                   <CalendarCheck className='size-4' />
-                  좌석 예약하기
+                  {reservationLoading ? '예약 중' : '좌석 예약하기'}
                 </button>
               </div>
             )}
