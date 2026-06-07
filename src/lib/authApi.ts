@@ -14,8 +14,7 @@ export interface LoginResponse {
 }
 
 export const login = async (payload: LoginRequest) => {
-    const res = await api.post<LoginResponse>("/api/auth/login", payload);
-    return res.data;
+    const res = await api.post<LoginResponse>("/api/auth/admin/login", payload);    return res.data;
 };
 
 export const logout = async (refreshToken: string) => {
