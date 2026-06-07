@@ -189,6 +189,11 @@ export default function HomePage() {
                                 대시보드로 이동
                             </Link>
                         </Button>
+                    ) : isLoggedIn ? (
+                        <Button variant="outline" size="lg" className="h-11 px-6 text-base font-bold" disabled>
+                            <LayoutDashboard className="size-4" />
+                            로그인됨
+                        </Button>
                     ) : (
                         <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base font-bold">
                             <Link href="/login">
