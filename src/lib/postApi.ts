@@ -1,6 +1,6 @@
 // src/lib/postApi.ts
 import api from "@/lib/api";
-import type { Post } from "@/types/community";
+import type { Post, PostComment } from "@/types/community";
 
 // 게시글 목록 조회
 export const getPostList = async (params: {
@@ -59,4 +59,37 @@ export const togglePostLike = async (postId: number) => {
 export const getPostLikeStatus = async (postId: number) => {
   const res = await api.get(`/api/posts/${postId}/like`);
   return res.data as { liked: boolean };
+};
+
+// ── 댓글 ──────────────────────────────────────────────
+
+// 댓글 목록 조회
+export const getCommentList = async (postId: number) => {
+  const res = await api.get(`/api/posts/${postId}/comments`);
+  return res.data as PostComment[];
+};
+
+// 댓글 등록 (parentId 없으면 최상위 댓글, 있으면 대댓글)
+export const createComment = async (
+  postId: number,
+  data: { content: string; parentId?: number; isAnonymous?: number }
+) => {
+  const res = await api.post(`/api/posts/${postId}/comments`, data);
+  return res.data;
+};
+
+// 댓글 수정
+export const updateComment = async (
+  postId: number,
+  commentId: number,
+  data: { content: string }
+) => {
+  const res = await api.put(`/api/posts/${postId}/comments/${commentId}`, data);
+  return res.data;
+};
+
+// 댓글 삭제
+export const deleteComment = async (postId: number, commentId: number) => {
+  const res = await api.delete(`/api/posts/${postId}/comments/${commentId}`);
+  return res.data;
 };

@@ -16,6 +16,7 @@ interface CommunityBoardDetailProps {
   isAnon: boolean;
   board: BoardType;
   onBack: () => void;
+  onRefresh?: () => void; // 목록 댓글 수 동기화용
 }
 
 export default function CommunityBoardDetail({
@@ -23,6 +24,7 @@ export default function CommunityBoardDetail({
   isAnon,
   board,
   onBack,
+  onRefresh,
 }: CommunityBoardDetailProps) {
   const router = useRouter();
   const [post, setPost] = useState<Post>(initialPost);
@@ -202,7 +204,7 @@ export default function CommunityBoardDetail({
         <CommunityBoardComment
           postId={post.postId}
           isAnon={isAnon}
-          initialComments={[]}
+          onRefresh={onRefresh}
         />
       </div>
 
