@@ -147,7 +147,9 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
   }, [postId]);
 
   useEffect(() => {
-    void fetchComments();
+    (async () => {
+      await fetchComments();
+    })();
   }, [fetchComments]);
 
   // 최상위 댓글 등록
