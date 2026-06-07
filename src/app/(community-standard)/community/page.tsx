@@ -9,7 +9,7 @@ export default function CommunityHomePage() {
   const [freePosts, setFreePosts] = useState<Post[]>([]);
   const [secretPosts, setSecretPosts] = useState<Post[]>([]);
   const [noticePosts, setNoticePosts] = useState<Post[]>([]);
-  const [popular, setPopular] = useState<{ title: string; board: string; viewCount: number }[]>([]);
+  const [popular, setPopular] = useState<{ postId: number; title: string; board: string; boardPath: string; viewCount: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,15 +29,18 @@ export default function CommunityHomePage() {
         setSecretPosts(secret);
         setNoticePosts(notice);
 
-        // 전체 게시글 합치서 조회수 TOP 5 인기글
+        // 전체 게시글 합쳐서 조회수 TOP 5 인기글
         const boardLabel: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
+        const boardPath: Record<number, string>  = { 1: 'free', 2: 'secret', 3: 'notice' };
         const all = [...free, ...secret, ...notice];
         const top5 = all
           .sort((a, b) => b.viewCount - a.viewCount)
           .slice(0, 5)
           .map((p) => ({
-            title: p.title,
-            board: boardLabel[p.boardId] ?? '기타',
+            postId:    p.postId,
+            title:     p.title,
+            board:     boardLabel[p.boardId] ?? '기타',
+            boardPath: boardPath[p.boardId]  ?? 'free',
             viewCount: p.viewCount,
           }));
         setPopular(top5);
