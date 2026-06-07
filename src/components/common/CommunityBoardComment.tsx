@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Heart, CornerDownRight, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { CornerDownRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCommentList, createComment, deleteComment } from '@/lib/postApi';
 import { formatDate } from '@/lib/utils';
@@ -115,7 +115,7 @@ function CommentItem({ comment, isAnon, isLast, onDelete, onReplySubmit }: {
 interface CommunityBoardCommentProps {
   postId: number;
   isAnon: boolean;
-  onRefresh?: () => void; // 목록 댓글 수 동기화용
+  onRefresh?: () => void;
 }
 
 export default function CommunityBoardComment({ postId, isAnon, onRefresh }: CommunityBoardCommentProps) {
@@ -124,7 +124,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const flat = await getCommentList(postId);
       const roots: PostComment[] = [];
@@ -144,11 +144,11 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId]);
 
   useEffect(() => {
-    fetchComments();
-  }, [postId]);
+    void fetchComments();
+  }, [fetchComments]);
 
   // 최상위 댓글 등록
   const handleCommentSubmit = async () => {
@@ -158,7 +158,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
       await createComment(postId, { content: draft.trim(), isAnonymous: isAnon ? 1 : 0 });
       setDraft('');
       await fetchComments();
-      onRefresh?.(); // 목록 댓글 수 갱신
+      onRefresh?.();
     } catch {
       alert('댓글 등록에 실패했어. 다시 시도해줘.');
     } finally {
@@ -170,7 +170,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
   const handleReplySubmit = async (parentId: number, content: string) => {
     await createComment(postId, { content, parentId, isAnonymous: isAnon ? 1 : 0 });
     await fetchComments();
-    onRefresh?.(); // 목록 댓글 수 갱신
+    onRefresh?.();
   };
 
   // 댓글/대댓글 삭제
@@ -179,7 +179,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
     try {
       await deleteComment(postId, commentId);
       await fetchComments();
-      onRefresh?.(); // 목록 댓글 수 갱신
+      onRefresh?.();
     } catch {
       alert('삭제에 실패했어. 다시 시도해줘.');
     }

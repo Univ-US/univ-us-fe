@@ -25,7 +25,7 @@ export default function SecretBoardPage() {
   }, []);
 
   useEffect(() => {
-    fetchPosts();
+    void fetchPosts();
   }, [fetchPosts]);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center text-slate-400 text-[14px]">게시글 불러오는 중...</div>;
