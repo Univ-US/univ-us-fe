@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -198,6 +198,7 @@ interface CommunityBoardViewProps {
 export default function CommunityBoardView({ board, posts, onRefresh }: CommunityBoardViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -206,14 +207,22 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
   const isAnon = board === 'secret';
   const meta = BOARD_META[board];
 
+  // URL ?postId= 쿼리 읽어서 상세 자동 오픈
   useEffect(() => {
     const postIdParam = searchParams.get('postId');
     if (!postIdParam) return;
     const postId = Number(postIdParam);
     if (selectedPost?.postId === postId) return;
+
     const found = posts.find((p) => p.postId === postId);
-    if (found) { setSelectedPost(found); }
-    else { getPostById(postId).then((data) => setSelectedPost(data)).catch(() => {}); }
+    // startTransition으로 감싸서 effect 안 setState 경고 해결
+    if (found) {
+      startTransition(() => setSelectedPost(found));
+    } else {
+      getPostById(postId)
+        .then((data) => startTransition(() => setSelectedPost(data)))
+        .catch(() => {});
+    }
   }, [searchParams, posts]);
 
   const filteredPosts = selectedCategory === '전체' ? posts : posts.filter((p) => p.category === selectedCategory);
@@ -289,7 +298,6 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
                     </span>
                   </div>
                 </div>
-                {/* 알림 버튼 — 흰 배경 + 명확한 테두리 */}
                 <button className='flex shrink-0 size-[34px] items-center justify-center rounded-full border border-slate-300 bg-white text-slate-400 shadow-sm transition-colors hover:border-primary hover:text-primary'>
                   <Bell className='size-[16px]' />
                 </button>
