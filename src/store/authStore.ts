@@ -13,7 +13,7 @@ interface AuthState {
     isLoggedIn: boolean;
     // localStorage 복원이 끝났는지 확인하는 값입니다.
     isInitialized: boolean;
-    loginAction: (memberId: number, password: string) => Promise<string>;
+    loginAction: (loginId: string, password: string) => Promise<string>;
     logoutAction: () => Promise<void>;
     loadFromStorage: () => void;
 }
@@ -50,8 +50,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
     },
 
-    loginAction: async (memberId, password) => {
-        const data = await login({ memberId, password });
+    loginAction: async (loginId, password) => {
+        const data = await login({ loginId, password });
 
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);

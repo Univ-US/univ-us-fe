@@ -37,7 +37,7 @@ export default function LoginPage() {
         router.replace(redirectPath ?? "/landing");
     }, [isInitialized, isLoggedIn, role, router]);
 
-    const [memberId, setMemberId] = useState("");
+    const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -46,22 +46,20 @@ export default function LoginPage() {
         e.preventDefault();
         setError("");
 
-        if (!memberId.trim() || !password.trim()) {
+        if (!loginId.trim() || !password.trim()) {
             setError("아이디와 비밀번호를 입력해주세요.");
             return;
         }
 
-        const parsedMemberId = Number(memberId);
-
-        if (Number.isNaN(parsedMemberId)) {
-            setError("회원 ID는 숫자로 입력해주세요.");
+        if (!/^\d+$/.test(loginId)) {
+            setError("로그인 ID는 숫자로 입력해주세요.");
             return;
         }
 
         try {
             setSubmitting(true);
 
-            const role = await loginAction(parsedMemberId, password);
+            const role = await loginAction(loginId, password);
             const redirectPath = getRedirectPathByRole(role);
 
             if (!redirectPath) {
@@ -97,9 +95,9 @@ export default function LoginPage() {
 
                 <div className="mt-6 space-y-4">
                     <input
-                        value={memberId}
-                        onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="회원 ID"
+                        value={loginId}
+                        onChange={(e) => setLoginId(e.target.value)}
+                        placeholder="로그인 ID"
                         className="h-11 w-full rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
                     />
 
