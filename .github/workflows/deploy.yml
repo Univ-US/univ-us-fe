@@ -1,46 +1,86 @@
+# =====================================================================
+# deploy.yml — 프론트엔드(univ-us-fe) CD(자동 배포) 파이프라인
+#
+# [무엇] main에 코드가 올라가면(또는 수동 실행 시):
+#        ① GitHub 클라우드에서 빌드 → Docker 이미지 → GHCR(레지스트리)에 push
+#        ② 학원 VM의 self-hosted 러너가 helm으로 K8s에 배포(롤링 교체)
+# [왜]   "코드 머지 = 자동 배포"를 실현하는 마지막 단계.
+#        (CI[ci-cd-dev/main]는 검증·병합까지, CD[이 파일]는 실제 배포 담당)
+# [구조] 2개 잡: build(클라우드) → deploy(VM 러너). build 성공해야 deploy 실행.
+# [핵심] 빌드는 클라우드에서, 배포(helm)만 VM 러너에서 → VM엔 docker 불필요(helm/kubectl만).
+# =====================================================================
+
 name: Deploy FE (build → GHCR → helm)
 
+# ── 트리거 ────────────────────────────────────────────────────────────
 on:
-  workflow_dispatch:          # 수동 트리거(테스트용)
+  workflow_dispatch:          # 수동 실행 버튼(테스트/임시 배포용)
   push:
-    branches: [main]          # 실제 CD: main 머지 시
-  # ⚠️ pull_request 트리거 금지 (public 레포 + self-hosted = fork RCE 방지)
+    branches: [main]          # ★ 실제 CD: dev→main 병합되면 자동 배포
+  # ⚠️ pull_request 트리거 금지 — public 레포 + self-hosted 러너 조합에서
+  #     fork PR이 러너에서 코드를 실행하는 RCE(원격코드실행)를 막기 위함(보안 필수).
 
+# ── 권한 ──────────────────────────────────────────────────────────────
 permissions:
   contents: read
-  packages: write             # GHCR push 권한
+  packages: write             # GHCR(GitHub Container Registry)에 이미지 push 권한
 
+# ── 공통 변수 ─────────────────────────────────────────────────────────
 env:
-  IMAGE: ghcr.io/univ-us/univ-us-fe
+  IMAGE: ghcr.io/univ-us/univ-us-fe   # 빌드한 이미지를 저장할 GHCR 경로
 
 jobs:
-  build:                       # GitHub-hosted에서 빌드·푸시
+  # ===================================================================
+  # 잡 1) build — GitHub 클라우드(ubuntu-latest)에서 빌드 + 이미지 push
+  # ===================================================================
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4           # 소스 체크아웃
+      - uses: actions/setup-node@v4          # Node 설치 + npm 캐시
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npm run build      # Next static export → out/
-      - uses: docker/login-action@v3
+      - run: npm ci                          # package-lock 기준 정확히 설치
+
+      # ★★ Next 정적 export 빌드 → out/ 폴더 생성
+      #    여기서 NEXT_PUBLIC_API_BASE_URL 주입이 이 FE의 "prod 설정"의 핵심.
+      #    - "" (빈 문자열) = 상대경로 → 배포 시 같은 도메인(Traefik)의 /api 호출 → CORS 불필요
+      #    - 로컬 개발(npm run dev)엔 이 env가 없어 api.ts 기본값(localhost:9090) 사용
+      #    (BE의 application-prod.yml/ConfigMap에 대응. 단 FE는 정적이라 '빌드 시점'에 값이 박힘)
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ""
+
+      - uses: docker/login-action@v3         # GHCR 로그인
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # 일회용 토큰(별도 PAT 불필요)
+
+      # 이미지 빌드 & push — 태그 = commit SHA(불변) + latest
+      #   ★ SHA 태그(불변)라 롤백·캐시가 안정적. (Dockerfile: httpd:2.4 + COPY out/)
       - name: Build & push image
         run: |
           docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
           docker push $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest
 
-  deploy:                      # self-hosted(VM)에서 배포
+  # ===================================================================
+  # 잡 2) deploy — 학원 VM의 self-hosted 러너에서 helm 배포
+  #   needs: build → build 성공 후에만 실행
+  # ===================================================================
+  deploy:
     needs: build
-    runs-on: [self-hosted, univus-vm]
-    environment: production
+    runs-on: [self-hosted, univus-vm]        # ★ 우리 VM 러너에서 실행(라벨 매칭)
+    environment: production                   # 배포 환경 게이트(필요 시 승인/보호 설정)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4             # 차트(charts/univ-us-fe) 가져오려고 체크아웃
+
+      # helm으로 K8s에 배포(롤링 업데이트). image.tag을 방금 빌드한 SHA로 덮어씀.
+      #   --install        : 릴리스 없으면 새로 설치, 있으면 업그레이드
+      #   --wait --timeout : 파드 Ready 될 때까지 최대 3분 대기(실패 시 잡 실패 처리)
+      #   롤백             : helm rollback univ-us-fe -n univus  (서버에서)
       - name: helm upgrade
         run: |
           helm upgrade --install univ-us-fe ./charts/univ-us-fe \
