@@ -12,6 +12,11 @@ export type ReservationDateOption = {
   sun: boolean;
 };
 
+export type ReservationDateOptionsResponse = {
+  serverNow: string;
+  dates: ReservationDateOption[];
+};
+
 export type ReadingRoomAvailability = {
   readingRoomId: number;
   roomName: string;
@@ -59,7 +64,7 @@ export type ReadingSeatReservation = {
 };
 
 export async function getReservationDateOptions(days = 5) {
-  const res = await api.get<ReservationDateOption[]>(
+  const res = await api.get<ReservationDateOptionsResponse>(
     '/api/reservations/date-options',
     {
       params: { days },

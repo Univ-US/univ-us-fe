@@ -40,6 +40,7 @@ const TIME_SLOTS = Array.from({ length: 8 }, (_, index) => {
     endHour: startHour + SLOT_HOURS,
   };
 });
+type TimeSlot = (typeof TIME_SLOTS)[number];
 
 function formatHour(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
@@ -62,6 +63,29 @@ function formatReservationDateRangeLabel(days: ReservationDateOption[]) {
 
 function toReservationDateTime(day: ReservationDateOption, hour: number) {
   return `${day.date}T${String(hour).padStart(2, '0')}:00:00`;
+}
+
+function isTimeSlotClosed(
+  day: ReservationDateOption | null,
+  slot: TimeSlot,
+  serverNow: string,
+) {
+  if (!day || !serverNow) {
+    return true;
+  }
+
+  return toReservationDateTime(day, slot.endHour) <= serverNow;
+}
+
+function findFirstOpenSlotIndex(
+  day: ReservationDateOption | null,
+  serverNow: string,
+) {
+  const slotIndex = TIME_SLOTS.findIndex(
+    (slot) => !isTimeSlotClosed(day, slot, serverNow),
+  );
+
+  return slotIndex >= 0 ? slotIndex : DEFAULT_SLOT_INDEX;
 }
 
 function isContinuousSlotSelection(slotIndexes: number[]) {
@@ -234,6 +258,7 @@ export default function CommunityReservation() {
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
   const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
+  const [serverNow, setServerNow] = useState('');
   const [selectedSlotIndexes, setSelectedSlotIndexes] = useState<number[]>([
     DEFAULT_SLOT_INDEX,
   ]);
@@ -294,8 +319,12 @@ export default function CommunityReservation() {
         const data = await getReservationDateOptions(RESERVATION_DAY_COUNT);
         if (!mounted) return;
 
-        setReservationDays(data);
+        setServerNow(data.serverNow);
+        setReservationDays(data.dates);
         setSelDay(0);
+        setSelectedSlotIndexes([
+          findFirstOpenSlotIndex(data.dates[0] ?? null, data.serverNow),
+        ]);
       } catch (error) {
         console.error(error);
         if (mounted) {
@@ -398,6 +427,10 @@ export default function CommunityReservation() {
   }, [selRoomId, startTime, endTime]);
 
   function handleTimeSlotClick(slotIndex: number) {
+    if (isTimeSlotClosed(selectedDay, TIME_SLOTS[slotIndex], serverNow)) {
+      return;
+    }
+
     setSelectedSlotIndexes((current) => {
       const isSelected = current.includes(slotIndex);
 
@@ -411,6 +444,12 @@ export default function CommunityReservation() {
       }
 
       const next = [...current, slotIndex].sort((a, b) => a - b);
+      if (next.some((currentSlotIndex) =>
+        isTimeSlotClosed(selectedDay, TIME_SLOTS[currentSlotIndex], serverNow)
+      )) {
+        return [slotIndex];
+      }
+
       if (!isContinuousSlotSelection(next)) {
         return [slotIndex];
       }
@@ -531,6 +570,13 @@ export default function CommunityReservation() {
                 key={day.key}
                 onClick={() => {
                   setSelDay(i);
+                  if (selectedSlotIndexes.some((slotIndex) =>
+                    isTimeSlotClosed(day, TIME_SLOTS[slotIndex], serverNow)
+                  )) {
+                    setSelectedSlotIndexes([
+                      findFirstOpenSlotIndex(day, serverNow),
+                    ]);
+                  }
                   setSelSeat(null);
                   setSelSlot(null);
                 }}
@@ -576,14 +622,18 @@ export default function CommunityReservation() {
               {TIME_SLOTS.map((slot, index) => {
                 const isSelected = selectedSlotIndexes.includes(index);
                 const isStartSlot = index === selectedSlotIndexes[0];
+                const isClosed = isTimeSlotClosed(selectedDay, slot, serverNow);
 
                 return (
                   <button
                     key={slot.startHour}
+                    disabled={isClosed}
                     onClick={() => handleTimeSlotClick(index)}
                     className={cn(
                       'h-[44px] min-w-[104px] rounded-xl border px-3 text-[12px] font-bold transition-all',
-                      isSelected
+                      isClosed
+                        ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-300'
+                        : isSelected
                         ? isStartSlot
                           ? 'border-primary bg-primary text-white shadow-md'
                           : 'border-primary bg-primary/10 text-primary'
