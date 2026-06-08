@@ -1,32 +1,31 @@
 "use client";
 
-// PLM-001 — 교수 LMS 프로필 (소속·이미지 수정)
-// 수정 가능: 프로필 이미지 · 이메일 · 소개 / 읽기전용(관리자 변경): 이름 · 소속학과 · 핸드폰번호
-// 회원탈퇴(PLM-012): 관리자 처리(요청만 전송)
-// 프로필 데이터는 공유 스토어(useProfessorProfileStore)에서 — 저장 시 사이드바와 동시 동기화
+// SLM-001 — 학생 LMS 프로필 (학번·학과·이미지 화면)
+// 수정 가능: 프로필 이미지 · 이메일 / 읽기전용(관리자 변경): 이름 · 학번 · 학과 · 휴대폰번호
+// 회원탈퇴(SLM-012): 관리자 처리(요청만 전송)
+// 프로필 데이터는 공유 스토어(useStudentProfileStore)에서 — 저장 시 사이드바와 동시 동기화
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  requestProfessorSecession,
-  PROFILE_IMAGE_MAX_SIZE,
-  PROFILE_IMAGE_ALLOWED_TYPES,
-} from "@/lib/lmsProfessorApi";
-import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
+  requestStudentSecession,
+  STUDENT_PROFILE_IMAGE_MAX_SIZE,
+  STUDENT_PROFILE_IMAGE_ALLOWED_TYPES,
+} from "@/lib/lmsStudentApi";
+import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImageUrl = (url: string | null) =>
   !url ? null : url.startsWith("http") ? url : `${API_BASE}${url}`;
 
-export default function ProfessorProfilePage() {
+export default function StudentProfilePage() {
   // 공유 스토어 (저장된 프로필 = single source of truth)
-  const profile = useProfessorProfileStore((s) => s.profile);
-  const loadProfile = useProfessorProfileStore((s) => s.load);
-  const updateProfile = useProfessorProfileStore((s) => s.update);
+  const profile = useStudentProfileStore((s) => s.profile);
+  const loadProfile = useStudentProfileStore((s) => s.load);
+  const updateProfile = useStudentProfileStore((s) => s.update);
 
   // 폼 로컬 draft (편집 중 값 — 저장 전엔 스토어/사이드바에 영향 없음)
   const [email, setEmail] = useState("");
-  const [introduction, setIntroduction] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -46,8 +45,7 @@ export default function ProfessorProfilePage() {
   // 스토어 profile이 바뀌면(최초 로드 / 저장 성공) 폼 draft를 동기화
   useEffect(() => {
     if (profile) {
-      setEmail(profile.lmsProfessorProfileEmail ?? "");
-      setIntroduction(profile.lmsProfessorProfileIntroduction ?? "");
+      setEmail(profile.lmsStudentProfileEmail ?? "");
       setImageFile(null);
     }
   }, [profile]);
@@ -68,11 +66,11 @@ export default function ProfessorProfilePage() {
     setNotice(null);
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!PROFILE_IMAGE_ALLOWED_TYPES.includes(file.type)) {
+    if (!STUDENT_PROFILE_IMAGE_ALLOWED_TYPES.includes(file.type)) {
       setError("이미지는 JPG 또는 PNG 형식만 업로드할 수 있습니다.");
       return;
     }
-    if (file.size > PROFILE_IMAGE_MAX_SIZE) {
+    if (file.size > STUDENT_PROFILE_IMAGE_MAX_SIZE) {
       setError("이미지 용량은 30MB를 초과할 수 없습니다.");
       return;
     }
@@ -81,8 +79,7 @@ export default function ProfessorProfilePage() {
 
   const handleCancel = () => {
     if (profile) {
-      setEmail(profile.lmsProfessorProfileEmail ?? "");
-      setIntroduction(profile.lmsProfessorProfileIntroduction ?? "");
+      setEmail(profile.lmsStudentProfileEmail ?? "");
     }
     setImageFile(null);
     setError(null);
@@ -96,7 +93,7 @@ export default function ProfessorProfilePage() {
     setNotice(null);
     try {
       // 저장 성공 시 스토어 profile 갱신 → 위 useEffect가 폼 동기화 + 사이드바도 자동 반영
-      await updateProfile({ email, introduction, image: imageFile });
+      await updateProfile({ email, image: imageFile });
       if (fileInputRef.current) fileInputRef.current.value = "";
       setNotice("변경사항이 저장되었습니다.");
     } catch (err: unknown) {
@@ -111,7 +108,7 @@ export default function ProfessorProfilePage() {
     setError(null);
     setNotice(null);
     try {
-      await requestProfessorSecession();
+      await requestStudentSecession();
       setNotice("회원탈퇴가 요청되었습니다. 관리자 처리를 기다려주세요.");
     } catch (err: unknown) {
       setError(getErrorMessage(err, "회원탈퇴 요청에 실패했습니다."));
@@ -119,16 +116,12 @@ export default function ProfessorProfilePage() {
   };
 
   const avatarSrc =
-    imagePreview ?? resolveImageUrl(profile?.lmsProfessorProfileImageUrl ?? null);
-  const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
+    imagePreview ?? resolveImageUrl(profile?.lmsStudentProfileImageUrl ?? null);
+  const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
 
-  // 변경사항 여부: 이메일/소개가 저장값과 다르거나 새 이미지를 선택한 경우
+  // 변경사항 여부: 이메일이 저장값과 다르거나 새 이미지를 선택한 경우
   const isDirty =
-    !!imageFile ||
-    (profile
-      ? email !== (profile.lmsProfessorProfileEmail ?? "") ||
-        introduction !== (profile.lmsProfessorProfileIntroduction ?? "")
-      : false);
+    !!imageFile || (profile ? email !== (profile.lmsStudentProfileEmail ?? "") : false);
 
   if (!profile && !error) {
     return (
@@ -189,18 +182,26 @@ export default function ProfessorProfilePage() {
             <p className="text-xs text-slate-400">이미지를 클릭하여 변경 · JPG, PNG / 최대 30MB</p>
           </div>
 
-          {/* 이름 / 소속 학과 (읽기전용) */}
+          {/* 이름 / 학번 (읽기전용) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="이름" note="※ 이름은 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfileName ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.lmsStudentProfileName ?? ""} readOnly className={readonlyInput} />
             </Field>
-            <Field label="소속 학과" note="※ 소속 학과는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfileDepartment ?? ""} readOnly className={readonlyInput} />
+            <Field label="학번" note="※ 학번은 관리자를 통해 변경 가능">
+              <input value={profile?.lmsStudentProfileStudentNo ?? ""} readOnly className={readonlyInput} />
             </Field>
 
-            <Field label="핸드폰 번호" note="※ 핸드폰 번호는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfilePhoneNumber ?? ""} readOnly className={readonlyInput} />
+            {/* 학과 (읽기전용) / 휴대폰 번호 (읽기전용) */}
+            <Field label="학과" note="※ 학과는 관리자를 통해 변경 가능">
+              <input value={profile?.lmsStudentProfileDepartment ?? ""} readOnly className={readonlyInput} />
             </Field>
+            <Field label="휴대폰 번호" note="※ 휴대폰 번호는 관리자를 통해 변경 가능">
+              <input value={profile?.lmsStudentProfilePhoneNumber ?? ""} readOnly className={readonlyInput} />
+            </Field>
+          </div>
+
+          {/* 이메일 (수정 가능) */}
+          <div className="mt-5">
             <Field label="이메일">
               <input
                 type="email"
@@ -209,21 +210,6 @@ export default function ProfessorProfilePage() {
                 placeholder="example@univus.ac.kr"
                 className={editableInput}
               />
-            </Field>
-          </div>
-
-          {/* 소개 (수정 가능, 200자) */}
-          <div className="mt-5">
-            <Field label="소개">
-              <textarea
-                value={introduction}
-                onChange={(e) => setIntroduction(e.target.value)}
-                maxLength={200}
-                rows={3}
-                placeholder="간단한 소개를 입력하세요 (최대 200자)"
-                className={`${editableInput} resize-none`}
-              />
-              <p className="mt-1 text-right text-xs text-slate-400">{introduction.length}/200</p>
             </Field>
           </div>
 
@@ -247,7 +233,7 @@ export default function ProfessorProfilePage() {
             </Button>
           </div>
 
-          {/* 회원탈퇴 요청 (PLM-012) */}
+          {/* 회원탈퇴 요청 (SLM-012) */}
           <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-4">
             <span className="text-sm text-slate-400">계정을 더 이상 사용하지 않으시나요?</span>
             <button

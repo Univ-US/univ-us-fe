@@ -1,4 +1,4 @@
-// src/lib/lmsApi.ts
+// src/lib/lmsProfessorApi.ts
 // PLM-001 교수 LMS 프로필 API 클라이언트 (BE: /api/lms/professor/profile)
 import api from "@/lib/api";
 
