@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,20 @@ const getRedirectPathByRole = (role: string) => {
 
 export default function LoginPage() {
     const router = useRouter();
+
     const loginAction = useAuthStore((state) => state.loginAction);
+    const isInitialized = useAuthStore((state) => state.isInitialized);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const role = useAuthStore((state) => state.role);
+
+    useEffect(() => {
+        // AuthProvider가 localStorage 복원을 끝내기 전에는 이동 판단을 하지 않습니다.
+        if (!isInitialized || !isLoggedIn) return;
+
+        const redirectPath = role ? getRedirectPathByRole(role) : "/landing";
+
+        router.replace(redirectPath ?? "/landing");
+    }, [isInitialized, isLoggedIn, role, router]);
 
     const [memberId, setMemberId] = useState("");
     const [password, setPassword] = useState("");
@@ -63,6 +76,14 @@ export default function LoginPage() {
             setSubmitting(false);
         }
     };
+
+    if (!isInitialized) {
+        return null;
+    }
+
+    if (isLoggedIn) {
+        return null;
+    }
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
