@@ -63,12 +63,33 @@ export type ReadingSeatReservation = {
   createdAt: string | null;
 };
 
+export type ReservationMutationResponse = {
+  success: boolean;
+  message: string;
+};
+
 export async function getReservationDateOptions(days = 5) {
   const res = await api.get<ReservationDateOptionsResponse>(
     '/api/reservations/date-options',
     {
       params: { days },
     },
+  );
+
+  return res.data;
+}
+
+export async function getMyReadingSeatReservations() {
+  const res = await api.get<ReadingSeatReservation[]>(
+    '/api/reservations/seats/me',
+  );
+
+  return res.data;
+}
+
+export async function cancelReadingSeatReservation(reservationId: number) {
+  const res = await api.delete<ReservationMutationResponse>(
+    `/api/reservations/seats/${reservationId}`,
   );
 
   return res.data;
