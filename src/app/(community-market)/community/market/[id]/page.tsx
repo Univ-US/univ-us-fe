@@ -1,18 +1,19 @@
-// "use client" 없음 — generateStaticParams는 서버 함수
 import MarketDetailClient from "./MarketDetailClient";
 
-// 정적 배포 필수 — 빌드 시점에 생성할 경로 목록
-// TODO: API 연결 후 DB에서 실제 상품 ID 목록으로 교체
+// output: 'export' 정적 배포 필수
+// 빌드 시점에 존재할 상품 ID 범위를 미리 생성
+// TODO: 실제 배포 전 DB의 최대 PRODUCT_ID 이상으로 범위 조정
 export function generateStaticParams() {
-  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((id) => ({
-    id: String(id),
+  return Array.from({ length: 200 }, (_, i) => ({
+    id: String(i + 1),
   }));
 }
 
-export default function MarketDetailPage({
+export default async function MarketDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <MarketDetailClient id={params.id} />;
+  const { id } = await params;
+  return <MarketDetailClient id={id} />;
 }

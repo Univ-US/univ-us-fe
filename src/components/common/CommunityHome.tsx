@@ -12,7 +12,6 @@ import {
   Heart,
 } from 'lucide-react';
 import type { Post, Product } from '@/types/community';
-import { formatDate } from '@/lib/utils';
 
 function formatPrice(price: number) {
   return price === 0 ? '나눔' : price.toLocaleString('ko-KR') + '원';
@@ -95,7 +94,7 @@ function PostRow({ post, href, accentClass }: { post: Post; href: string; accent
 
       {/* 날짜 */}
       <span className='shrink-0 whitespace-nowrap text-right text-[10.5px] text-slate-400'>
-        {formatDate(post.createdAt)}
+        {formatShortDate(post.createdAt)}
       </span>
     </Link>
   );
@@ -122,6 +121,25 @@ function BoardCard({ title, href, icon, iconBg, accentClass, posts }: {
   );
 }
 
+function formatShortDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (minutes < 1) return '방금 전';
+  if (minutes < 60) return `${minutes}분 전`;
+  if (hours < 24) return `${hours}시간 전`;
+  if (days === 1) return '어제';
+  if (days < 7) return `${days}일 전`;
+  const yy = String(date.getFullYear()).slice(2);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yy}.${mm}.${dd}`;
+}
+
 function ProductRow({ product }: { product: Product }) {
   return (
     <Link href={`/community/market/${product.productId}`}
@@ -131,7 +149,7 @@ function ProductRow({ product }: { product: Product }) {
       </div>
       <span className='min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700'>{product.productName}</span>
       <span className='shrink-0 text-[13px] font-bold text-slate-800'>{formatPrice(product.price)}</span>
-      <span className='shrink-0 whitespace-nowrap text-right text-[11px] text-slate-400'>{product.createdAt}</span>
+      <span className='shrink-0 whitespace-nowrap text-right text-[11px] text-slate-400'>{formatShortDate(product.createdAt)}</span>
     </Link>
   );
 }
