@@ -12,7 +12,7 @@ import type { NextConfig } from "next";
 // 현재 거
 const nextConfig: NextConfig = {
   output: 'export', // Apache 정적 배포용
-  trailingSlash: true, // 라우트를 폴더/index.html 구조로 (아파치에서 /community 등 렌더)
+  trailingSlash: true, // /community/free → /community/free/index.html 생성
 
   images: {
     unoptimized: true,

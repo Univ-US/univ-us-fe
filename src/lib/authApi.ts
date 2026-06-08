@@ -11,6 +11,8 @@ export interface LoginResponse {
     tokenType: string;
     memberId: number;
     role: string;
+    memberName: string;
+    communityNickname: string;
 }
 
 export const login = async (payload: LoginRequest) => {

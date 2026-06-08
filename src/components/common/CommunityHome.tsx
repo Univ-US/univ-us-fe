@@ -19,7 +19,9 @@ function formatPrice(price: number) {
 }
 
 function formatViews(n: number) {
-  return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
+  if (n >= 10000) return (n / 10000).toFixed(1) + 'w';
+  if (n >= 100) return (n / 1000).toFixed(1) + 'k';
+  return String(n);
 }
 
 function HomeBanner() {
@@ -80,14 +82,14 @@ function PostRow({ post, href, accentClass }: { post: Post; href: string; accent
       )}
 
       {/* 좋아요 + 조회수 */}
-      <div className='flex w-[56px] shrink-0 items-center justify-end gap-[6px] text-[11px] text-slate-400'>
-        <span className='flex w-[24px] items-center gap-[2px]'>
+      <div className='flex shrink-0 items-center justify-end gap-[6px] text-[11px] text-slate-400'>
+        <span className='flex items-center gap-[2px]'>
           <Heart className='size-2.5 shrink-0' />
           <span className='tabular-nums'>{post.likeCount}</span>
         </span>
-        <span className='flex w-[24px] items-center gap-[2px]'>
+        <span className='flex items-center gap-[2px]'>
           <Eye className='size-2.5 shrink-0' />
-          <span className='tabular-nums'>{post.viewCount}</span>
+          <span className='tabular-nums'>{formatViews(post.viewCount)}</span>
         </span>
       </div>
 
@@ -140,6 +142,8 @@ interface PopularItem {
   board: string;
   boardPath: string;
   viewCount: number;
+  likeCount: number;
+  commentCount: number;
 }
 
 function PopularRail({ popular }: { popular: PopularItem[] }) {
@@ -149,7 +153,7 @@ function PopularRail({ popular }: { popular: PopularItem[] }) {
         <div className='flex items-center gap-2 border-b border-border px-[16px] py-3.5'>
           <Flame className='size-[16px] text-orange-500' />
           <span className='text-[14px] font-bold tracking-tight text-slate-800'>인기글</span>
-          <span className='ml-auto text-[11px] text-slate-400'>조회수 TOP</span>
+          <span className='ml-auto text-[11px] text-slate-400'>인기 TOP 5</span>
         </div>
         <div>
           {popular.map((item, i) => (
@@ -163,9 +167,8 @@ function PopularRail({ popular }: { popular: PopularItem[] }) {
                 <div className='mt-0.5 flex items-center gap-1 text-[11px] text-slate-400'>
                   <span>{item.board}게시판</span>
                   <span>·</span>
-                  <span className='flex items-center gap-0.5'>
-                    <Eye className='size-2.5' />{formatViews(item.viewCount)}
-                  </span>
+                  <span className='flex items-center gap-0.5'><Heart className='size-2.5' />{item.likeCount}</span>
+                  <span className='flex items-center gap-0.5'><Eye className='size-2.5' />{formatViews(item.viewCount)}</span>
                 </div>
               </div>
             </Link>
