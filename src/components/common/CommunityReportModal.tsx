@@ -62,7 +62,7 @@ export default function CommunityReportModal({
   return (
     <>
       {/* 딤 배경 */}
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => onClose()} />
 
       {/* 모달 */}
       <div className="fixed left-1/2 top-1/2 z-50 w-[460px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
