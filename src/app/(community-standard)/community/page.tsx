@@ -9,7 +9,7 @@ export default function CommunityHomePage() {
   const [freePosts, setFreePosts] = useState<Post[]>([]);
   const [secretPosts, setSecretPosts] = useState<Post[]>([]);
   const [noticePosts, setNoticePosts] = useState<Post[]>([]);
-  const [popular, setPopular] = useState<{ postId: number; title: string; board: string; boardPath: string; viewCount: number }[]>([]);
+  const [popular, setPopular] = useState<{ postId: number; title: string; board: string; boardPath: string; viewCount: number; likeCount: number; commentCount: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
