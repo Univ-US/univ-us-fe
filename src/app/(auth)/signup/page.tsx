@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { signup } from "@/lib/authApi";
+import { checkMemberId, signup } from "@/lib/authApi";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -23,6 +23,9 @@ export default function SignupPage() {
     }, [isInitialized, isLoggedIn, router]);
 
     const [memberId, setMemberId] = useState("");
+    const [memberIdChecked, setMemberIdChecked] = useState(false);
+    const [memberIdAvailable, setMemberIdAvailable] = useState<boolean | null>(null);
+    const [checkingMemberId, setCheckingMemberId] = useState(false);
     const [password, setPassword] = useState("");
     const [passwordCheck, setPasswordCheck] = useState("");
     const [memberName, setMemberName] = useState("");
@@ -33,6 +36,58 @@ export default function SignupPage() {
     const [submitting, setSubmitting] = useState(false);
     const phoneRegex = /^010\d{8}$/;
     const birthRegex = /^\d{8}$/;
+
+    const isMemberIdReady = memberIdChecked && memberIdAvailable === true;
+    const isPasswordReady = password.trim() !== "" && password === passwordCheck;
+    const isRequiredProfileReady = memberName.trim() !== "";
+    const isPhoneReady = phoneRegex.test(phoneNumber);
+    const isBirthReady = birthRegex.test(birth);
+
+    const canSubmit =
+        isMemberIdReady &&
+        isPasswordReady &&
+        isRequiredProfileReady &&
+        isPhoneReady &&
+        isBirthReady &&
+        !submitting &&
+        !checkingMemberId;
+
+    const handleMemberIdChange = (value: string) => {
+        setMemberId(value);
+        setMemberIdChecked(false);
+        setMemberIdAvailable(null);
+    };
+
+    const handleCheckMemberId = async () => {
+        setError("");
+
+        if (!memberId.trim()) {
+            setError("회원 ID를 입력해주세요.");
+            return;
+        }
+
+        const parsedMemberId = Number(memberId);
+
+        if (Number.isNaN(parsedMemberId)) {
+            setError("회원 ID는 숫자로 입력해주세요.");
+            return;
+        }
+
+        try {
+            setCheckingMemberId(true);
+
+            const data = await checkMemberId(parsedMemberId);
+
+            setMemberIdChecked(true);
+            setMemberIdAvailable(data.available);
+        } catch {
+            setMemberIdChecked(false);
+            setMemberIdAvailable(null);
+            setError("ID 중복 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setCheckingMemberId(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -47,6 +102,16 @@ export default function SignupPage() {
 
         if (Number.isNaN(parsedMemberId)) {
             setError("회원 ID는 숫자로 입력해주세요.");
+            return;
+        }
+
+        if (!memberIdChecked) {
+            setError("ID 중복 확인을 해주세요.");
+            return;
+        }
+
+        if (!memberIdAvailable) {
+            setError("이미 사용 중인 ID입니다.");
             return;
         }
 
@@ -110,12 +175,44 @@ export default function SignupPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <input
-                        value={memberId}
-                        onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="회원 ID 숫자"
-                        className="h-11 w-full rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
-                    />
+                    <div>
+                        <div className="flex gap-2">
+                            <input
+                                value={memberId}
+                                onChange={(e) => handleMemberIdChange(e.target.value)}
+                                placeholder="회원 ID 숫자"
+                                className="h-11 min-w-0 flex-1 rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
+                            />
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 shrink-0 px-4 text-sm font-bold"
+                                onClick={handleCheckMemberId}
+                                disabled={checkingMemberId}
+                            >
+                                {checkingMemberId ? "확인 중" : "중복 확인"}
+                            </Button>
+                        </div>
+
+                        {memberIdChecked && memberIdAvailable === true && (
+                            <p className="mt-2 text-xs font-medium text-emerald-600">
+                                사용 가능한 ID입니다.
+                            </p>
+                        )}
+
+                        {memberIdChecked && memberIdAvailable === false && (
+                            <p className="mt-2 text-xs font-medium text-red-500">
+                                이미 사용 중인 ID입니다.
+                            </p>
+                        )}
+
+                        {!memberIdChecked && memberId.trim() && (
+                            <p className="mt-2 text-xs font-medium text-slate-500">
+                                ID 중복 확인을 해주세요.
+                            </p>
+                        )}
+                    </div>
 
                     <input
                         type="password"
@@ -174,7 +271,11 @@ export default function SignupPage() {
                     <p className="mt-4 text-sm font-medium text-red-500">{error}</p>
                 )}
 
-                <Button type="submit" className="mt-5 h-11 w-full text-base font-bold" disabled={submitting}>
+                <Button
+                    type="submit"
+                    className="mt-5 h-11 w-full text-base font-bold"
+                    disabled={!canSubmit}
+                >
                     <UserPlus className="size-4" />
                     {submitting ? "가입 중..." : "회원가입"}
                 </Button>
