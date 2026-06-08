@@ -9,7 +9,7 @@ import {
   updateProfessorProfile,
   type LmsProfessorProfile,
   type LmsProfessorProfileUpdateInput,
-} from "@/lib/lmsApi";
+} from "@/lib/lmsProfessorApi";
 
 interface LmsProfileState {
   profile: LmsProfessorProfile | null;

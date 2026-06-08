@@ -10,8 +10,8 @@ import {
   requestProfessorSecession,
   PROFILE_IMAGE_MAX_SIZE,
   PROFILE_IMAGE_ALLOWED_TYPES,
-} from "@/lib/lmsApi";
-import { useProfessorProfileStore } from "@/store/lms/lmsProfileStore";
+} from "@/lib/lmsProfessorApi";
+import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
@@ -122,6 +122,14 @@ export default function ProfessorProfilePage() {
     imagePreview ?? resolveImageUrl(profile?.lmsProfessorProfileImageUrl ?? null);
   const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
 
+  // 변경사항 여부: 이메일/소개가 저장값과 다르거나 새 이미지를 선택한 경우
+  const isDirty =
+    !!imageFile ||
+    (profile
+      ? email !== (profile.lmsProfessorProfileEmail ?? "") ||
+        introduction !== (profile.lmsProfessorProfileIntroduction ?? "")
+      : false);
+
   if (!profile && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
@@ -221,10 +229,20 @@ export default function ProfessorProfilePage() {
 
           {/* 버튼 */}
           <div className="mt-6 flex justify-end gap-2">
-            <Button variant="outline" size="lg" onClick={handleCancel} disabled={saving}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleCancel}
+              disabled={saving || !isDirty}
+            >
               취소
             </Button>
-            <Button size="lg" onClick={handleSave} disabled={saving}>
+            <Button
+              size="lg"
+              onClick={handleSave}
+              disabled={saving || !isDirty}
+              className="disabled:bg-slate-200 disabled:text-slate-400 disabled:opacity-100"
+            >
               {saving ? "저장 중…" : "변경사항 저장"}
             </Button>
           </div>

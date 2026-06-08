@@ -8,11 +8,15 @@ import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { useProfessorProfileStore } from "@/store/lms/lmsProfileStore";
+import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
   !u ? null : u.startsWith("http") ? u : `${API_BASE}${u}`;
+
+// trailingSlash:true(next.config) → pathname이 "/lms/professor/profile/"로 와서
+// href("/lms/professor/profile")와 정확 일치가 깨진다. 양끝 슬래시를 떼고 비교.
+const stripSlash = (p: string) => p.replace(/\/+$/, "") || "/";
 
 type NavItem = { label: string; icon: string; href?: string; badge?: number };
 const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
@@ -117,7 +121,8 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
                 {section.title}
               </p>
               {section.items.map((item) => {
-                const active = item.href && pathname === item.href;
+                const active =
+                  item.href && stripSlash(pathname) === stripSlash(item.href);
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
