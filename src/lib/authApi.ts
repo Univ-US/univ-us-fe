@@ -35,3 +35,15 @@ export interface SignupRequest {
 export const signup = async (payload: SignupRequest) => {
     await api.post("/api/auth/signup", payload);
 };
+
+export interface CheckMemberIdResponse {
+    available: boolean;
+}
+
+export const checkMemberId = async (memberId: number) => {
+    const res = await api.get<CheckMemberIdResponse>("/api/auth/check-member-id", {
+        params: { memberId },
+    });
+
+    return res.data;
+};
