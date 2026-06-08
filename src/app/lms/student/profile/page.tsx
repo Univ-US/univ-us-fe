@@ -12,6 +12,7 @@ import {
   STUDENT_PROFILE_IMAGE_ALLOWED_TYPES,
 } from "@/lib/lmsStudentApi";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
+import ImageCropDialog from "@/components/lms/ImageCropDialog";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
@@ -28,6 +29,10 @@ export default function StudentProfilePage() {
   const [email, setEmail] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // 크롭 모달: 선택 이미지의 ObjectURL + 원본 메타(파일명/타입)
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropMeta, setCropMeta] = useState<{ name: string; type: string } | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +79,23 @@ export default function StudentProfilePage() {
       setError("이미지 용량은 30MB를 초과할 수 없습니다.");
       return;
     }
+    // 바로 적용하지 않고 크롭 모달을 띄워 위치를 조정한다
+    setCropSrc(URL.createObjectURL(file));
+    setCropMeta({ name: file.name, type: file.type });
+  };
+
+  // 크롭 모달 닫기(취소/완료 공통): ObjectURL 정리 + 파일 input 초기화
+  const closeCrop = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropMeta(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // 크롭 적용: 잘라낸 File을 draft 이미지로 사용
+  const handleCropComplete = (file: File) => {
     setImageFile(file);
+    closeCrop();
   };
 
   const handleCancel = () => {
@@ -246,6 +267,16 @@ export default function StudentProfilePage() {
           </div>
         </section>
       </div>
+
+      {/* 프로필 이미지 크롭/위치 조정 모달 */}
+      <ImageCropDialog
+        open={!!cropSrc}
+        imageSrc={cropSrc}
+        fileName={cropMeta?.name ?? "profile.png"}
+        mimeType={cropMeta?.type ?? "image/png"}
+        onCancel={closeCrop}
+        onComplete={handleCropComplete}
+      />
     </main>
   );
 }
