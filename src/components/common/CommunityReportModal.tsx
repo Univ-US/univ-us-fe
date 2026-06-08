@@ -79,7 +79,7 @@ export default function CommunityReportModal({
                 검토 후 조치가 이루어질 예정이에요.<br />신고해주셔서 감사해요.
               </p>
             </div>
-            <Button onClick={onClose} className="mt-2 px-8">확인</Button>
+            <Button onClick={() => onClose()} className="mt-2 px-8">확인</Button>
           </div>
         ) : (
           <>
@@ -95,7 +95,7 @@ export default function CommunityReportModal({
                 </div>
               </div>
               <button
-                onClick={onClose}
+                onClick={() => onClose()}
                 className="flex size-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
               >
                 <X className="size-4" />
@@ -169,7 +169,7 @@ export default function CommunityReportModal({
 
               {/* ── 버튼 ── */}
               <div className="flex gap-2">
-                <Button variant="outline" onClick={onClose} className="flex-1">
+                <Button variant="outline" onClick={() => onClose()} className="flex-1">
                   취소
                 </Button>
                 <button
