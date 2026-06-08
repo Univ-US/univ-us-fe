@@ -29,19 +29,21 @@ export default function CommunityHomePage() {
         setSecretPosts(secret);
         setNoticePosts(notice);
 
-        // 전체 게시글 합쳐서 조회수 TOP 5 인기글
+        // 전체 게시글 합쳐서 좋아요*3 + 댓글*2 + 조회수 합산 TOP 5 인기글
         const boardLabel: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
         const boardPath: Record<number, string>  = { 1: 'free', 2: 'secret', 3: 'notice' };
         const all = [...free, ...secret, ...notice];
         const top5 = all
-          .sort((a, b) => b.viewCount - a.viewCount)
+          .sort((a, b) => (b.likeCount * 3 + b.commentCount * 2 + b.viewCount) - (a.likeCount * 3 + a.commentCount * 2 + a.viewCount))
           .slice(0, 5)
           .map((p) => ({
-            postId:    p.postId,
-            title:     p.title,
-            board:     boardLabel[p.boardId] ?? '기타',
-            boardPath: boardPath[p.boardId]  ?? 'free',
-            viewCount: p.viewCount,
+            postId:       p.postId,
+            title:        p.title,
+            board:        boardLabel[p.boardId] ?? '기타',
+            boardPath:    boardPath[p.boardId]  ?? 'free',
+            viewCount:    p.viewCount,
+            likeCount:    p.likeCount,
+            commentCount: p.commentCount,
           }));
         setPopular(top5);
       } catch (err) {

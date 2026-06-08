@@ -61,6 +61,12 @@ export const getPostLikeStatus = async (postId: number) => {
   return res.data as { liked: boolean };
 };
 
+// 신고 여부 확인
+export const getPostReportStatus = async (postId: number) => {
+  const res = await api.get(`/api/posts/${postId}/report`);
+  return res.data as { reported: boolean };
+};
+
 // ── 댓글 ──────────────────────────────────────────────
 
 // 댓글 목록 조회

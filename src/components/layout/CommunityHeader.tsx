@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 const NAV_ITEMS = [
   { href: '/community', label: '홈', exact: true },
@@ -30,6 +31,7 @@ export default function CommunityHeader() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { memberName, communityNickname, logoutAction } = useAuthStore();
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -145,7 +147,7 @@ export default function CommunityHeader() {
               )}
             >
               <div className='flex size-[28px] items-center justify-center rounded-full bg-primary text-[12px] font-bold text-white'>
-                서
+                {(communityNickname ?? memberName ?? '?').slice(0, 1)}
               </div>
               <span
                 className={cn(
@@ -153,7 +155,7 @@ export default function CommunityHeader() {
                   dropdownOpen ? 'text-primary' : 'text-slate-700',
                 )}
               >
-                김서연
+                {communityNickname ?? memberName ?? '사용자'}
               </span>
               <ChevronDown
                 className={cn(
@@ -169,10 +171,10 @@ export default function CommunityHeader() {
                 {/* 프로필 정보 */}
                 <div className='border-b border-border px-4 py-3'>
                   <div className='text-[13px] font-bold text-slate-800'>
-                    김서연
+                    {communityNickname ?? memberName ?? '사용자'}
                   </div>
                   <div className='text-[11px] text-slate-400'>
-                    컴퓨터공학 21학번
+                    {memberName}
                   </div>
                 </div>
                 {/* 메뉴 */}
@@ -188,9 +190,10 @@ export default function CommunityHeader() {
                     마이페이지
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setDropdownOpen(false);
-                      alert('로그아웃');
+                      await logoutAction();
+                      router.push('/login');
                     }}
                     className='flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50'
                   >
