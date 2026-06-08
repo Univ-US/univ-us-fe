@@ -1,7 +1,7 @@
 import api from "@/lib/api";
 
 export interface LoginRequest {
-    memberId: number;
+    loginId: string;
     password: string;
 }
 
@@ -24,7 +24,7 @@ export const logout = async (refreshToken: string) => {
 };
 
 export interface SignupRequest {
-    memberId: number;
+    loginId: string;
     password: string;
     memberName: string;
     phoneNumber: string;
@@ -36,13 +36,13 @@ export const signup = async (payload: SignupRequest) => {
     await api.post("/api/auth/signup", payload);
 };
 
-export interface CheckMemberIdResponse {
+export interface CheckLoginIdResponse {
     available: boolean;
 }
 
-export const checkMemberId = async (memberId: number) => {
-    const res = await api.get<CheckMemberIdResponse>("/api/auth/check-member-id", {
-        params: { memberId },
+export const checkLoginId = async (loginId: string) => {
+    const res = await api.get<CheckLoginIdResponse>("/api/auth/check-login-id", {
+        params: { loginId },
     });
 
     return res.data;

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { checkMemberId, signup } from "@/lib/authApi";
+import { checkLoginId, signup } from "@/lib/authApi";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -15,17 +15,15 @@ export default function SignupPage() {
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
     useEffect(() => {
-        // AuthProvider가 localStorage 복원을 끝내기 전에는 이동 판단을 하지 않습니다.
         if (!isInitialized || !isLoggedIn) return;
 
-        // 이미 로그인한 사용자는 회원가입 페이지를 볼 필요가 없으므로 랜딩으로 보냅니다.
         router.replace("/landing");
     }, [isInitialized, isLoggedIn, router]);
 
-    const [memberId, setMemberId] = useState("");
-    const [memberIdChecked, setMemberIdChecked] = useState(false);
-    const [memberIdAvailable, setMemberIdAvailable] = useState<boolean | null>(null);
-    const [checkingMemberId, setCheckingMemberId] = useState(false);
+    const [loginId, setLoginId] = useState("");
+    const [loginIdChecked, setLoginIdChecked] = useState(false);
+    const [loginIdAvailable, setLoginIdAvailable] = useState<boolean | null>(null);
+    const [checkingLoginId, setCheckingLoginId] = useState(false);
     const [password, setPassword] = useState("");
     const [passwordCheck, setPasswordCheck] = useState("");
     const [memberName, setMemberName] = useState("");
@@ -34,58 +32,58 @@ export default function SignupPage() {
     const [birth, setBirth] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+
     const phoneRegex = /^010\d{8}$/;
     const birthRegex = /^\d{8}$/;
+    const loginIdRegex = /^\d+$/;
 
-    const isMemberIdReady = memberIdChecked && memberIdAvailable === true;
+    const isLoginIdReady = loginIdChecked && loginIdAvailable === true;
     const isPasswordReady = password.trim() !== "" && password === passwordCheck;
     const isRequiredProfileReady = memberName.trim() !== "";
     const isPhoneReady = phoneRegex.test(phoneNumber);
     const isBirthReady = birthRegex.test(birth);
 
     const canSubmit =
-        isMemberIdReady &&
+        isLoginIdReady &&
         isPasswordReady &&
         isRequiredProfileReady &&
         isPhoneReady &&
         isBirthReady &&
         !submitting &&
-        !checkingMemberId;
+        !checkingLoginId;
 
-    const handleMemberIdChange = (value: string) => {
-        setMemberId(value);
-        setMemberIdChecked(false);
-        setMemberIdAvailable(null);
+    const handleLoginIdChange = (value: string) => {
+        setLoginId(value);
+        setLoginIdChecked(false);
+        setLoginIdAvailable(null);
     };
 
-    const handleCheckMemberId = async () => {
+    const handleCheckLoginId = async () => {
         setError("");
 
-        if (!memberId.trim()) {
-            setError("회원 ID를 입력해주세요.");
+        if (!loginId.trim()) {
+            setError("로그인 ID를 입력해주세요.");
             return;
         }
 
-        const parsedMemberId = Number(memberId);
-
-        if (Number.isNaN(parsedMemberId)) {
-            setError("회원 ID는 숫자로 입력해주세요.");
+        if (!loginIdRegex.test(loginId)) {
+            setError("로그인 ID는 숫자로 입력해주세요.");
             return;
         }
 
         try {
-            setCheckingMemberId(true);
+            setCheckingLoginId(true);
 
-            const data = await checkMemberId(parsedMemberId);
+            const data = await checkLoginId(loginId);
 
-            setMemberIdChecked(true);
-            setMemberIdAvailable(data.available);
+            setLoginIdChecked(true);
+            setLoginIdAvailable(data.available);
         } catch {
-            setMemberIdChecked(false);
-            setMemberIdAvailable(null);
+            setLoginIdChecked(false);
+            setLoginIdAvailable(null);
             setError("ID 중복 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
-            setCheckingMemberId(false);
+            setCheckingLoginId(false);
         }
     };
 
@@ -93,24 +91,22 @@ export default function SignupPage() {
         e.preventDefault();
         setError("");
 
-        if (!memberId.trim() || !password.trim() || !memberName.trim()) {
+        if (!loginId.trim() || !password.trim() || !memberName.trim()) {
             setError("아이디, 비밀번호, 이름은 필수입니다.");
             return;
         }
 
-        const parsedMemberId = Number(memberId);
-
-        if (Number.isNaN(parsedMemberId)) {
-            setError("회원 ID는 숫자로 입력해주세요.");
+        if (!loginIdRegex.test(loginId)) {
+            setError("로그인 ID는 숫자로 입력해주세요.");
             return;
         }
 
-        if (!memberIdChecked) {
+        if (!loginIdChecked) {
             setError("ID 중복 확인을 해주세요.");
             return;
         }
 
-        if (!memberIdAvailable) {
+        if (!loginIdAvailable) {
             setError("이미 사용 중인 ID입니다.");
             return;
         }
@@ -134,7 +130,7 @@ export default function SignupPage() {
             setSubmitting(true);
 
             await signup({
-                memberId: parsedMemberId,
+                loginId,
                 password,
                 memberName,
                 phoneNumber,
@@ -158,6 +154,7 @@ export default function SignupPage() {
     if (isLoggedIn) {
         return null;
     }
+
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-10">
             <form
@@ -178,9 +175,10 @@ export default function SignupPage() {
                     <div>
                         <div className="flex gap-2">
                             <input
-                                value={memberId}
-                                onChange={(e) => handleMemberIdChange(e.target.value)}
-                                placeholder="회원 ID 숫자"
+                                value={loginId}
+                                onChange={(e) => handleLoginIdChange(e.target.value.replace(/\D/g, ""))}
+                                inputMode="numeric"
+                                placeholder="로그인 ID 숫자"
                                 className="h-11 min-w-0 flex-1 rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
                             />
 
@@ -188,26 +186,26 @@ export default function SignupPage() {
                                 type="button"
                                 variant="outline"
                                 className="h-11 shrink-0 px-4 text-sm font-bold"
-                                onClick={handleCheckMemberId}
-                                disabled={checkingMemberId}
+                                onClick={handleCheckLoginId}
+                                disabled={checkingLoginId}
                             >
-                                {checkingMemberId ? "확인 중" : "중복 확인"}
+                                {checkingLoginId ? "확인 중" : "중복 확인"}
                             </Button>
                         </div>
 
-                        {memberIdChecked && memberIdAvailable === true && (
+                        {loginIdChecked && loginIdAvailable === true && (
                             <p className="mt-2 text-xs font-medium text-emerald-600">
                                 사용 가능한 ID입니다.
                             </p>
                         )}
 
-                        {memberIdChecked && memberIdAvailable === false && (
+                        {loginIdChecked && loginIdAvailable === false && (
                             <p className="mt-2 text-xs font-medium text-red-500">
                                 이미 사용 중인 ID입니다.
                             </p>
                         )}
 
-                        {!memberIdChecked && memberId.trim() && (
+                        {!loginIdChecked && loginId.trim() && (
                             <p className="mt-2 text-xs font-medium text-slate-500">
                                 ID 중복 확인을 해주세요.
                             </p>
