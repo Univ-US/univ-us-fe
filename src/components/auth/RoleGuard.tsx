@@ -40,7 +40,7 @@ export default function RoleGuard({
 
         // 로그인은 했지만 허용된 role이 아니면 홈으로 보냅니다.
         if (!hasAllowedRole) {
-            router.replace("/home");
+            router.replace("/landing");
         }
     }, [hasAllowedRole, isInitialized, isLoggedIn, router]);
 

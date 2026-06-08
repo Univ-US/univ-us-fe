@@ -97,7 +97,7 @@ export default function ServiceAdminDashboardPage() {
 
     const handleLogout = async () => {
         await logoutAction();
-        router.push("/home");
+        router.push("/landing");
     };
 
     return (
@@ -172,7 +172,7 @@ export default function ServiceAdminDashboardPage() {
 
                             <div className="flex items-center gap-3">
                                 <Link
-                                    href="/home"
+                                    href="/landing"
                                     className="flex size-10 items-center justify-center rounded-full border border-border bg-white text-slate-700 shadow-sm"
                                 >
                                     <Home className="size-4" />
