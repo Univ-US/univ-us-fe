@@ -18,7 +18,7 @@ export default function SubscribePage() {
                     로그인한 기관 담당자가 플랜을 선택하고 구독 신청을 진행하는 페이지입니다.
                 </p>
                 <Button asChild className="mt-6">
-                    <Link href="/home">홈으로 돌아가기</Link>
+                    <Link href="/landing">홈으로 돌아가기</Link>
                 </Button>
             </div>
         </main>

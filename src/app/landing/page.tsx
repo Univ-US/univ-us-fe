@@ -1,6 +1,5 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -71,34 +70,16 @@ const getDashboardPathByRole = (role: string | null) => {
     }
 };
 
-const getRoleSnapshot = () => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("role");
-};
-
-const subscribeRole = (onStoreChange: () => void) => {
-    if (typeof window === "undefined") return () => {};
-
-    window.addEventListener("storage", onStoreChange);
-    window.addEventListener("univus-auth-change", onStoreChange);
-
-    return () => {
-        window.removeEventListener("storage", onStoreChange);
-        window.removeEventListener("univus-auth-change", onStoreChange);
-    };
-};
-
-export default function HomePage() {
+export default function LandingPage() {
     const router = useRouter();
     const logoutAction = useAuthStore((state) => state.logoutAction);
 
-    const role = useSyncExternalStore(subscribeRole, getRoleSnapshot, () => null);
-    const isLoggedIn = role !== null;
+    const role = useAuthStore((state) => state.role);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const dashboardPath = getDashboardPathByRole(role);
 
     const handleLogout = async () => {
         await logoutAction();
-        window.dispatchEvent(new Event("univus-auth-change"));
         router.refresh();
     };
 
@@ -106,7 +87,7 @@ export default function HomePage() {
         <main className="min-h-screen bg-[#f8fbfb] text-slate-950">
             <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-6">
-                    <Link href="/home" className="flex items-center gap-2">
+                    <Link href="/landing" className="flex items-center gap-2">
                         <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-white">
                             <Sparkles className="size-4" />
                         </div>
@@ -280,7 +261,7 @@ export default function HomePage() {
                                 variant={plan.featured ? "default" : "outline"}
                                 className="mt-6 h-11 w-full text-base font-bold"
                             >
-                                <Link href={isLoggedIn ? "/signup" : "/login"}>구독 신청</Link>
+                                <Link href={isLoggedIn ? "/subscribe" : "/login"}>구독 신청</Link>
                             </Button>
                         </article>
                     ))}
@@ -310,7 +291,7 @@ export default function HomePage() {
 
             <footer className="mx-auto max-w-[1180px] border-t border-slate-200 px-6 py-10">
                 <div className="flex flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-                    <Link href="/home" className="flex items-center gap-2 font-extrabold text-slate-900">
+                    <Link href="/landing" className="flex items-center gap-2 font-extrabold text-slate-900">
                         <Sparkles className="size-4 text-primary" />
                         UnivUs
                     </Link>
