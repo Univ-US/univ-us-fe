@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
@@ -9,6 +10,17 @@ import { signup } from "@/lib/authApi";
 
 export default function SignupPage() {
     const router = useRouter();
+
+    const isInitialized = useAuthStore((state) => state.isInitialized);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+
+    useEffect(() => {
+        // AuthProvider가 localStorage 복원을 끝내기 전에는 이동 판단을 하지 않습니다.
+        if (!isInitialized || !isLoggedIn) return;
+
+        // 이미 로그인한 사용자는 회원가입 페이지를 볼 필요가 없으므로 랜딩으로 보냅니다.
+        router.replace("/landing");
+    }, [isInitialized, isLoggedIn, router]);
 
     const [memberId, setMemberId] = useState("");
     const [password, setPassword] = useState("");
@@ -74,6 +86,13 @@ export default function SignupPage() {
         }
     };
 
+    if (!isInitialized) {
+        return null;
+    }
+
+    if (isLoggedIn) {
+        return null;
+    }
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-10">
             <form

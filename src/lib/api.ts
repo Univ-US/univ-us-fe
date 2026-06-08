@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:9090",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090", // for deploy(backend connection), DO NOT ERASE
   headers: {
     "Content-Type": "application/json",
   },

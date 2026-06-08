@@ -1,5 +1,22 @@
 import api from '@/lib/api';
 
+export type ReservationDateOption = {
+  key: string;
+  date: string;
+  year: number;
+  month: number;
+  day: number;
+  dayOfWeek: string;
+  today: boolean;
+  sat: boolean;
+  sun: boolean;
+};
+
+export type ReservationDateOptionsResponse = {
+  serverNow: string;
+  dates: ReservationDateOption[];
+};
+
 export type ReadingRoomAvailability = {
   readingRoomId: number;
   roomName: string;
@@ -45,6 +62,17 @@ export type ReadingSeatReservation = {
   status: string;
   createdAt: string | null;
 };
+
+export async function getReservationDateOptions(days = 5) {
+  const res = await api.get<ReservationDateOptionsResponse>(
+    '/api/reservations/date-options',
+    {
+      params: { days },
+    },
+  );
+
+  return res.data;
+}
 
 export async function getReadingRoomAvailability(
   startTime: string,

@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Monitor, Check, CalendarCheck } from 'lucide-react';
 import {
+  getReservationDateOptions,
   getReadingRoomAvailability,
   getReadingSeatAvailability,
   reserveReadingSeat,
   type ReadingRoomAvailability,
   type ReadingSeatAvailability,
+  type ReservationDateOption,
 } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
 
@@ -27,18 +29,7 @@ const BOOKED: Record<string, string[]> = {
   '강의실 301': ['11', '12', '13', '18'],
 };
 
-const WEEK = [
-  { wd: '금', d: 5, today: true },
-  { wd: '토', d: 6, sat: true },
-  { wd: '일', d: 7, sun: true },
-  { wd: '월', d: 8 },
-  { wd: '화', d: 9 },
-  { wd: '수', d: 10 },
-  { wd: '목', d: 11 },
-];
-
-const RESERVATION_YEAR = 2026;
-const RESERVATION_MONTH = 6;
+const RESERVATION_DAY_COUNT = 5;
 const SLOT_HOURS = 2;
 const MAX_SELECTED_SLOT_COUNT = 3;
 const DEFAULT_SLOT_INDEX = 3;
@@ -49,15 +40,52 @@ const TIME_SLOTS = Array.from({ length: 8 }, (_, index) => {
     endHour: startHour + SLOT_HOURS,
   };
 });
+type TimeSlot = (typeof TIME_SLOTS)[number];
 
 function formatHour(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
-function toReservationDateTime(day: number, hour: number) {
-  const date = new Date(RESERVATION_YEAR, RESERVATION_MONTH - 1, day, hour);
+function formatReservationDateRangeLabel(days: ReservationDateOption[]) {
+  if (days.length === 0) {
+    return '';
+  }
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:00:00`;
+  const firstDay = days[0];
+  const lastDay = days[days.length - 1];
+
+  if (firstDay.year === lastDay.year && firstDay.month === lastDay.month) {
+    return `${firstDay.year} · ${firstDay.month}월`;
+  }
+
+  return `${firstDay.year} · ${firstDay.month}월 - ${lastDay.month}월`;
+}
+
+function toReservationDateTime(day: ReservationDateOption, hour: number) {
+  return `${day.date}T${String(hour).padStart(2, '0')}:00:00`;
+}
+
+function isTimeSlotClosed(
+  day: ReservationDateOption | null,
+  slot: TimeSlot,
+  serverNow: string,
+) {
+  if (!day || !serverNow) {
+    return true;
+  }
+
+  return toReservationDateTime(day, slot.endHour) <= serverNow;
+}
+
+function findFirstOpenSlotIndex(
+  day: ReservationDateOption | null,
+  serverNow: string,
+) {
+  const slotIndex = TIME_SLOTS.findIndex(
+    (slot) => !isTimeSlotClosed(day, slot, serverNow),
+  );
+
+  return slotIndex >= 0 ? slotIndex : DEFAULT_SLOT_INDEX;
 }
 
 function isContinuousSlotSelection(slotIndexes: number[]) {
@@ -229,6 +257,8 @@ function SeatMap({
 export default function CommunityReservation() {
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
+  const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
+  const [serverNow, setServerNow] = useState('');
   const [selectedSlotIndexes, setSelectedSlotIndexes] = useState<number[]>([
     DEFAULT_SLOT_INDEX,
   ]);
@@ -243,7 +273,11 @@ export default function CommunityReservation() {
   const [seatError, setSeatError] = useState('');
   const [reservationLoading, setReservationLoading] = useState(false);
 
-  const selectedDay = WEEK[selDay];
+  const selectedDay = reservationDays[selDay] ?? null;
+  const reservationDateRangeLabel = useMemo(
+    () => formatReservationDateRangeLabel(reservationDays),
+    [reservationDays],
+  );
   const selectedSlots = useMemo(
     () => selectedSlotIndexes.map((slotIndex) => TIME_SLOTS[slotIndex]),
     [selectedSlotIndexes],
@@ -252,24 +286,65 @@ export default function CommunityReservation() {
   const selectedEndHour = selectedSlots[selectedSlots.length - 1].endHour;
   const selectedDurationHours = selectedSlotIndexes.length * SLOT_HOURS;
   const startTime = useMemo(
-    () => toReservationDateTime(selectedDay.d, selectedStartHour),
-    [selectedDay.d, selectedStartHour],
+    () =>
+      selectedDay
+        ? toReservationDateTime(selectedDay, selectedStartHour)
+        : '',
+    [selectedDay, selectedStartHour],
   );
   const endTime = useMemo(
-    () => toReservationDateTime(selectedDay.d, selectedEndHour),
-    [selectedDay.d, selectedEndHour],
+    () =>
+      selectedDay
+        ? toReservationDateTime(selectedDay, selectedEndHour)
+        : '',
+    [selectedDay, selectedEndHour],
   );
   const totalFree = rooms.reduce(
     (total, room) => total + room.availableSeatCount,
     0,
   );
   const currentRoom = rooms.find((room) => room.readingRoomId === selRoomId);
-  const selectedDateLabel = selectedDay.today
+  const selectedDateLabel = selectedDay?.today
     ? '오늘'
-    : `${RESERVATION_MONTH}월 ${selectedDay.d}일`;
+    : selectedDay
+      ? `${selectedDay.month}월 ${selectedDay.day}일`
+      : '';
   const selectedTimeLabel = `${selectedDateLabel} ${formatHour(selectedStartHour)} ~ ${formatHour(selectedEndHour)}`;
 
   useEffect(() => {
+    let mounted = true;
+
+    async function loadReservationDays() {
+      try {
+        const data = await getReservationDateOptions(RESERVATION_DAY_COUNT);
+        if (!mounted) return;
+
+        setServerNow(data.serverNow);
+        setReservationDays(data.dates);
+        setSelDay(0);
+        setSelectedSlotIndexes([
+          findFirstOpenSlotIndex(data.dates[0] ?? null, data.serverNow),
+        ]);
+      } catch (error) {
+        console.error(error);
+        if (mounted) {
+          setSeatError('예약 날짜를 불러오지 못했습니다.');
+        }
+      }
+    }
+
+    loadReservationDays();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!startTime || !endTime) {
+      return;
+    }
+
     let mounted = true;
 
     async function loadRooms() {
@@ -312,7 +387,7 @@ export default function CommunityReservation() {
   }, [startTime, endTime]);
 
   useEffect(() => {
-    if (!selRoomId) {
+    if (!selRoomId || !startTime || !endTime) {
       return;
     }
 
@@ -352,6 +427,10 @@ export default function CommunityReservation() {
   }, [selRoomId, startTime, endTime]);
 
   function handleTimeSlotClick(slotIndex: number) {
+    if (isTimeSlotClosed(selectedDay, TIME_SLOTS[slotIndex], serverNow)) {
+      return;
+    }
+
     setSelectedSlotIndexes((current) => {
       const isSelected = current.includes(slotIndex);
 
@@ -365,6 +444,12 @@ export default function CommunityReservation() {
       }
 
       const next = [...current, slotIndex].sort((a, b) => a - b);
+      if (next.some((currentSlotIndex) =>
+        isTimeSlotClosed(selectedDay, TIME_SLOTS[currentSlotIndex], serverNow)
+      )) {
+        return [slotIndex];
+      }
+
       if (!isContinuousSlotSelection(next)) {
         return [slotIndex];
       }
@@ -477,14 +562,21 @@ export default function CommunityReservation() {
         {/* 주간 날짜 */}
         <div className='mb-5 flex items-center gap-3 flex-wrap'>
           <span className='text-[13px] font-bold text-slate-400'>
-            2026 · 6월
+            {reservationDateRangeLabel}
           </span>
           <div className='flex gap-2'>
-            {WEEK.map((day, i) => (
+            {reservationDays.map((day, i) => (
               <button
-                key={i}
+                key={day.key}
                 onClick={() => {
                   setSelDay(i);
+                  if (selectedSlotIndexes.some((slotIndex) =>
+                    isTimeSlotClosed(day, TIME_SLOTS[slotIndex], serverNow)
+                  )) {
+                    setSelectedSlotIndexes([
+                      findFirstOpenSlotIndex(day, serverNow),
+                    ]);
+                  }
                   setSelSeat(null);
                   setSelSlot(null);
                 }}
@@ -499,9 +591,9 @@ export default function CommunityReservation() {
                         : 'border-border bg-white text-slate-700 hover:border-primary',
                 )}
               >
-                <span className='text-[11px] mb-0.5'>{day.wd}</span>
+                <span className='text-[11px] mb-0.5'>{day.dayOfWeek}</span>
                 <span className='text-[18px] font-extrabold leading-none'>
-                  {day.d}
+                  {day.day}
                 </span>
                 {day.today && (
                   <span
@@ -530,14 +622,18 @@ export default function CommunityReservation() {
               {TIME_SLOTS.map((slot, index) => {
                 const isSelected = selectedSlotIndexes.includes(index);
                 const isStartSlot = index === selectedSlotIndexes[0];
+                const isClosed = isTimeSlotClosed(selectedDay, slot, serverNow);
 
                 return (
                   <button
                     key={slot.startHour}
+                    disabled={isClosed}
                     onClick={() => handleTimeSlotClick(index)}
                     className={cn(
                       'h-[44px] min-w-[104px] rounded-xl border px-3 text-[12px] font-bold transition-all',
-                      isSelected
+                      isClosed
+                        ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-300'
+                        : isSelected
                         ? isStartSlot
                           ? 'border-primary bg-primary text-white shadow-md'
                           : 'border-primary bg-primary/10 text-primary'
