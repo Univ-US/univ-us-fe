@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Eye, MapPin, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { toggleProductLike } from '@/lib/marketApi';
+import { useAuthStore } from '@/store/authStore';
 import type { Product, ProductCategory } from '@/types/community';
 
 const CATEGORIES: ('전체' | ProductCategory)[] = [
@@ -57,10 +59,10 @@ function ProductCard({
   return (
     <div
       onClick={onOpen}
-      className='group cursor-pointer overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md'
+      className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
     >
       {/* 썸네일 */}
-      <div className='relative'>
+      <div className="relative">
         <div
           className={cn(
             'flex aspect-square items-center justify-center bg-gradient-to-br from-primary to-teal-700 text-5xl',
@@ -70,8 +72,7 @@ function ProductCard({
           🛍️
         </div>
 
-        {/* 상태 뱃지 */}
-        <span className='absolute left-2.5 top-2.5'>
+        <span className="absolute left-2.5 top-2.5">
           <StatusBadge status={product.productStatus} />
         </span>
 
@@ -91,7 +92,7 @@ function ProductCard({
       </div>
 
       {/* 정보 */}
-      <div className='px-3.5 pb-4 pt-3'>
+      <div className="px-3.5 pb-4 pt-3">
         <div
           className={cn(
             'h-[40px] overflow-hidden text-[13px] font-semibold leading-snug text-slate-800',
@@ -108,23 +109,23 @@ function ProductCard({
         >
           {formatPrice(product.price)}
         </div>
-        <div className='mt-2 flex items-center gap-1 text-[11px] text-slate-400'>
-          <MapPin className='size-3' />
+        <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+          <MapPin className="size-3" />
           {product.place}
-          <span className='mx-1'>·</span>
-          {product.createdAt}
+          <span className="mx-1">·</span>
+          {String(product.createdAt)}
         </div>
-        <div className='mt-1.5 flex items-center gap-3 text-[11px] text-slate-400'>
-          <span className='flex items-center gap-1'>
-            <Heart className='size-3' />
+        <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
+          <span className="flex items-center gap-1">
+            <Heart className="size-3" />
             {product.likeCount + (liked ? 1 : 0)}
           </span>
-          <span className='flex items-center gap-1'>
-            <MessageCircle className='size-3' />
+          <span className="flex items-center gap-1">
+            <MessageCircle className="size-3" />
             {product.chatCount}
           </span>
-          <span className='flex items-center gap-1'>
-            <Eye className='size-3' />
+          <span className="flex items-center gap-1">
+            <Eye className="size-3" />
             {product.viewCount}
           </span>
         </div>
@@ -137,37 +138,62 @@ function ProductCard({
 interface CommunityMarketListProps {
   products: Product[];
   onSelectProduct: (product: Product) => void;
+  onRefresh?: () => void;
 }
 
 export default function CommunityMarketList({
   products,
   onSelectProduct,
+  onRefresh,
 }: CommunityMarketListProps) {
   const router = useRouter();
+  const memberId = useAuthStore((s) => s.memberId);
+
   const [category, setCategory] = useState<'전체' | ProductCategory>('전체');
   const [onlyLiked, setOnlyLiked] = useState(false);
-  const [liked, setLiked] = useState<Set<number>>(new Set());
+  // 낙관적 업데이트용 로컬 찜 상태 (Set: productId)
+  const [likedSet, setLikedSet] = useState<Set<number>>(new Set());
 
-  const toggleLike = (id: number) => {
-    setLiked((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const toggleLike = useCallback(
+    async (productId: number) => {
+      // 로그인 체크
+      if (!memberId) {
+        alert('로그인이 필요해.');
+        return;
+      }
+      // 낙관적 업데이트: 먼저 UI 반영 후 API 호출
+      setLikedSet((prev) => {
+        const next = new Set(prev);
+        next.has(productId) ? next.delete(productId) : next.add(productId);
+        return next;
+      });
+      try {
+        await toggleProductLike(productId, memberId);
+        onRefresh?.(); // 목록 새로고침 (서버의 실제 likeCount 반영)
+      } catch (err) {
+        console.error('찜 토글 실패:', err);
+        // 실패 시 롤백
+        setLikedSet((prev) => {
+          const next = new Set(prev);
+          next.has(productId) ? next.delete(productId) : next.add(productId);
+          return next;
+        });
+      }
+    },
+    [memberId, onRefresh],
+  );
 
   let filtered = products.filter((p) =>
     category === '전체' ? true : p.category === category,
   );
-  if (onlyLiked) filtered = filtered.filter((p) => liked.has(p.productId));
+  if (onlyLiked) filtered = filtered.filter((p) => likedSet.has(p.productId));
 
   return (
-    <div className='min-h-screen bg-slate-50 px-[30px] py-7'>
-      <div className='mx-auto max-w-[1140px]'>
+    <div className="min-h-screen bg-slate-50 px-[30px] py-7">
+      <div className="mx-auto max-w-[1140px]">
         {/* 필터 + 버튼 */}
-        <div className='mb-6 flex items-center justify-between'>
-          {/* 카테고리 필터 */}
-          <div className='flex flex-wrap gap-2'>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -184,8 +210,7 @@ export default function CommunityMarketList({
             ))}
           </div>
 
-          {/* 우측 버튼 */}
-          <div className='flex gap-2'>
+          <div className="flex gap-2">
             <button
               onClick={() => setOnlyLiked(!onlyLiked)}
               className={cn(
@@ -196,13 +221,13 @@ export default function CommunityMarketList({
               )}
             >
               <Heart className={cn('size-3.5', onlyLiked && 'fill-current')} />
-              관심목록 {liked.size}
+              관심목록 {likedSet.size}
             </button>
             <Button
               onClick={() => router.push('/community/market/write')}
-              className='shadow-sm'
+              className="shadow-sm"
             >
-              <Plus className='size-4' />
+              <Plus className="size-4" />
               판매하기
             </Button>
           </div>
@@ -210,26 +235,26 @@ export default function CommunityMarketList({
 
         {/* 빈 관심목록 */}
         {onlyLiked && filtered.length === 0 ? (
-          <div className='flex flex-col items-center py-24 text-center'>
-            <div className='flex size-16 items-center justify-center rounded-full bg-slate-100'>
-              <Heart className='size-7 text-slate-300' />
+          <div className="flex flex-col items-center py-24 text-center">
+            <div className="flex size-16 items-center justify-center rounded-full bg-slate-100">
+              <Heart className="size-7 text-slate-300" />
             </div>
-            <div className='mt-4 text-[15px] font-bold text-slate-700'>
+            <div className="mt-4 text-[15px] font-bold text-slate-700">
               아직 찜한 상품이 없어요
             </div>
-            <div className='mt-1.5 text-[13px] text-slate-400'>
+            <div className="mt-1.5 text-[13px] text-slate-400">
               마음에 드는 상품의 하트를 눌러 모아보세요.
             </div>
           </div>
         ) : (
-          <div className='grid grid-cols-4 gap-4'>
+          <div className="grid grid-cols-4 gap-4">
             {filtered.map((product) => (
               <ProductCard
                 key={product.productId}
                 product={product}
-                liked={liked.has(product.productId)}
+                liked={likedSet.has(product.productId)}
                 onToggleLike={() => toggleLike(product.productId)}
-                onOpen={() => onSelectProduct(product)}
+                onOpen={() => router.push(`/community/market/${product.productId}`)}
               />
             ))}
           </div>

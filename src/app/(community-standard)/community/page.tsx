@@ -3,22 +3,25 @@
 import { useEffect, useState } from 'react';
 import CommunityHome from '@/components/common/CommunityHome';
 import { getPostList } from '@/lib/postApi';
-import type { Post } from '@/types/community';
+import { getProductList } from '@/lib/marketApi';
+import type { Post, Product } from '@/types/community';
 
 export default function CommunityHomePage() {
   const [freePosts, setFreePosts] = useState<Post[]>([]);
   const [secretPosts, setSecretPosts] = useState<Post[]>([]);
   const [noticePosts, setNoticePosts] = useState<Post[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
   const [popular, setPopular] = useState<{ postId: number; title: string; board: string; boardPath: string; viewCount: number; likeCount: number; commentCount: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [freeData, secretData, noticeData] = await Promise.all([
+        const [freeData, secretData, noticeData, productData] = await Promise.all([
           getPostList({ boardId: 1, page: 1, size: 5 }),
           getPostList({ boardId: 2, page: 1, size: 5 }),
           getPostList({ boardId: 3, page: 1, size: 3 }),
+          getProductList({ page: 0, size: 6 }),
         ]);
 
         const free: Post[]   = freeData.postList   ?? [];
@@ -28,6 +31,7 @@ export default function CommunityHomePage() {
         setFreePosts(free);
         setSecretPosts(secret);
         setNoticePosts(notice);
+        setLatestProducts(productData.list ?? []);
 
         // 전체 게시글 합쳐서 좋아요*3 + 댓글*2 + 조회수 합산 TOP 5 인기글
         const boardLabel: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
@@ -68,7 +72,7 @@ export default function CommunityHomePage() {
       freePosts={freePosts}
       secretPosts={secretPosts}
       noticePosts={noticePosts}
-      latestProducts={[]}
+      latestProducts={latestProducts}
       popular={popular}
     />
   );
