@@ -1,7 +1,16 @@
 // src/lib/api.ts
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = "http://localhost:9090";
+// ⚠️⚠️ 절대 삭제·하드코딩 금지 (DO NOT HARDCODE / DO NOT DELETE) ⚠️⚠️
+// API_BASE_URL 은 반드시 NEXT_PUBLIC_API_BASE_URL 환경변수를 읽어야 합니다.
+//   - 배포(prod): deploy.yml 이 NEXT_PUBLIC_API_BASE_URL="" 주입 → 상대경로(/api) 호출
+//                 → 페이지와 같은 오리진(Traefik) → CORS 불필요.
+//   - 로컬(npm run dev): env 가 없어 ?? 뒤 기본값(http://localhost:9090) 사용.
+// [회귀 이력] PR #36(refresh-token-retry, 커밋 763555a)에서 이 줄이
+//   "http://localhost:9090" 하드코딩으로 덮어써져, 배포 FE 의 모든 API 가
+//   localhost:9090(= 브라우저 클라이언트 자기 자신)으로 가 "CORS 차단"처럼
+//   전부 실패한 회귀가 있었음. 절대 다시 하드코딩하지 말 것.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
     // 401 이후 같은 요청을 한 번만 재시도하기 위한 플래그입니다.
