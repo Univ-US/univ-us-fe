@@ -9,6 +9,8 @@ interface AuthState {
     memberId: number | null;
     role: string | null;
     isLoggedIn: boolean;
+    // localStorage 복원이 끝났는지 확인하는 값입니다.
+    isInitialized: boolean;
     loginAction: (memberId: number, password: string) => Promise<string>;
     logoutAction: () => Promise<void>;
     loadFromStorage: () => void;
@@ -20,6 +22,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     memberId: null,
     role: null,
     isLoggedIn: false,
+    // 앱이 처음 뜬 직후에는 아직 localStorage를 읽기 전입니다.
+    isInitialized: false,
 
     loadFromStorage: () => {
         const accessToken = localStorage.getItem("accessToken");
@@ -33,6 +37,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             memberId: memberId ? Number(memberId) : null,
             role,
             isLoggedIn: !!accessToken,
+            // localStorage 복원이 끝났다는 표시입니다.
+            isInitialized: true,
         });
     },
 
@@ -50,6 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             memberId: data.memberId,
             role: data.role,
             isLoggedIn: true,
+            // 로그인 성공 후에는 인증 상태가 초기화 완료 상태입니다.
+            isInitialized: true,
         });
 
         return data.role;
@@ -73,6 +81,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             memberId: null,
             role: null,
             isLoggedIn: false,
+            // 로그아웃 후에도 인증 상태 판단은 끝난 상태입니다.
+            isInitialized: true,
         });
     },
 }));
