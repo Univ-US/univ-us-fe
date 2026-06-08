@@ -66,23 +66,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     logoutAction: async () => {
         const refreshToken = get().refreshToken ?? localStorage.getItem("refreshToken");
 
-        if (refreshToken) {
-            await logout(refreshToken);
+        try {
+            if (refreshToken) {
+                await logout(refreshToken);
+            }
+        } catch {
+            // 서버 로그아웃 실패와 관계없이 클라이언트 로그아웃은 계속 진행합니다.
+        } finally {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("memberId");
+            localStorage.removeItem("role");
+
+            set({
+                accessToken: null,
+                refreshToken: null,
+                memberId: null,
+                role: null,
+                isLoggedIn: false,
+                isInitialized: true,
+            });
         }
-
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("memberId");
-        localStorage.removeItem("role");
-
-        set({
-            accessToken: null,
-            refreshToken: null,
-            memberId: null,
-            role: null,
-            isLoggedIn: false,
-            // 로그아웃 후에도 인증 상태 판단은 끝난 상태입니다.
-            isInitialized: true,
-        });
     },
 }));
