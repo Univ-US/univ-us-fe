@@ -6,6 +6,7 @@ import { login, logout } from "@/lib/authApi";
 interface AuthState {
     accessToken: string | null;
     refreshToken: string | null;
+    memberId: number | null;
     memberName: string | null;
     role: string | null;
     univId: number | null;
@@ -22,6 +23,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
     accessToken: null,
     refreshToken: null,
+    memberId: null,
     memberName: null,
     role: null,
     univId: null,
@@ -34,6 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     loadFromStorage: () => {
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
+        const memberId = localStorage.getItem("memberId");
         const memberName = localStorage.getItem("memberName");
         const role = localStorage.getItem("role");
         const univId = localStorage.getItem("univId");
@@ -43,6 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
             accessToken,
             refreshToken,
+            memberId: memberId ? Number(memberId) : null,
             memberName,
             role,
             univId: univId ? Number(univId) : null,
@@ -59,6 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
+        localStorage.setItem("memberId", String(data.memberId));
         localStorage.setItem("memberName", data.memberName);
         localStorage.setItem("role", data.role);
         if (data.univId != null) localStorage.setItem("univId", String(data.univId));
@@ -68,6 +73,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
+            memberId: data.memberId,
             memberName: data.memberName,
             role: data.role,
             univId: data.univId ?? null,
@@ -103,6 +109,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({
                 accessToken: null,
                 refreshToken: null,
+                memberId: null,
                 memberName: null,
                 role: null,
                 univId: null,
