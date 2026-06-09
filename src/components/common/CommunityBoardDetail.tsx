@@ -11,6 +11,11 @@ import CommunityReportModal from '@/components/common/CommunityReportModal';
 import { getPostById, deletePost, togglePostLike, getPostLikeStatus, getPostReportStatus } from '@/lib/postApi';
 import type { Post, BoardType } from '@/types/community';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:9090';
+
+const resolveImageUrl = (url: string) =>
+  url.startsWith('http') ? url : `${API_BASE}${url}`;
+
 interface CommunityBoardDetailProps {
   post: Post;
   isAnon: boolean;
@@ -194,6 +199,21 @@ export default function CommunityBoardDetail({
             <p className='my-6 whitespace-pre-line text-[14px] leading-[1.9] text-slate-600'>
               {post.content ?? '본문 내용이 여기에 표시됩니다.'}
             </p>
+
+            {post.images && post.images.length > 0 && (
+              <div className='mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3'>
+                {post.images.map((image) => (
+                  <div key={image.imageId} className='overflow-hidden rounded-xl border border-border bg-slate-100'>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={resolveImageUrl(image.imageUrl)}
+                      alt='게시글 첨부 이미지'
+                      className='aspect-square w-full object-cover'
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* 하단 액션 */}
             <div className='flex items-center justify-between border-t border-border pt-4'>

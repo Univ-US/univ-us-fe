@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { createPost, updatePost, getPostById } from '@/lib/postApi';
+import { createPost, createPostWithImages, updatePost, getPostById, uploadPostImages } from '@/lib/postApi';
 import type { BoardType } from '@/types/community';
 
 // ── 게시판별 카테고리 ──────────────────────────────────
@@ -82,7 +82,9 @@ export default function CommunityBoardWrite({
   const [category, setCategory] = useState(CATEGORIES[board][0]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [images, setImages] = useState<string[]>([]); // TODO: 파일 업로드 구현 시 교체
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAnon = board === 'secret';
   const isNotice = board === 'notice';
@@ -105,6 +107,26 @@ export default function CommunityBoardWrite({
   }, [postId]);
 
   const handleBack = () => router.push(`/community/${board}`);
+
+  useEffect(() => {
+    const urls = images.map((image) => URL.createObjectURL(image));
+    setImagePreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [images]);
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    const validImages = selectedFiles.filter((file) =>
+      ['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
+    );
+
+    if (validImages.length !== selectedFiles.length) {
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있어.');
+    }
+
+    setImages((prev) => [...prev, ...validImages].slice(0, 10));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -129,14 +151,26 @@ export default function CommunityBoardWrite({
           content:  content.trim(),
           category: category,
         });
+        if (images.length > 0) {
+          await uploadPostImages(Number(postId), images);
+        }
         alert('수정되었습니다.');
       } else {
-        await createPost({
-          boardId:  BOARD_ID_MAP[board],
-          title:    title.trim(),
-          content:  content.trim(),
-          category: category,
-        });
+        if (images.length > 0) {
+          await createPostWithImages({
+            boardId:  BOARD_ID_MAP[board],
+            title:    title.trim(),
+            content:  content.trim(),
+            category: category,
+          }, images);
+        } else {
+          await createPost({
+            boardId:  BOARD_ID_MAP[board],
+            title:    title.trim(),
+            content:  content.trim(),
+            category: category,
+          });
+        }
         alert('등록되었습니다.');
       }
       handleBack();
@@ -231,17 +265,32 @@ export default function CommunityBoardWrite({
         {!isAnon && (
           <Field label='사진 첨부'>
             <div className='flex gap-3'>
-              <button className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'>
+              <button
+                type='button'
+                onClick={() => fileInputRef.current?.click()}
+                className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'
+              >
                 <ImagePlus className='size-[22px]' />
                 <span className='text-xs font-semibold'>사진 추가</span>
               </button>
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                multiple
+                onChange={handleImageChange}
+                className='hidden'
+              />
               {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
-              {images.map((img, i) => (
+              {imagePreviews.map((img, i) => (
                 <div
                   key={i}
                   className='relative size-24 overflow-hidden rounded-xl bg-slate-200'
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img} alt={`첨부 이미지 ${i + 1}`} className='h-full w-full object-cover' />
                   <button
+                    type='button'
                     onClick={() =>
                       setImages(images.filter((_, idx) => idx !== i))
                     }

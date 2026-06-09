@@ -36,6 +36,7 @@ export interface Post {
   // COUNT JOIN
   likeCount: number;        // POST_LIKE COUNT
   commentCount: number;     // POST_COMMENT COUNT
+  images?: PostImage[];
 
   // 화면 전용
   isHot?: boolean;
@@ -203,4 +204,12 @@ export interface ProductReport {
   reason?: string;
   detail?: string;
   pressedAt: string;
+}
+
+export interface PostImage {
+  imageId: number;
+  postId: number;
+  imageUrl: string;
+  imageSort: number;
+  createdAt: string;
 }

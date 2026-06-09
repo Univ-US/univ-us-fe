@@ -1,6 +1,6 @@
 // src/lib/postApi.ts
 import api from "@/lib/api";
-import type { Post, PostComment } from "@/types/community";
+import type { Post, PostComment, PostImage } from "@/types/community";
 
 // 게시글 목록 조회
 export const getPostList = async (params: {
@@ -28,6 +28,26 @@ export const createPost = async (postData: {
 }) => {
   const res = await api.post("/api/posts", postData);
   return res.data;
+};
+
+export const createPostWithImages = async (
+  postData: {
+    boardId: number;
+    title: string;
+    content: string;
+    category?: string;
+  },
+  images: File[],
+) => {
+  const formData = new FormData();
+  formData.append("boardId", String(postData.boardId));
+  formData.append("title", postData.title);
+  formData.append("content", postData.content);
+  if (postData.category) formData.append("category", postData.category);
+  images.forEach((image) => formData.append("images", image));
+
+  const res = await api.post("/api/posts", formData);
+  return res.data as { message: string; postId: number; images: PostImage[] };
 };
 
 // 게시글 수정
@@ -98,4 +118,17 @@ export const updateComment = async (
 export const deleteComment = async (postId: number, commentId: number) => {
   const res = await api.delete(`/api/posts/${postId}/comments/${commentId}`);
   return res.data;
+};
+
+export const uploadPostImages = async (postId: number, images: File[]) => {
+  const formData = new FormData();
+  images.forEach((image) => formData.append("images", image));
+
+  const res = await api.post(`/api/posts/${postId}/images`, formData);
+  return res.data as { message: string; images: PostImage[] };
+};
+
+export const getPostImages = async (postId: number) => {
+  const res = await api.get(`/api/posts/${postId}/images`);
+  return res.data as PostImage[];
 };
