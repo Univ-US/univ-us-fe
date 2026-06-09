@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Camera, X, MapPin, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { createProduct } from '@/lib/marketApi';
+import { createProduct, getProductDetail, updateProduct } from '@/lib/marketApi';
 import type { ProductCategory } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
@@ -58,6 +58,9 @@ function Field({
 // ── 메인 컴포넌트 ──────────────────────────────────────
 export default function CommunityMarketWrite() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('productId');
+  const isEdit = !!productId;
   const [category, setCategory] = useState<ProductCategory>('교재');
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
@@ -67,7 +70,29 @@ export default function CommunityMarketWrite() {
   const [imageCount, setImageCount] = useState(0); // TODO: 실제 파일 업로드로 교체
   const [submitting, setSubmitting] = useState(false);
 
-  const handleBack = () => router.push('/community/market');
+  const handleBack = useCallback(() => router.push('/community/market'), [router]);
+
+  useEffect(() => {
+    if (!isEdit) return;
+
+    const fetchProduct = async () => {
+      try {
+        const product = await getProductDetail(Number(productId));
+        setCategory(product.category as ProductCategory);
+        setProductName(product.productName);
+        setPrice(product.price ? product.price.toLocaleString('ko-KR') : '');
+        setIsFree(product.price === 0);
+        setPlace(product.place ?? '');
+        setDescription(product.description ?? '');
+      } catch (err) {
+        console.error('상품 조회 실패:', err);
+        alert('상품 정보를 불러오지 못했어.');
+        handleBack();
+      }
+    };
+
+    fetchProduct();
+  }, [handleBack, isEdit, productId]);
 
   const handleSubmit = async () => {
     if (!productName.trim()) {
@@ -89,24 +114,28 @@ export default function CommunityMarketWrite() {
 
     setSubmitting(true);
     try {
-      const res = await createProduct({
+      const payload = {
         productName: productName.trim(),
         price: isFree ? 0 : Number(price.replace(/[^0-9]/g, '')),
         description: description.trim(),
         place: place.trim(),
         category,
         productStatus: 'SALE',
-      });
+      };
+
+      const res = isEdit
+        ? await updateProduct(Number(productId), payload)
+        : await createProduct(payload);
 
       if (res.success) {
-        alert('상품이 등록되었습니다.');
+        alert(isEdit ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.');
         handleBack();
       } else {
-        alert(res.message ?? '상품 등록에 실패했어.');
+        alert(res.message ?? (isEdit ? '상품 수정에 실패했어.' : '상품 등록에 실패했어.'));
       }
     } catch (err) {
       console.error('상품 등록 실패:', err);
-      alert('상품 등록에 실패했어. 다시 시도해줘.');
+      alert(isEdit ? '상품 수정에 실패했어. 다시 시도해줘.' : '상품 등록에 실패했어. 다시 시도해줘.');
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +160,7 @@ export default function CommunityMarketWrite() {
         </button>
 
         <h2 className="mb-5 text-[22px] font-extrabold tracking-tight">
-          상품 등록
+          {isEdit ? '상품 수정' : '상품 등록'}
         </h2>
 
         {/* 사진 첨부 */}
@@ -252,7 +281,7 @@ export default function CommunityMarketWrite() {
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             <Send className="size-4" />
-            {submitting ? '등록 중...' : '상품 등록'}
+            {submitting ? (isEdit ? '수정 중...' : '등록 중...') : isEdit ? '상품 수정' : '상품 등록'}
           </Button>
         </div>
       </div>

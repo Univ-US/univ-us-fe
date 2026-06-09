@@ -34,6 +34,7 @@ export default function CommunityBoardDetail({
 }: CommunityBoardDetailProps) {
   const router = useRouter();
   const memberId = useAuthStore((s) => s.memberId);
+  const role = useAuthStore((s) => s.role);
   const [post, setPost] = useState<Post>(initialPost);
   const [liked, setLiked] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -80,7 +81,7 @@ export default function CommunityBoardDetail({
     }
   };
 
-  const isMyPost = memberId != null && post.memberId === memberId;
+  const canManagePost = (memberId != null && post.memberId === memberId) || role === 'SUA' || role === 'ADM';
 
   const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
 
@@ -155,7 +156,7 @@ export default function CommunityBoardDetail({
                 )}
               </div>
               <div className='flex items-center gap-1.5'>
-                {isMyPost && (
+                {canManagePost && (
                   <>
                     <button
                       onClick={handleEdit}

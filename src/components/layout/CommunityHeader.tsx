@@ -194,7 +194,9 @@ export default function CommunityHeader() {
                   <button
                     onClick={async () => {
                       setDropdownOpen(false);
+                      sessionStorage.setItem('communityLogout', 'true');
                       await logoutAction();
+                      alert('로그아웃되었습니다.');
                       router.push('/home/login');
                     }}
                     className='flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50'

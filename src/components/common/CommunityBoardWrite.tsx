@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useId, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -84,7 +84,7 @@ export default function CommunityBoardWrite({
   const [content, setContent] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = useId();
 
   const isAnon = board === 'secret';
   const isNotice = board === 'notice';
@@ -125,7 +125,7 @@ export default function CommunityBoardWrite({
     }
 
     setImages((prev) => [...prev, ...validImages].slice(0, 10));
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    event.target.value = '';
   };
 
   const handleSubmit = async () => {
@@ -265,21 +265,20 @@ export default function CommunityBoardWrite({
         {!isAnon && (
           <Field label='사진 첨부'>
             <div className='flex gap-3'>
-              <button
-                type='button'
-                onClick={() => fileInputRef.current?.click()}
+              <label
+                htmlFor={fileInputId}
                 className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'
               >
                 <ImagePlus className='size-[22px]' />
                 <span className='text-xs font-semibold'>사진 추가</span>
-              </button>
+              </label>
               <input
-                ref={fileInputRef}
+                id={fileInputId}
                 type='file'
                 accept='image/jpeg,image/png,image/webp'
                 multiple
                 onChange={handleImageChange}
-                className='hidden'
+                className='sr-only'
               />
               {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
               {imagePreviews.map((img, i) => (
@@ -292,7 +291,7 @@ export default function CommunityBoardWrite({
                   <button
                     type='button'
                     onClick={() =>
-                      setImages(images.filter((_, idx) => idx !== i))
+                      setImages((prev) => prev.filter((_, idx) => idx !== i))
                     }
                     className='absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white'
                   >
