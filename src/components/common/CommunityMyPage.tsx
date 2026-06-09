@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authStore';
 
 interface MyPost {
   postId: number;
@@ -61,16 +62,6 @@ interface UserProfile {
   commentCount: number;
   likeCount: number;
 }
-
-const SAMPLE_PROFILE: UserProfile = {
-  name: '정성룡',
-  nickname: '성룡스터디',
-  department: '컴퓨터공학 21학번',
-  joinedAt: '2024.03',
-  postCount: 28,
-  commentCount: 142,
-  likeCount: 96,
-};
 
 const SAMPLE_MY_POSTS: MyPost[] = [
   {
@@ -617,6 +608,19 @@ function MyAccount() {
 
 export default function CommunityMyPage() {
   const [section, setSection] = useState<SectionKey>('posts');
+  const memberName = useAuthStore((s) => s.memberName);
+  const communityNickname = useAuthStore((s) => s.communityNickname);
+  const univName = useAuthStore((s) => s.univName);
+
+  const profile: UserProfile = {
+    name: memberName ?? '사용자',
+    nickname: communityNickname || memberName || '사용자',
+    department: univName ?? '소속 학교',
+    joinedAt: '-',
+    postCount: SAMPLE_MY_POSTS.length,
+    commentCount: SAMPLE_MY_COMMENTS.length,
+    likeCount: SAMPLE_MY_POSTS.length,
+  };
 
   const blocks: Record<SectionKey, React.ReactNode> = {
     posts: <MyPosts posts={SAMPLE_MY_POSTS} />,
@@ -624,7 +628,7 @@ export default function CommunityMyPage() {
     liked: <LikedPosts posts={SAMPLE_MY_POSTS} />,
     trades: <MyTrades trades={SAMPLE_TRADES} />,
     wishlist: <MyWishlist wishlist={SAMPLE_WISHLIST} />,
-    profile: <MyProfile profile={SAMPLE_PROFILE} />,
+    profile: <MyProfile profile={profile} />,
     account: <MyAccount />,
   };
 
@@ -634,27 +638,27 @@ export default function CommunityMyPage() {
         <div className='mb-5 overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
           <div className='flex items-center gap-5'>
             <div className='flex size-[56px] items-center justify-center rounded-full bg-primary text-xl font-bold text-white shadow-sm'>
-              {SAMPLE_PROFILE.name.slice(0, 1)}
+              {profile.name.slice(0, 1)}
             </div>
             <div className='min-w-0 flex-1'>
               <div className='flex items-baseline gap-3'>
                 <span className='text-[18px] font-extrabold tracking-tight text-slate-900'>
-                  {SAMPLE_PROFILE.nickname}
+                  {profile.nickname}
                 </span>
                 <span className='text-[13px] text-slate-400'>
-                  {SAMPLE_PROFILE.department}
+                  {profile.department}
                 </span>
               </div>
               <div className='mt-1 text-[12px] text-slate-400'>
-                가입 {SAMPLE_PROFILE.joinedAt} · {SAMPLE_PROFILE.name}
+                가입 {profile.joinedAt} · {profile.name}
               </div>
             </div>
             <div className='flex shrink-0 items-center divide-x divide-border'>
               {(
                 [
-                  ['작성글', SAMPLE_PROFILE.postCount],
-                  ['댓글', SAMPLE_PROFILE.commentCount],
-                  ['좋아요', SAMPLE_PROFILE.likeCount],
+                  ['작성글', profile.postCount],
+                  ['댓글', profile.commentCount],
+                  ['좋아요', profile.likeCount],
                 ] as const
               ).map(([label, count]) => (
                 <div key={label} className='px-5 text-center'>
