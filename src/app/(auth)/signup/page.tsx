@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { signup } from "@/lib/authApi";
+import { checkLoginId, signup } from "@/lib/authApi";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -21,6 +21,12 @@ export default function SignupPage() {
     }, [isInitialized, isLoggedIn, router]);
 
     const [loginId, setLoginId] = useState("");
+    // ID 중복확인을 했는지 여부입니다.
+    const [loginIdChecked, setLoginIdChecked] = useState(false);
+    // 중복확인 결과입니다. true면 사용 가능, false면 이미 사용 중입니다.
+    const [loginIdAvailable, setLoginIdAvailable] = useState<boolean | null>(null);
+    // 중복확인 API 호출 중인지 여부입니다.
+    const [checkingLoginId, setCheckingLoginId] = useState(false);
     const [password, setPassword] = useState("");
     const [passwordCheck, setPasswordCheck] = useState("");
     const [memberName, setMemberName] = useState("");
@@ -34,14 +40,66 @@ export default function SignupPage() {
     const birthRegex = /^\d{8}$/;
     const loginIdRegex = /^\d+$/;
 
+    // 로그인 ID는 중복확인을 통과해야 회원가입 제출이 가능합니다.
+    const isLoginIdReady = loginIdChecked && loginIdAvailable === true;
+
+    // 비밀번호는 입력되어 있고, 확인 값과 일치해야 합니다.
+    const isPasswordReady = password.trim() !== "" && password === passwordCheck;
+
+    // 이름은 필수 입력값입니다.
+    const isRequiredProfileReady = memberName.trim() !== "";
+
+    // 전화번호는 010으로 시작하는 숫자 11자리여야 합니다.
+    const isPhoneReady = phoneRegex.test(phoneNumber);
+
+    // 생년월일은 yyyyMMdd 형식의 숫자 8자리여야 합니다.
+    const isBirthReady = birthRegex.test(birth);
+
     const canSubmit =
-        loginId.trim() !== "" &&
-        password.trim() !== "" &&
-        password === passwordCheck &&
-        memberName.trim() !== "" &&
-        phoneRegex.test(phoneNumber) &&
-        birthRegex.test(birth) &&
-        !submitting;
+        isLoginIdReady &&
+        isPasswordReady &&
+        isRequiredProfileReady &&
+        isPhoneReady &&
+        isBirthReady &&
+        !submitting &&
+        !checkingLoginId;
+
+    // ID 입력값이 바뀌면 이전 중복확인 결과는 더 이상 유효하지 않으므로 초기화합니다.
+    const handleLoginIdChange = (value: string) => {
+        setLoginId(value);
+        setLoginIdChecked(false);
+        setLoginIdAvailable(null);
+    };
+
+    // 백엔드에 로그인 ID 중복 여부를 확인합니다.
+    const handleCheckLoginId = async () => {
+        setError("");
+
+        if (!loginId.trim()) {
+            setError("로그인 ID를 입력해주세요.");
+            return;
+        }
+
+        if (!loginIdRegex.test(loginId)) {
+            setError("로그인 ID는 숫자로 입력해주세요.");
+            return;
+        }
+
+        try {
+            setCheckingLoginId(true);
+
+            const data = await checkLoginId(loginId);
+
+            setLoginIdChecked(true);
+            setLoginIdAvailable(data.available);
+        } catch {
+            setLoginIdChecked(false);
+            setLoginIdAvailable(null);
+            setError("ID 중복 확인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setCheckingLoginId(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -54,6 +112,18 @@ export default function SignupPage() {
 
         if (!loginIdRegex.test(loginId)) {
             setError("로그인 ID는 숫자로 입력해주세요.");
+            return;
+        }
+
+        // 중복확인을 하지 않은 상태에서는 회원가입을 막습니다.
+        if (!loginIdChecked) {
+            setError("ID 중복 확인을 해주세요.");
+            return;
+        }
+
+        // 중복확인 결과 이미 사용 중인 ID면 회원가입을 막습니다.
+        if (!loginIdAvailable) {
+            setError("이미 사용 중인 ID입니다.");
             return;
         }
 
@@ -118,13 +188,45 @@ export default function SignupPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <input
-                        value={loginId}
-                        onChange={(e) => setLoginId(e.target.value.replace(/\D/g, ""))}
-                        inputMode="numeric"
-                        placeholder="로그인 ID 숫자"
-                        className="h-11 w-full rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
-                    />
+                    <div>
+                        <div className="flex gap-2">
+                            <input
+                                value={loginId}
+                                onChange={(e) => handleLoginIdChange(e.target.value.replace(/\D/g, ""))}
+                                inputMode="numeric"
+                                placeholder="로그인 ID 숫자"
+                                className="h-11 min-w-0 flex-1 rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
+                            />
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 shrink-0 px-4 text-sm font-bold"
+                                onClick={handleCheckLoginId}
+                                disabled={checkingLoginId}
+                            >
+                                {checkingLoginId ? "확인 중" : "중복 확인"}
+                            </Button>
+                        </div>
+
+                        {loginIdChecked && loginIdAvailable === true && (
+                            <p className="mt-2 text-xs font-medium text-emerald-600">
+                                사용 가능한 ID입니다.
+                            </p>
+                        )}
+
+                        {loginIdChecked && loginIdAvailable === false && (
+                            <p className="mt-2 text-xs font-medium text-red-500">
+                                이미 사용 중인 ID입니다.
+                            </p>
+                        )}
+
+                        {!loginIdChecked && loginId.trim() && (
+                            <p className="mt-2 text-xs font-medium text-slate-500">
+                                ID 중복 확인을 해주세요.
+                            </p>
+                        )}
+                    </div>
 
                     <input
                         type="password"

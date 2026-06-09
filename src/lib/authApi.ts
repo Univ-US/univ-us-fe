@@ -48,6 +48,20 @@ export const signup = async (payload: SignupRequest) => {
     await api.post("/api/auth/signup", payload);
 };
 
+export interface CheckLoginIdResponse {
+    available: boolean;
+}
+
+// 로그인 ID 중복 여부를 백엔드에 확인합니다.
+// available이 true면 사용 가능, false면 이미 사용 중인 ID입니다.
+export const checkLoginId = async (loginId: string) => {
+    const res = await api.get<CheckLoginIdResponse>("/api/auth/check-login-id", {
+        params: { loginId },
+    });
+
+    return res.data;
+};
+
 export interface SupportRequest {
     univId: number;
     memberName: string;
