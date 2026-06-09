@@ -1,0 +1,191 @@
+import { CalendarCheck } from 'lucide-react';
+
+import type {
+  ReadingRoomAvailability,
+  ReadingSeatAvailability,
+  ReadingSeatReservation,
+  ReservationDateOption,
+} from '@/lib/reservationApi';
+import { cn } from '@/lib/utils';
+import AvailabilityRing from './AvailabilityRing';
+import MyReadingSeatReservations from './MyReadingSeatReservations';
+import SeatMap from './SeatMap';
+import SeatTimeSelector from './SeatTimeSelector';
+
+type SeatReservationSectionProps = {
+  selectedDay: ReservationDateOption | null;
+  serverNow: string;
+  selectedSlotIndexes: number[];
+  selectedStartHour: number;
+  selectedEndHour: number;
+  selectedDurationHours: number;
+  onTimeSlotClick: (slotIndex: number) => void;
+  reservations: ReadingSeatReservation[];
+  reservationsLoading: boolean;
+  reservationError: string;
+  cancelingReservationId: number | null;
+  onCancelReservation: (reservationId: number) => void;
+  onRefreshReservations: () => void;
+  rooms: ReadingRoomAvailability[];
+  currentRoom: ReadingRoomAvailability | undefined;
+  selectedRoomId: number | null;
+  onSelectRoom: (roomId: number) => void;
+  seats: ReadingSeatAvailability[];
+  selectedSeat: ReadingSeatAvailability | null;
+  onSelectSeat: (seat: ReadingSeatAvailability) => void;
+  seatError: string;
+  seatLoading: boolean;
+  reservationLoading: boolean;
+  selectedTimeLabel: string;
+  onReserveSeat: () => void;
+};
+
+export default function SeatReservationSection({
+  selectedDay,
+  serverNow,
+  selectedSlotIndexes,
+  selectedStartHour,
+  selectedEndHour,
+  selectedDurationHours,
+  onTimeSlotClick,
+  reservations,
+  reservationsLoading,
+  reservationError,
+  cancelingReservationId,
+  onCancelReservation,
+  onRefreshReservations,
+  rooms,
+  currentRoom,
+  selectedRoomId,
+  onSelectRoom,
+  seats,
+  selectedSeat,
+  onSelectSeat,
+  seatError,
+  seatLoading,
+  reservationLoading,
+  selectedTimeLabel,
+  onReserveSeat,
+}: SeatReservationSectionProps) {
+  return (
+    <div>
+      <SeatTimeSelector
+        selectedDay={selectedDay}
+        serverNow={serverNow}
+        selectedSlotIndexes={selectedSlotIndexes}
+        selectedStartHour={selectedStartHour}
+        selectedEndHour={selectedEndHour}
+        selectedDurationHours={selectedDurationHours}
+        onTimeSlotClick={onTimeSlotClick}
+      />
+
+      <MyReadingSeatReservations
+        reservations={reservations}
+        loading={reservationsLoading}
+        error={reservationError}
+        cancelingReservationId={cancelingReservationId}
+        onCancel={onCancelReservation}
+        onRefresh={onRefreshReservations}
+      />
+
+      <div className='mb-5 grid grid-cols-3 gap-4'>
+        {rooms.map((room) => (
+          <button
+            key={room.readingRoomId}
+            onClick={() => onSelectRoom(room.readingRoomId)}
+            className={cn(
+              'flex items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all',
+              selectedRoomId === room.readingRoomId
+                ? 'border-primary bg-primary/5 shadow-md'
+                : 'border-border bg-white hover:border-primary',
+            )}
+          >
+            <AvailabilityRing
+              free={room.availableSeatCount}
+              total={room.totalSeatCount}
+              danger={room.availableSeatCount <= 5}
+            />
+            <div>
+              <div className='text-[14px] font-bold text-slate-900'>
+                {room.roomName}
+              </div>
+              <div className='mt-0.5 text-[12px] text-slate-400'>
+                {[room.floorName, room.description].filter(Boolean).join(' · ')}
+              </div>
+              <div
+                className={cn(
+                  'mt-1.5 text-[12px] font-semibold',
+                  room.availableSeatCount <= 5
+                    ? 'text-red-500'
+                    : 'text-primary',
+                )}
+              >
+                {room.availableSeatCount <= 5 ? '마감 임박' : '여유 있음'} ·
+                전체 {room.totalSeatCount}석
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className='overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
+        <div className='mb-1 text-[14px] font-bold text-slate-900'>
+          {currentRoom?.roomName ?? '독서실'} 좌석 배치도
+        </div>
+        {seatError ? (
+          <div className='mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-8 text-center text-[13px] font-semibold text-red-500'>
+            {seatError}
+          </div>
+        ) : seatLoading && seats.length === 0 ? (
+          <div className='mt-4 rounded-xl border border-border bg-slate-50 px-4 py-8 text-center text-[13px] font-semibold text-slate-400'>
+            좌석 현황을 불러오는 중입니다.
+          </div>
+        ) : seats.length === 0 ? (
+          <div className='mt-4 rounded-xl border border-border bg-slate-50 px-4 py-8 text-center text-[13px] font-semibold text-slate-400'>
+            등록된 좌석이 없습니다.
+          </div>
+        ) : (
+          <SeatMap
+            seats={seats}
+            selectedSeat={selectedSeat}
+            onSelect={onSelectSeat}
+            readingRoomId={currentRoom?.readingRoomId}
+            roomName={currentRoom?.roomName}
+          />
+        )}
+      </div>
+
+      {selectedSeat && (
+        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
+          <div>
+            <div className='text-[11px] font-semibold text-primary'>
+              선택한 좌석
+            </div>
+            <div className='mt-0.5 text-[14px] font-bold text-slate-900'>
+              {currentRoom?.roomName} · {selectedSeat.seatNumber}번 ·{' '}
+              {selectedTimeLabel}
+            </div>
+            <div className='mt-1 text-[12px] font-semibold text-slate-500'>
+              총 {selectedDurationHours}시간
+            </div>
+          </div>
+          <button
+            disabled={reservationLoading}
+            onClick={onReserveSeat}
+            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-colors'
+            style={{ background: '#0FA896' }}
+            onMouseEnter={(event) =>
+              (event.currentTarget.style.background = 'var(--brand-hover)')
+            }
+            onMouseLeave={(event) =>
+              (event.currentTarget.style.background = '#0FA896')
+            }
+          >
+            <CalendarCheck className='size-4' />
+            {reservationLoading ? '예약 중' : '좌석 예약하기'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
