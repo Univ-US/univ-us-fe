@@ -16,7 +16,7 @@ const getRedirectPathByRole = (role: string) => {
         case "GUEST":
             return "/landing";
         default:
-            return null;
+            return "/home";
     }
 };
 

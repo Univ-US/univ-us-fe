@@ -5,18 +5,30 @@ export interface LoginRequest {
     password: string;
 }
 
+export interface UserLoginRequest {
+    loginId: string;
+    password: string;
+    univId: number;
+}
 export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
     tokenType: string;
     memberId: number;
-    role: string;
     memberName: string;
+    role: string;
+    univId: number | null;
+    univName: string | null;
     communityNickname: string;
 }
 
 export const login = async (payload: LoginRequest) => {
     const res = await api.post<LoginResponse>("/api/auth/admin/login", payload);    return res.data;
+};
+
+export const userLogin = async (payload: UserLoginRequest) => {
+    const res = await api.post<LoginResponse>("/api/auth/user/login", payload);
+    return res.data;
 };
 
 export const logout = async (refreshToken: string) => {
@@ -36,14 +48,13 @@ export const signup = async (payload: SignupRequest) => {
     await api.post("/api/auth/signup", payload);
 };
 
-export interface CheckLoginIdResponse {
-    available: boolean;
+export interface SupportRequest {
+    univId: number;
+    memberName: string;
+    contact: string;
+    message: string;
 }
 
-export const checkLoginId = async (loginId: string) => {
-    const res = await api.get<CheckLoginIdResponse>("/api/auth/check-login-id", {
-        params: { loginId },
-    });
-
-    return res.data;
+export const submitSupport = async (payload: SupportRequest) => {
+    await api.post("/api/admin/support", payload);
 };

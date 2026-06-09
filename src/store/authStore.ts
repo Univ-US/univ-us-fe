@@ -7,8 +7,10 @@ interface AuthState {
     accessToken: string | null;
     refreshToken: string | null;
     memberId: number | null;
-    role: string | null;
     memberName: string | null;
+    role: string | null;
+    univId: number | null;
+    univName: string | null;
     communityNickname: string | null;
     isLoggedIn: boolean;
     // localStorage 복원이 끝났는지 확인하는 값입니다.
@@ -22,8 +24,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     accessToken: null,
     refreshToken: null,
     memberId: null,
-    role: null,
     memberName: null,
+    role: null,
+    univId: null,
+    univName: null,
     communityNickname: null,
     isLoggedIn: false,
     // 앱이 처음 뜬 직후에는 아직 localStorage를 읽기 전입니다.
@@ -33,16 +37,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const accessToken = localStorage.getItem("accessToken");
         const refreshToken = localStorage.getItem("refreshToken");
         const memberId = localStorage.getItem("memberId");
-        const role = localStorage.getItem("role");
         const memberName = localStorage.getItem("memberName");
+        const role = localStorage.getItem("role");
+        const univId = localStorage.getItem("univId");
+        const univName = localStorage.getItem("univName");
         const communityNickname = localStorage.getItem("communityNickname");
 
         set({
             accessToken,
             refreshToken,
             memberId: memberId ? Number(memberId) : null,
-            role,
             memberName,
+            role,
+            univId: univId ? Number(univId) : null,
+            univName: univName ?? null,
             communityNickname,
             isLoggedIn: !!accessToken,
             // localStorage 복원이 끝났다는 표시입니다.
@@ -56,16 +64,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
         localStorage.setItem("memberId", String(data.memberId));
+        localStorage.setItem("memberName", data.memberName);
         localStorage.setItem("role", data.role);
-        localStorage.setItem("memberName", data.memberName ?? "");
+        if (data.univId != null) localStorage.setItem("univId", String(data.univId));
+        if (data.univName) localStorage.setItem("univName", data.univName);
         localStorage.setItem("communityNickname", data.communityNickname ?? "");
 
         set({
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
             memberId: data.memberId,
-            role: data.role,
             memberName: data.memberName,
+            role: data.role,
+            univId: data.univId ?? null,
+            univName: data.univName ?? null,
             communityNickname: data.communityNickname,
             isLoggedIn: true,
             // 로그인 성공 후에는 인증 상태가 초기화 완료 상태입니다.
@@ -91,12 +103,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             localStorage.removeItem("role");
             localStorage.removeItem("memberName");
             localStorage.removeItem("communityNickname");
+            localStorage.removeItem("univId");
+            localStorage.removeItem("univName");
 
             set({
                 accessToken: null,
                 refreshToken: null,
                 memberId: null,
+                memberName: null,
                 role: null,
+                univId: null,
+                univName: null,
+                communityNickname: null,
                 isLoggedIn: false,
                 isInitialized: true,
             });
