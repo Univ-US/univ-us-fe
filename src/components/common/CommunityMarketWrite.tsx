@@ -82,7 +82,7 @@ export default function CommunityMarketWrite() {
         setProductName(product.productName);
         setPrice(product.price ? product.price.toLocaleString('ko-KR') : '');
         setIsFree(product.price === 0);
-        setPlace(product.place);
+        setPlace(product.place ?? '');
         setDescription(product.description ?? '');
       } catch (err) {
         console.error('상품 조회 실패:', err);
