@@ -32,6 +32,7 @@ import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
 import SeatReservationSection from './seat/SeatReservationSection';
+import { useReservationRealtimeStatus } from './useReservationRealtimeStatus';
 import {
   DEFAULT_SLOT_INDEX,
   MAX_SELECTED_SLOT_COUNT,
@@ -53,6 +54,7 @@ import {
 } from './reservationUtils';
 
 export default function CommunityReservation() {
+  const realtimeStatus = useReservationRealtimeStatus();
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
   const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
@@ -125,6 +127,10 @@ export default function CommunityReservation() {
     (total, room) => total + room.availableSeatCount,
     0,
   );
+  const availableRoomCount = roomAvailabilities.filter((room) =>
+    room.slots.some((slot) => slot.available)
+  ).length;
+  const isRealtimeConnected = realtimeStatus === 'connected';
   const currentRoom = rooms.find((room) => room.readingRoomId === selRoomId);
   const selectedDateLabel = selectedDay?.today
     ? '오늘'
@@ -677,20 +683,30 @@ export default function CommunityReservation() {
           <div className='flex items-center gap-2'>
             <span
               className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold'
-              style={{ background: 'var(--brand-soft)', color: 'var(--brand)' }}
+              style={{
+                background: isRealtimeConnected
+                  ? 'var(--brand-soft)'
+                  : '#F1F5F9',
+                color: isRealtimeConnected ? 'var(--brand)' : '#94A3B8',
+              }}
             >
               <span
-                className='size-[7px] animate-pulse rounded-full'
+                className={cn(
+                  'size-[7px] rounded-full',
+                  isRealtimeConnected && 'animate-pulse',
+                )}
                 style={{
-                  background: 'var(--brand)',
-                  boxShadow: '0 0 0 3px rgba(15,168,150,.18)',
+                  background: isRealtimeConnected ? 'var(--brand)' : '#CBD5E1',
+                  boxShadow: isRealtimeConnected
+                    ? '0 0 0 3px rgba(15,168,150,.18)'
+                    : 'none',
                 }}
               />
-              실시간
+              {isRealtimeConnected ? '실시간' : '네트워크 연결안됨'}
             </span>
             <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600'>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
-              공간 <b className='text-slate-900'>{rooms.length}</b>곳
+              공간 <b className='text-slate-900'>{availableRoomCount}</b>곳
             </span>
           </div>
         </div>

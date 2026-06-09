@@ -10,7 +10,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 //   "http://localhost:9090" 하드코딩으로 덮어써져, 배포 FE 의 모든 API 가
 //   localhost:9090(= 브라우저 클라이언트 자기 자신)으로 가 "CORS 차단"처럼
 //   전부 실패한 회귀가 있었음. 절대 다시 하드코딩하지 말 것.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
     // 401 이후 같은 요청을 한 번만 재시도하기 위한 플래그입니다.
