@@ -27,6 +27,7 @@ import {
   type RoomAvailability,
   type RoomReservation,
 } from '@/lib/reservationApi';
+import { getApiErrorMessage, isApiErrorStatus } from '@/lib/apiError';
 import { cn } from '@/lib/utils';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
@@ -518,7 +519,19 @@ export default function CommunityReservation() {
       window.alert('좌석 예약이 완료되었습니다.');
     } catch (error) {
       console.error(error);
-      window.alert('예약 요청에 실패했습니다. 로그인 상태와 좌석 상태를 확인해주세요.');
+      const message = getApiErrorMessage(
+        error,
+        '예약 요청에 실패했습니다. 로그인 상태와 좌석 상태를 확인해주세요.',
+      );
+
+      if (isApiErrorStatus(error, 409)) {
+        await Promise.allSettled([
+          refreshSelectedSeatAvailability(),
+          loadMyReservations(),
+        ]);
+      }
+
+      window.alert(message);
     } finally {
       setReservationLoading(false);
     }
@@ -540,7 +553,17 @@ export default function CommunityReservation() {
       window.alert(result.message || '예약이 취소되었습니다.');
     } catch (error) {
       console.error(error);
-      window.alert('예약 취소에 실패했습니다. 예약 상태를 확인해주세요.');
+      const message = getApiErrorMessage(
+        error,
+        '예약 취소에 실패했습니다. 예약 상태를 확인해주세요.',
+      );
+
+      await Promise.allSettled([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability(),
+      ]);
+
+      window.alert(message);
     } finally {
       setCancelingReservationId(null);
     }
