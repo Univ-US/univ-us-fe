@@ -10,6 +10,7 @@ import CommunityBoardComment from '@/components/common/CommunityBoardComment';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
 import { getPostById, deletePost, togglePostLike, getPostLikeStatus, getPostReportStatus } from '@/lib/postApi';
 import type { Post, BoardType } from '@/types/community';
+import { useAuthStore } from '@/store/authStore';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:9090';
 
@@ -32,6 +33,7 @@ export default function CommunityBoardDetail({
   onRefresh,
 }: CommunityBoardDetailProps) {
   const router = useRouter();
+  const memberId = useAuthStore((s) => s.memberId);
   const [post, setPost] = useState<Post>(initialPost);
   const [liked, setLiked] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -78,8 +80,7 @@ export default function CommunityBoardDetail({
     }
   };
 
-  const CURRENT_MEMBER_ID = 1; // TODO: JWT 구현 후 토큰에서 추출
-  const isMyPost = post.memberId === CURRENT_MEMBER_ID;
+  const isMyPost = memberId != null && post.memberId === memberId;
 
   const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
 

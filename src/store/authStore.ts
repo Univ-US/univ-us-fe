@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             role,
             univId: univId ? Number(univId) : null,
             univName: univName ?? null,
-            communityNickname,
+            communityNickname: communityNickname || null,
             isLoggedIn: !!accessToken,
             // localStorage 복원이 끝났다는 표시입니다.
             isInitialized: true,
@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             role: data.role,
             univId: data.univId ?? null,
             univName: data.univName ?? null,
-            communityNickname: data.communityNickname,
+            communityNickname: data.communityNickname || null,
             isLoggedIn: true,
             // 로그인 성공 후에는 인증 상태가 초기화 완료 상태입니다.
             isInitialized: true,
