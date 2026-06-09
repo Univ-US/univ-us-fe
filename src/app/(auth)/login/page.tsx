@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,22 @@ const getRedirectPathByRole = (role: string) => {
 
 export default function LoginPage() {
     const router = useRouter();
-    const loginAction = useAuthStore((state) => state.loginAction);
 
-    const [memberId, setMemberId] = useState("");
+    const loginAction = useAuthStore((state) => state.loginAction);
+    const isInitialized = useAuthStore((state) => state.isInitialized);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const role = useAuthStore((state) => state.role);
+
+    useEffect(() => {
+        // AuthProvider가 localStorage 복원을 끝내기 전에는 이동 판단을 하지 않습니다.
+        if (!isInitialized || !isLoggedIn) return;
+
+        const redirectPath = role ? getRedirectPathByRole(role) : "/landing";
+
+        router.replace(redirectPath ?? "/landing");
+    }, [isInitialized, isLoggedIn, role, router]);
+
+    const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -33,15 +46,20 @@ export default function LoginPage() {
         e.preventDefault();
         setError("");
 
-        if (!memberId.trim() || !password.trim()) {
+        if (!loginId.trim() || !password.trim()) {
             setError("아이디와 비밀번호를 입력해주세요.");
+            return;
+        }
+
+        if (!/^\d+$/.test(loginId)) {
+            setError("로그인 ID는 숫자로 입력해주세요.");
             return;
         }
 
         try {
             setSubmitting(true);
 
-            const role = await loginAction(memberId, password);
+            const role = await loginAction(loginId, password);
             const redirectPath = getRedirectPathByRole(role);
 
             if (!redirectPath) {
@@ -57,6 +75,14 @@ export default function LoginPage() {
         }
     };
 
+    if (!isInitialized) {
+        return null;
+    }
+
+    if (isLoggedIn) {
+        return null;
+    }
+
     return (
         <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
             <form
@@ -69,9 +95,9 @@ export default function LoginPage() {
 
                 <div className="mt-6 space-y-4">
                     <input
-                        value={memberId}
-                        onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="회원 ID"
+                        value={loginId}
+                        onChange={(e) => setLoginId(e.target.value)}
+                        placeholder="로그인 ID"
                         className="h-11 w-full rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
                     />
 

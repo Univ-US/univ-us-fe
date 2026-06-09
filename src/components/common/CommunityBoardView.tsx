@@ -20,6 +20,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
+
+function formatViews(n: number) {
+  if (n >= 10000) return (n / 10000).toFixed(1) + 'w';
+  if (n >= 100) return (n / 1000).toFixed(1) + 'k';
+  return String(n);
+}
 import { Button } from '@/components/ui/button';
 import CommunityBoardDetail from '@/components/common/CommunityBoardDetail';
 import { getPostById } from '@/lib/postApi';
@@ -120,7 +126,7 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
             <div className='flex w-[100px] shrink-0 items-center justify-end gap-1.5 text-[12px] text-slate-400'>
               <span className='flex items-center gap-0.5'><Heart className='size-3 shrink-0' /><span className='inline-block w-[20px] tabular-nums'>{post.likeCount}</span></span>
               <span className='flex items-center gap-0.5'><MessageCircle className='size-3 shrink-0' /><span className='inline-block w-[20px] tabular-nums'>{post.commentCount}</span></span>
-              <span className='flex items-center gap-0.5'><Eye className='size-3 shrink-0' /><span className='inline-block w-[20px] tabular-nums'>{post.viewCount}</span></span>
+              <span className='flex items-center gap-0.5'><Eye className='size-3 shrink-0' /><span className='inline-block w-[20px] tabular-nums'>{formatViews(post.viewCount)}</span></span>
             </div>
           )}
         </>
@@ -145,7 +151,7 @@ function Pagination({ page, totalPages, onChange }: { page: number; totalPages: 
 }
 
 function SidePopular({ posts, onOpen }: { posts: Post[]; onOpen: (post: Post) => void }) {
-  const top5 = posts.filter((p) => !p.isBlind).sort((a, b) => b.likeCount - a.likeCount).slice(0, 5);
+  const top5 = posts.filter((p) => !p.isBlind).sort((a, b) => (b.likeCount * 3 + b.commentCount * 2 + b.viewCount) - (a.likeCount * 3 + a.commentCount * 2 + a.viewCount)).slice(0, 5);
   return (
     <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
       <div className='flex items-center gap-2 border-b border-border px-4 py-3.5'>
@@ -161,6 +167,7 @@ function SidePopular({ posts, onOpen }: { posts: Post[]; onOpen: (post: Post) =>
               <div className='mt-0.5 flex items-center gap-2 text-[11px] text-slate-400'>
                 <span className='flex items-center gap-1'><Heart className='size-2.5' />{post.likeCount}</span>
                 <span className='flex items-center gap-1'><MessageCircle className='size-2.5' />{post.commentCount}</span>
+                <span className='flex items-center gap-1'><Eye className='size-2.5' />{formatViews(post.viewCount)}</span>
               </div>
             </div>
           </button>
@@ -204,6 +211,11 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [sortBy, setSortBy] = useState<'최신순' | '인기순' | '댓글순'>('최신순');
 
+  const handleOpenPost = (post: Post) => {
+    setSelectedPost(post);
+    window.history.replaceState(null, '', `/community/${board}?postId=${post.postId}`);
+  };
+
   const isAnon = board === 'secret';
   const meta = BOARD_META[board];
 
@@ -236,7 +248,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
 
   const handleBack = () => {
     setSelectedPost(null);
-    router.replace(`/community/${board}`);
+    window.history.replaceState(null, '', `/community/${board}`);
     onRefresh?.();
   };
 
@@ -329,7 +341,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
                 <div className='py-16 text-center text-[13px] text-slate-400'>게시글이 없어요.</div>
               ) : (
                 visiblePosts.map((post) => (
-                  <PostRow key={post.postId} post={post} isAnon={isAnon} isNotice={board === 'notice'} onOpen={() => setSelectedPost(post)} />
+                  <PostRow key={post.postId} post={post} isAnon={isAnon} isNotice={board === 'notice'} onOpen={() => handleOpenPost(post)} />
                 ))
               )}
             </div>
@@ -348,7 +360,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
 
           <div className='w-[280px] shrink-0'>
             <div className='sticky top-20 flex flex-col gap-4'>
-              <SidePopular posts={posts} onOpen={setSelectedPost} />
+              <SidePopular posts={posts} onOpen={handleOpenPost} />
               <SideRules rules={meta.rules} />
             </div>
           </div>

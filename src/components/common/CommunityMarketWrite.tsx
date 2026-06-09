@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Camera, X, MapPin, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { createProduct } from '@/lib/marketApi';
 import type { ProductCategory } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
@@ -46,10 +47,10 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className='mb-[22px]'>
-      <label className='mb-2.5 block text-[13px] font-bold'>{label}</label>
+    <div className="mb-[22px]">
+      <label className="mb-2.5 block text-[13px] font-bold">{label}</label>
       {children}
-      {hint && <p className='mt-1.5 text-xs text-muted-foreground'>{hint}</p>}
+      {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -64,10 +65,11 @@ export default function CommunityMarketWrite() {
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [imageCount, setImageCount] = useState(0); // TODO: 실제 파일 업로드로 교체
+  const [submitting, setSubmitting] = useState(false);
 
   const handleBack = () => router.push('/community/market');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!productName.trim()) {
       alert('상품명을 입력해주세요.');
       return;
@@ -84,16 +86,30 @@ export default function CommunityMarketWrite() {
       alert('상품 설명을 입력해주세요.');
       return;
     }
-    // TODO: axios로 POST /api/products 호출
-    console.log({
-      category,
-      productName,
-      price: isFree ? 0 : Number(price.replace(/[^0-9]/g, '')),
-      place,
-      description,
-    });
-    alert('상품이 등록되었습니다.');
-    handleBack();
+
+    setSubmitting(true);
+    try {
+      const res = await createProduct({
+        productName: productName.trim(),
+        price: isFree ? 0 : Number(price.replace(/[^0-9]/g, '')),
+        description: description.trim(),
+        place: place.trim(),
+        category,
+        productStatus: 'SALE',
+      });
+
+      if (res.success) {
+        alert('상품이 등록되었습니다.');
+        handleBack();
+      } else {
+        alert(res.message ?? '상품 등록에 실패했어.');
+      }
+    } catch (err) {
+      console.error('상품 등록 실패:', err);
+      alert('상품 등록에 실패했어. 다시 시도해줘.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // 가격 입력 포맷 (숫자만)
@@ -103,46 +119,44 @@ export default function CommunityMarketWrite() {
   };
 
   return (
-    <div className='px-[30px] py-7'>
-      <div className='mx-auto max-w-[760px]'>
+    <div className="px-[30px] py-7">
+      <div className="mx-auto max-w-[760px]">
         {/* 뒤로가기 */}
         <button
           onClick={handleBack}
-          className='mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground'
+          className="mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className='size-4' />
+          <ArrowLeft className="size-4" />
           중고거래 홈
         </button>
 
-        <h2 className='mb-5 text-[22px] font-extrabold tracking-tight'>
+        <h2 className="mb-5 text-[22px] font-extrabold tracking-tight">
           상품 등록
         </h2>
 
         {/* 사진 첨부 */}
-        <Field label='상품 사진' hint='최대 5장까지 첨부할 수 있어요.'>
-          <div className='flex gap-3'>
-            {/* 추가 버튼 */}
+        <Field label="상품 사진" hint="최대 5장까지 첨부할 수 있어요.">
+          <div className="flex gap-3">
             <button
               onClick={() => {
                 if (imageCount < 5) setImageCount(imageCount + 1);
               }}
-              className='flex size-[100px] flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'
+              className="flex size-[100px] flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100"
             >
-              <Camera className='size-[22px]' />
-              <span className='text-xs font-semibold'>{imageCount} / 5</span>
+              <Camera className="size-[22px]" />
+              <span className="text-xs font-semibold">{imageCount} / 5</span>
             </button>
 
-            {/* 미리보기 플레이스홀더 */}
             {Array.from({ length: imageCount }).map((_, i) => (
               <div
                 key={i}
-                className='relative size-[100px] overflow-hidden rounded-xl bg-gradient-to-br from-teal-400 to-teal-700'
+                className="relative size-[100px] overflow-hidden rounded-xl bg-gradient-to-br from-teal-400 to-teal-700"
               >
                 <button
                   onClick={() => setImageCount(imageCount - 1)}
-                  className='absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white'
+                  className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white"
                 >
-                  <X className='size-3.5' />
+                  <X className="size-3.5" />
                 </button>
               </div>
             ))}
@@ -150,18 +164,18 @@ export default function CommunityMarketWrite() {
         </Field>
 
         {/* 상품명 */}
-        <Field label='상품명'>
+        <Field label="상품명">
           <input
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            placeholder='예) 자료구조 전공서적 (거의 새것)'
-            className='flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
+            placeholder="예) 자료구조 전공서적 (거의 새것)"
+            className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
         </Field>
 
         {/* 카테고리 */}
-        <Field label='카테고리'>
-          <div className='flex flex-wrap gap-2'>
+        <Field label="카테고리">
+          <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <Chip
                 key={cat}
@@ -174,8 +188,8 @@ export default function CommunityMarketWrite() {
         </Field>
 
         {/* 가격 */}
-        <Field label='가격'>
-          <div className='flex gap-3'>
+        <Field label="가격">
+          <div className="flex gap-3">
             <div
               className={cn(
                 'flex flex-1 items-center gap-2 rounded-lg border border-input px-3.5 py-2.5',
@@ -186,16 +200,15 @@ export default function CommunityMarketWrite() {
                 disabled={isFree}
                 value={isFree ? '' : price}
                 onChange={handlePriceChange}
-                placeholder='0'
-                className='flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed'
+                placeholder="0"
+                className="flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
               />
-              <span className='text-[13px] font-semibold text-muted-foreground'>
+              <span className="text-[13px] font-semibold text-muted-foreground">
                 원
               </span>
             </div>
-            {/* 나눔 토글 */}
             <Chip
-              label='나눔 (무료)'
+              label="나눔 (무료)"
               active={isFree}
               onClick={() => {
                 setIsFree(!isFree);
@@ -206,40 +219,40 @@ export default function CommunityMarketWrite() {
         </Field>
 
         {/* 거래 희망 장소 */}
-        <Field label='거래 희망 장소'>
-          <div className='flex items-center gap-2 rounded-lg border border-input px-3.5 py-2.5 focus-within:border-primary'>
-            <MapPin className='size-[17px] shrink-0 text-muted-foreground' />
+        <Field label="거래 희망 장소">
+          <div className="flex items-center gap-2 rounded-lg border border-input px-3.5 py-2.5 focus-within:border-primary">
+            <MapPin className="size-[17px] shrink-0 text-muted-foreground" />
             <input
               value={place}
               onChange={(e) => setPlace(e.target.value)}
-              placeholder='예) 중앙도서관 앞'
-              className='flex-1 bg-transparent text-[13px] outline-none'
+              placeholder="예) 중앙도서관 앞"
+              className="flex-1 bg-transparent text-[13px] outline-none"
             />
           </div>
         </Field>
 
         {/* 상품 설명 */}
         <Field
-          label='상품 설명'
-          hint='상품 상태, 구매 시기, 거래 방식 등을 적어주세요.'
+          label="상품 설명"
+          hint="상품 상태, 구매 시기, 거래 방식 등을 적어주세요."
         >
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={6}
-            placeholder='상품에 대해 자세히 설명해주세요.'
-            className='flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[13px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
+            placeholder="상품에 대해 자세히 설명해주세요."
+            className="flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[13px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
           />
         </Field>
 
         {/* 하단 버튼 */}
-        <div className='flex justify-end gap-2 border-t border-border pt-3'>
-          <Button variant='outline' onClick={handleBack}>
+        <div className="flex justify-end gap-2 border-t border-border pt-3">
+          <Button variant="outline" onClick={handleBack} disabled={submitting}>
             취소
           </Button>
-          <Button onClick={handleSubmit}>
-            <Send className='size-4' />
-            상품 등록
+          <Button onClick={handleSubmit} disabled={submitting}>
+            <Send className="size-4" />
+            {submitting ? '등록 중...' : '상품 등록'}
           </Button>
         </div>
       </div>

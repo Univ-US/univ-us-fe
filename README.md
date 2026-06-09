@@ -127,6 +127,33 @@ ssh -p 49022 -L 8080:192.168.50.200:80 univus@happyjob.iptime.org
 
 > 서버에서 직접 보려면(VM SSH 후): `kubectl get all -n univus` / `helm list -n univus` / `curl -I http://192.168.50.200/`(→ `HTTP 200`)
 
+### 🔗 배포 시 API 주소 — 왜 빈값(`""`)을 주입하나 (중요)
+
+정적 export(`output:'export'`)는 **런타임 서버가 없어** API 주소를 **빌드 시점에 확정**해야 합니다.
+그래서 `deploy.yml`의 `build` 잡이 빌드 단계에 환경변수를 주입하고(`NEXT_PUBLIC_API_BASE_URL: ""`), `src/lib/api.ts`가 그 값을 읽습니다:
+```ts
+// src/lib/api.ts
+baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090",
+```
+
+| 환경 | 주입값 | `baseURL` 결과 | 호출 주소 |
+|---|---|---|---|
+| 로컬 (`npm run dev`) | 미설정 → `undefined` | `http://localhost:9090` | `localhost:9090/api/...` |
+| 배포 (CD 빌드) | `""` | `""` (상대경로) | **(접속한 호스트)**`/api/...` |
+
+**★ 빈값인데 어떻게 API가 맞춰지나** — 빈 문자열은 "값 없음"이 아니라 **"상대경로로 보내라"는 신호**입니다. 호스트는 우리가 안 박아도 **브라우저가 요청 시점에 자동으로 채웁니다**:
+```
+페이지 출처   http://192.168.0.108/community/
+api.get("/api/posts") + baseURL=""  →  "/api/posts"  (상대경로)
+브라우저      → http://192.168.0.108/api/posts 로 자동 요청   ← 호스트는 브라우저가 채움
+Traefik       /api → 백엔드 파드(:9090)
+```
+- FE(`/`)와 BE(`/api`)가 **같은 Traefik 뒤 = 같은 오리진** → 상대경로 한 줄로 해결.
+- **장점**: 어떤 주소로 접속하든(`192.168.0.108`, 추후 `www.UnivUs.ac.kr` 등) API가 자동으로 맞춰짐 → **CORS 불필요**, **도메인 바뀌어도 재빌드 불필요**.
+
+> ⚠️ `??`(nullish)를 쓰는 이유 — `||`는 빈 문자열도 falsy로 봐 `localhost`로 폴백해버림. `??`는 `null`/`undefined`일 때만 폴백하므로 `""`(상대경로)를 배포 값으로 살립니다.
+> 💡 BE의 `application-prod.yml` + K8s env 주입과 같은 **"설정 외부화"** 패턴 — 단 **FE는 정적이라 런타임이 아닌 '빌드 시점'에** 값이 박힙니다.
+
 ### 🛡️ 브랜치 보호 (Ruleset) — `dev`
 검증을 건너뛴 병합(직접 push, CI 실패·미실행 PR의 수동 병합)을 막기 위해 **`dev`에 보호 룰셋**을 적용했습니다.
 (GitHub → **Settings → Rules → Rulesets**, Enforcement: **Active**, Target: 기본 브랜치 `dev`)

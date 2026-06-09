@@ -10,6 +10,7 @@ interface AuthState {
     role: string | null;
     univId: number | null;
     univName: string | null;
+    communityNickname: string | null;
     isLoggedIn: boolean;
     // localStorage 복원이 끝났는지 확인하는 값입니다.
     isInitialized: boolean;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     role: null,
     univId: null,
     univName: null,
+    communityNickname: null,
     isLoggedIn: false,
     // 앱이 처음 뜬 직후에는 아직 localStorage를 읽기 전입니다.
     isInitialized: false,
@@ -36,6 +38,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const role = localStorage.getItem("role");
         const univId = localStorage.getItem("univId");
         const univName = localStorage.getItem("univName");
+        const communityNickname = localStorage.getItem("communityNickname");
 
         set({
             accessToken,
@@ -44,6 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             role,
             univId: univId ? Number(univId) : null,
             univName: univName ?? null,
+            communityNickname,
             isLoggedIn: !!accessToken,
             // localStorage 복원이 끝났다는 표시입니다.
             isInitialized: true,
@@ -59,6 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem("role", data.role);
         if (data.univId != null) localStorage.setItem("univId", String(data.univId));
         if (data.univName) localStorage.setItem("univName", data.univName);
+        localStorage.setItem("communityNickname", data.communityNickname ?? "");
 
         set({
             accessToken: data.accessToken,
@@ -67,6 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             role: data.role,
             univId: data.univId ?? null,
             univName: data.univName ?? null,
+            communityNickname: data.communityNickname,
             isLoggedIn: true,
             // 로그인 성공 후에는 인증 상태가 초기화 완료 상태입니다.
             isInitialized: true,
@@ -78,27 +84,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     logoutAction: async () => {
         const refreshToken = get().refreshToken ?? localStorage.getItem("refreshToken");
 
-        if (refreshToken) {
-            await logout(refreshToken);
+        try {
+            if (refreshToken) {
+                await logout(refreshToken);
+            }
+        } catch {
+            // 서버 로그아웃 실패와 관계없이 클라이언트 로그아웃은 계속 진행합니다.
+        } finally {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("memberId");
+            localStorage.removeItem("role");
+            localStorage.removeItem("memberName");
+            localStorage.removeItem("communityNickname");
+            localStorage.removeItem("univId");
+            localStorage.removeItem("univName");
+
+            set({
+                accessToken: null,
+                refreshToken: null,
+                memberName: null,
+                role: null,
+                univId: null,
+                univName: null,
+                communityNickname: null,
+                isLoggedIn: false,
+                isInitialized: true,
+            });
         }
-
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("memberName");
-        localStorage.removeItem("role");
-        localStorage.removeItem("univId");
-        localStorage.removeItem("univName");
-
-        set({
-            accessToken: null,
-            refreshToken: null,
-            memberName: null,
-            role: null,
-            univId: null,
-            univName: null,
-            isLoggedIn: false,
-            // 로그아웃 후에도 인증 상태 판단은 끝난 상태입니다.
-            isInitialized: true,
-        });
     },
 }));

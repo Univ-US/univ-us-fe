@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CommunityBoardComment from '@/components/common/CommunityBoardComment';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
-import { getPostById, deletePost, togglePostLike, getPostLikeStatus } from '@/lib/postApi';
+import { getPostById, deletePost, togglePostLike, getPostLikeStatus, getPostReportStatus } from '@/lib/postApi';
 import type { Post, BoardType } from '@/types/community';
 
 interface CommunityBoardDetailProps {
@@ -30,16 +30,29 @@ export default function CommunityBoardDetail({
   const [post, setPost] = useState<Post>(initialPost);
   const [liked, setLiked] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [alreadyReported, setAlreadyReported] = useState(false);
+  const [reportToast, setReportToast] = useState(false);
+
+  const handleReportClick = () => {
+    if (alreadyReported) {
+      setReportToast(true);
+      setTimeout(() => setReportToast(false), 3000);
+      return;
+    }
+    setReporting(true);
+  };
 
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const [data, likeStatus] = await Promise.all([
+        const [data, likeStatus, reportStatus] = await Promise.all([
           getPostById(initialPost.postId),
           getPostLikeStatus(initialPost.postId),
+          getPostReportStatus(initialPost.postId),
         ]);
         setPost(data);
         setLiked(likeStatus.liked);
+        setAlreadyReported(reportStatus.reported);
       } catch {
         // 실패해도 기존 데이터 유지
       }
@@ -59,6 +72,9 @@ export default function CommunityBoardDetail({
       alert('좋아요 처리에 실패했어.');
     }
   };
+
+  const CURRENT_MEMBER_ID = 1; // TODO: JWT 구현 후 토큰에서 추출
+  const isMyPost = post.memberId === CURRENT_MEMBER_ID;
 
   const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
 
@@ -133,20 +149,24 @@ export default function CommunityBoardDetail({
                 )}
               </div>
               <div className='flex items-center gap-1.5'>
-                <button
-                  onClick={handleEdit}
-                  className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-primary hover:text-primary'
-                >
-                  <Pencil className='size-3.5' />
-                  수정
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-red-400 hover:text-red-500'
-                >
-                  <Trash2 className='size-3.5' />
-                  삭제
-                </button>
+                {isMyPost && (
+                  <>
+                    <button
+                      onClick={handleEdit}
+                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-primary hover:text-primary'
+                    >
+                      <Pencil className='size-3.5' />
+                      수정
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-red-400 hover:text-red-500'
+                    >
+                      <Trash2 className='size-3.5' />
+                      삭제
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -190,11 +210,11 @@ export default function CommunityBoardDetail({
                 좋아요 {post.likeCount}
               </button>
               <button
-                onClick={() => setReporting(true)}
-                className='flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600'
+                onClick={handleReportClick}
+                className='flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3.5 py-1.5 text-[12px] font-semibold text-red-400 transition-colors hover:bg-red-100 hover:text-red-500'
               >
                 <Flag className='size-3.5' />
-                신고
+                {alreadyReported ? '신고완료' : '신고'}
               </button>
             </div>
           </div>
@@ -212,8 +232,19 @@ export default function CommunityBoardDetail({
         <CommunityReportModal
           targetType='post'
           targetId={post.postId}
-          onClose={() => setReporting(false)}
+          onClose={(reported?: boolean) => {
+            setReporting(false);
+            if (reported) setAlreadyReported(true);
+          }}
         />
+      )}
+
+      {/* 신고 완료 토스트 */}
+      {reportToast && (
+        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 rounded-2xl border border-red-200 bg-white px-5 py-3.5 shadow-lg'>
+          <Flag className='size-4 text-red-400' />
+          <p className='text-[13px] font-semibold text-slate-700'>이미 신고한 게시글입니다.</p>
+        </div>
       )}
     </>
   );

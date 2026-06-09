@@ -18,6 +18,7 @@ export interface LoginResponse {
     role: string;
     univId: number | null;
     univName: string | null;
+    communityNickname: string;
 }
 
 export const login = async (payload: LoginRequest) => {
