@@ -13,6 +13,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 const NAV_ITEMS = [
   { href: '/community', label: '홈', exact: true },
@@ -30,6 +31,7 @@ export default function CommunityHeader() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const univName = useAuthStore((s) => s.univName);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -54,9 +56,20 @@ export default function CommunityHeader() {
         {/* 로고 */}
         <Link
           href='/community'
-          className='flex shrink-0 items-center justify-center'
+          className='flex shrink-0 items-center gap-2'
         >
-          <img src='/univus-logo.svg' alt='UniVUs' className='h-10 w-auto' />
+          {univName ? (
+            <>
+              <div className='flex size-8 items-center justify-center rounded-md bg-[#11302a] text-sm font-black text-white'>
+                U
+              </div>
+              <span className='text-[15px] font-extrabold tracking-tight text-slate-900'>
+                {univName}
+              </span>
+            </>
+          ) : (
+            <img src='/univus-logo.svg' alt='UniVUs' className='h-10 w-auto' />
+          )}
         </Link>
 
         {/* 구분선 */}

@@ -16,7 +16,7 @@ const getRedirectPathByRole = (role: string) => {
         case "GUEST":
             return "/landing";
         default:
-            return null;
+            return "/home";
     }
 };
 
@@ -38,17 +38,10 @@ export default function LoginPage() {
             return;
         }
 
-        const parsedMemberId = Number(memberId);
-
-        if (Number.isNaN(parsedMemberId)) {
-            setError("회원 ID는 숫자로 입력해주세요.");
-            return;
-        }
-
         try {
             setSubmitting(true);
 
-            const role = await loginAction(parsedMemberId, password);
+            const role = await loginAction(memberId, password);
             const redirectPath = getRedirectPathByRole(role);
 
             if (!redirectPath) {

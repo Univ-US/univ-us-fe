@@ -31,13 +31,6 @@ export default function SignupPage() {
             return;
         }
 
-        const parsedMemberId = Number(memberId);
-
-        if (Number.isNaN(parsedMemberId)) {
-            setError("회원 ID는 숫자로 입력해주세요.");
-            return;
-        }
-
         if (password !== passwordCheck) {
             setError("비밀번호가 일치하지 않습니다.");
             return;
@@ -57,7 +50,7 @@ export default function SignupPage() {
             setSubmitting(true);
 
             await signup({
-                memberId: parsedMemberId,
+                loginId: memberId,
                 password,
                 memberName,
                 phoneNumber,
@@ -94,7 +87,7 @@ export default function SignupPage() {
                     <input
                         value={memberId}
                         onChange={(e) => setMemberId(e.target.value)}
-                        placeholder="회원 ID 숫자"
+                        placeholder="아이디"
                         className="h-11 w-full rounded-lg border border-input px-3.5 text-sm outline-none focus:border-primary"
                     />
 
