@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { LogIn, ChevronDown, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { userLogin } from "@/lib/authApi";
@@ -22,6 +22,14 @@ const getRedirectPathByRole = (role: string) => {
 export default function UserLoginPage() {
     const router = useRouter();
     const loadFromStorage = useAuthStore((s) => s.loadFromStorage);
+    const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+    const isInitialized = useAuthStore((s) => s.isInitialized);
+
+    useEffect(() => {
+        if (isInitialized && isLoggedIn) {
+            router.replace("/home");
+        }
+    }, [isInitialized, isLoggedIn, router]);
 
     const [memberId, setMemberId] = useState("");
     const [password, setPassword] = useState("");
@@ -29,6 +37,25 @@ export default function UserLoginPage() {
     const [universities, setUniversities] = useState<University[]>([]);
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [univOpen, setUnivOpen] = useState(false);
+    const [univSearch, setUnivSearch] = useState("");
+    const univRef = useRef<HTMLDivElement>(null);
+
+    const selectedUniv = universities.find((u) => u.univId === univId) ?? null;
+    const filteredUnivs = universities.filter((u) =>
+        u.univName.toLowerCase().includes(univSearch.toLowerCase())
+    );
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (univRef.current && !univRef.current.contains(e.target as Node)) {
+                setUnivOpen(false);
+                setUnivSearch("");
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         getUniversities().then(setUniversities).catch(() => {});
@@ -73,9 +100,7 @@ export default function UserLoginPage() {
         <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-6">
             <div className="w-full max-w-[380px]">
                 <div className="flex items-center gap-2 justify-center mb-8">
-                    <div className="w-8 h-8 bg-[#11302a] rounded-md flex items-center justify-center text-white text-sm font-black">
-                        U
-                    </div>
+                    <img src="/univusicon.png" alt="UniVUs" className="w-8 h-8 rounded-md" />
                     <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ·us</span>
                 </div>
 
@@ -88,18 +113,51 @@ export default function UserLoginPage() {
                     </h1>
 
                     <div className="space-y-3">
-                        <select
-                            value={univId ?? ""}
-                            onChange={(e) => setUnivId(e.target.value ? Number(e.target.value) : null)}
-                            className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition bg-white"
-                        >
-                            <option value="">학교를 선택해주세요</option>
-                            {universities.map((u) => (
-                                <option key={u.univId} value={u.univId}>
-                                    {u.univName}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="relative" ref={univRef}>
+                            <button
+                                type="button"
+                                onClick={() => { setUnivOpen((v) => !v); setUnivSearch(""); }}
+                                className={`h-11 w-full rounded-lg border px-3.5 text-sm text-left flex items-center justify-between transition bg-white outline-none ${
+                                    univOpen ? "border-primary ring-2 ring-primary/20" : "border-slate-200"
+                                }`}
+                            >
+                                <span className={selectedUniv ? "text-slate-900" : "text-slate-400"}>
+                                    {selectedUniv ? selectedUniv.univName : "학교를 선택해주세요"}
+                                </span>
+                                <ChevronDown className={`size-4 text-slate-400 transition-transform ${univOpen ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {univOpen && (
+                                <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                                    <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+                                        <Search className="size-4 shrink-0 text-slate-400" />
+                                        <input
+                                            autoFocus
+                                            value={univSearch}
+                                            onChange={(e) => setUnivSearch(e.target.value)}
+                                            placeholder="학교 검색"
+                                            className="w-full text-sm outline-none placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                    <ul className="max-h-48 overflow-y-auto py-1">
+                                        {filteredUnivs.length > 0 ? filteredUnivs.map((u) => (
+                                            <li key={u.univId}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setUnivId(u.univId); setUnivOpen(false); setUnivSearch(""); }}
+                                                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                                                >
+                                                    {u.univName}
+                                                    {univId === u.univId && <Check className="size-4 text-primary" />}
+                                                </button>
+                                            </li>
+                                        )) : (
+                                            <li className="px-3.5 py-3 text-sm text-slate-400">검색 결과가 없어요</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
 
                         <input
                             value={memberId}

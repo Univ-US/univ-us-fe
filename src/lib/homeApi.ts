@@ -17,6 +17,8 @@ export interface University {
     univId: number;
     univName: string;
     schoolPhone: string;
+    homepage: string | null;
+    address: string | null;
 }
 
 export const getUniversities = async (): Promise<University[]> => {

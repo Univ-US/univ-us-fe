@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     BookOpen,
+    Briefcase,
     Cloud,
     FileText,
     GraduationCap,
@@ -24,14 +25,18 @@ import { getUniversities } from "@/lib/homeApi";
 
 const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-blue-500" },
-    { label: "증명서발급", icon: FileText, bg: "bg-emerald-500" },
-    { label: "학교폼", icon: GraduationCap, bg: "bg-violet-500" },
+    { label: "증명서발급", icon: FileText, bg: "bg-emerald-500", href: "https://www.certpia.com" },
+    { label: "학교홈", icon: GraduationCap, bg: "bg-violet-500" },
     { label: "화면예약", icon: Monitor, bg: "bg-teal-500" },
-    { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700" },
-    { label: "Office 365", icon: Cloud, bg: "bg-red-500" },
+    { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
+    { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
     { label: "학교 SNS", icon: Hash, bg: "bg-pink-500" },
     { label: "커뮤니티", icon: MessageSquare, bg: "bg-sky-500", href: "/community" },
     { label: "LMS", icon: LayoutDashboard, bg: "bg-indigo-500", href: "#" },
+];
+
+const EXTRA_SHORTCUTS = [
+    { label: "취업정보", icon: Briefcase, bg: "bg-orange-500", href: "https://www.jobkorea.co.kr" },
 ];
 
 const NOTICE_TABS = ["전체", "LMS", "커뮤니티"] as const;
@@ -49,11 +54,11 @@ const MOCK_NOTICES = [
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-// TODO(HOM-011): 학식 API 연동으로 교체
+//mock data
 const MOCK_MEALS = [
-    { type: "조식", time: "07:30 ~ 09:00", items: ["된장찌개", "공기밥", "계란후라이", "깍두기", "배추김치"], price: "3,000원" },
-    { type: "중식", time: "11:30 ~ 13:30", items: ["부대찌개", "공기밥", "잡채", "미역국", "배추김치", "과일"], price: "4,500원" },
-    { type: "석식", time: "17:30 ~ 19:00", items: ["김치찌개", "공기밥", "두부조림", "콩나물무침", "배추김치"], price: "4,000원" },
+    { type: "조식", time: "07:30 ~ 09:00", items: ["된장찌개", "공기밥", "계란후라이", "깍두기", "배추김치"] },
+    { type: "중식", time: "11:30 ~ 13:30", items: ["부대찌개", "공기밥", "잡채", "미역국", "배추김치", "과일"]},
+    { type: "석식", time: "17:30 ~ 19:00", items: ["김치찌개", "공기밥", "두부조림", "콩나물무침", "배추김치"] },
 ];
 
 function useNow() {
@@ -75,6 +80,8 @@ interface WeatherData {
 interface SchoolInfo {
     schoolName: string;
     schoolPhone: string;
+    homepage: string | null;
+    address: string | null;
 }
 
 function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
@@ -85,7 +92,11 @@ function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
         getUniversities()
             .then((univs) => {
                 const univ = univs.find((u) => u.univId === univId);
-                if (univ) setInfo({ schoolName: univ.univName, schoolPhone: univ.schoolPhone });
+                if (univ) {
+                    const hp = univ.homepage;
+                    const homepage = hp ? (hp.startsWith("http") ? hp : `https://${hp}`) : null;
+                    setInfo({ schoolName: univ.univName, schoolPhone: univ.schoolPhone, homepage, address: univ.address ?? null });
+                }
             })
             .catch(() => {});
     }, [isLoggedIn, univId]);
@@ -141,6 +152,7 @@ export default function CampusHomePage() {
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
     const [activeTab, setActiveTab] = useState<NoticeTab>("전체");
     const [chatInput, setChatInput] = useState("");
+    const [showExtra, setShowExtra] = useState(false);
 
     // 어드민은 대시보드로
     useEffect(() => {
@@ -175,10 +187,9 @@ export default function CampusHomePage() {
             <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
                 <div className="mx-auto max-w-[1180px] flex items-center justify-between h-14 px-5">
                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-[#11302a] rounded-md flex items-center justify-center text-white text-xs font-black">
-                            U
-                        </div>
-                        <span className="font-extrabold text-slate-900 tracking-tight">{univName ?? 'Univ·us'}</span>
+                        <Link href="/home" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="font-extrabold text-slate-900 tracking-tight hover:opacity-75 transition-opacity">
+                            {univName ?? 'Univ·us'}
+                        </Link>
                     </div>
 
                     {isLoggedIn && (
@@ -200,7 +211,7 @@ export default function CampusHomePage() {
             <div className="bg-[#11302a] text-white">
                 <div className="mx-auto max-w-[1180px] px-5 py-8 flex items-center justify-between gap-4">
                     <div>
-                        <p className="text-xs text-white/50 mb-1.5">유니버스대학교 통합 포털</p>
+                        <p className="text-xs text-white/50 mb-1.5">{univName ?? 'Univ·us'} 통합 포털</p>
                         <h1 className="text-xl sm:text-2xl font-extrabold leading-tight">
                             오늘도 캠퍼스의 모든 것을 한 곳에서 👋
                         </h1>
@@ -240,35 +251,34 @@ export default function CampusHomePage() {
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="font-extrabold text-slate-800 text-sm">바로가기</h2>
                             <button
-                                onClick={requireLogin}
-                                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                onClick={() => { if (!isLoggedIn) { router.push("/home/login"); return; } setShowExtra((v) => !v); }}
+                                className={`text-xs transition-colors ${showExtra ? "text-primary font-semibold" : "text-slate-400 hover:text-slate-600"}`}
                             >
-                                편집
+                                {showExtra ? "닫기" : "More"}
                             </button>
                         </div>
                         <div className="grid grid-cols-5 sm:grid-cols-9 gap-3">
-                            {BASE_SHORTCUTS.map((s) => {
+                            {[...BASE_SHORTCUTS, ...(showExtra ? EXTRA_SHORTCUTS : [])].map((s) => {
                                 const Icon = s.icon;
-                                const isAuthShortcut = s.label === "커뮤니티" || s.label === "LMS";
-                                const handleClick = (e: React.MouseEvent) => {
-                                    if (!isLoggedIn) { e.preventDefault(); router.push("/home/login"); }
-                                };
-                                if (isAuthShortcut && s.href && isLoggedIn) {
+                                const iconEl = (
+                                    <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
+                                        <Icon className="w-5 h-5" />
+                                    </div>
+                                );
+                                const labelEl = <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>;
+
+                                const resolvedHref = s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined) : s.href;
+                                if (resolvedHref && isLoggedIn) {
+                                    const isExternal = resolvedHref.startsWith("http");
                                     return (
-                                        <Link key={s.label} href={s.href} className="flex flex-col items-center gap-2 group">
-                                            <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
-                                                <Icon className="w-5 h-5" />
-                                            </div>
-                                            <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>
-                                        </Link>
+                                        <a key={s.label} href={resolvedHref} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined} className="flex flex-col items-center gap-2 group">
+                                            {iconEl}{labelEl}
+                                        </a>
                                     );
                                 }
                                 return (
-                                    <button key={s.label} onClick={handleClick} className="flex flex-col items-center gap-2 group">
-                                        <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
-                                            <Icon className="w-5 h-5" />
-                                        </div>
-                                        <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>
+                                    <button key={s.label} onClick={() => { if (!isLoggedIn) router.push("/home/login"); }} className="flex flex-col items-center gap-2 group">
+                                        {iconEl}{labelEl}
                                     </button>
                                 );
                             })}
@@ -336,6 +346,32 @@ export default function CampusHomePage() {
                         )}
                         <p className="text-[11px] text-slate-400 mt-3">※ 세부 전화번호는 학교 홈페이지를 확인하세요.</p>
                     </section>
+
+                    {/* 학교 유튜브 · 동아리 */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <a
+                            href="#"
+                            onClick={requireLogin}
+                            className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-white">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                            </div>
+                            <span className="text-xs font-extrabold text-slate-800">학교 유튜브</span>
+                            <span className="text-[11px] font-semibold text-primary">바로가기 →</span>
+                        </a>
+                        <a
+                            href="#"
+                            onClick={requireLogin}
+                            className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
+                        >
+                            <div className="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center text-white">
+                                <GraduationCap className="w-4 h-4" />
+                            </div>
+                            <span className="text-xs font-extrabold text-slate-800">동아리</span>
+                            <span className="text-[11px] font-semibold text-primary">바로가기 →</span>
+                        </a>
+                    </div>
                 </div>
 
                 {/* 오른쪽 컬럼 */}
@@ -414,7 +450,6 @@ export default function CampusHomePage() {
                                         <span className="text-xs font-extrabold text-slate-700">{meal.type}</span>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[10px] text-slate-400">{meal.time}</span>
-                                            <span className="text-[10px] font-bold text-primary">{meal.price}</span>
                                         </div>
                                     </div>
                                     <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -427,47 +462,15 @@ export default function CampusHomePage() {
                 </div>
             </div>
 
-            {/* 하단 카드 섹션 */}
-            <div className="mx-auto max-w-[1180px] px-5 pb-10 grid grid-cols-1 sm:grid-cols-3 gap-5">
-                {/* 학교 유튜브 */}
-                {/* TODO(HOM-004): 학교 유튜브 채널 URL 연동 */}
-                <a
-                    href="#"
-                    onClick={requireLogin}
-                    className="group bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
-                >
-                    <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center text-white">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-extrabold text-slate-800 text-sm mb-1">학교 유튜브</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">학교 공식 유튜브 채널에서 학교 소식과 행사 영상을 확인하세요.</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-primary group-hover:gap-2 transition-all">
-                        바로가기 →
-                    </div>
-                </a>
 
-                {/* 동아리 */}
-                {/* TODO(HOM-008): 동아리 페이지 연동 */}
-                <a
-                    href="#"
-                    onClick={requireLogin}
-                    className="group bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
-                >
-                    <div className="w-10 h-10 rounded-xl bg-violet-500 flex items-center justify-center text-white">
-                        <GraduationCap className="w-5 h-5" />
+            {/* 푸터 */}
+            {schoolInfo?.address && (
+                <footer className="border-t border-slate-200 bg-white mt-2">
+                    <div className="mx-auto max-w-[1180px] px-5 py-4 text-center text-[11px] text-slate-400">
+                        {univName ?? schoolInfo.schoolName} · {schoolInfo.address}
                     </div>
-                    <div className="flex-1">
-                        <h3 className="font-extrabold text-slate-800 text-sm mb-1">동아리</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">교내 동아리 목록을 확인하고 원하는 동아리에 가입 신청하세요.</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-primary group-hover:gap-2 transition-all">
-                        바로가기 →
-                    </div>
-                </a>
-
-            </div>
+                </footer>
+            )}
         </div>
     );
 }

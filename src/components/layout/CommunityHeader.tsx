@@ -60,14 +60,9 @@ export default function CommunityHeader() {
           className='flex shrink-0 items-center gap-2'
         >
           {univName ? (
-            <>
-              <div className='flex size-8 items-center justify-center rounded-md bg-[#11302a] text-sm font-black text-white'>
-                U
-              </div>
-              <span className='text-[15px] font-extrabold tracking-tight text-slate-900'>
-                {univName}
-              </span>
-            </>
+            <span className='text-[15px] font-extrabold tracking-tight text-slate-900'>
+              {univName}
+            </span>
           ) : (
             <img src='/univus-logo.svg' alt='UniVUs' className='h-10 w-auto' />
           )}
