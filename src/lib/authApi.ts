@@ -14,6 +14,7 @@ export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
     tokenType: string;
+    memberId: number;
     memberName: string;
     role: string;
     univId: number | null;
