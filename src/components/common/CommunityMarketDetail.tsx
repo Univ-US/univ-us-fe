@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import {
@@ -13,15 +13,75 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import CommunityMarketComment from '@/components/common/CommunityMarketComment';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
-import { toggleProductLike, deleteProduct } from '@/lib/marketApi';
+import {
+  toggleProductLike,
+  deleteProduct,
+  getPaymentConfig,
+  completePayment,
+} from '@/lib/marketApi';
 import { useAuthStore } from '@/store/authStore';
 import type { Product } from '@/types/community';
 
+interface PortOnePaymentRequest {
+  pg: string;
+  pay_method: string;
+  merchant_uid: string;
+  name: string;
+  amount: number;
+  buyer_name?: string;
+}
+
+interface PortOnePaymentResponse {
+  imp_uid?: string;
+  merchant_uid?: string;
+  error_msg?: string;
+}
+
+interface PortOneSdk {
+  init: (impCode: string) => void;
+  request_pay: (
+    paymentRequest: PortOnePaymentRequest,
+    callback: (response: PortOnePaymentResponse) => void,
+  ) => void;
+}
+
+declare global {
+  interface Window {
+    IMP?: PortOneSdk;
+  }
+}
+
+const PORTONE_SCRIPT_SRC = 'https://cdn.iamport.kr/v1/iamport.js';
+
+function loadPortOneScript() {
+  return new Promise<void>((resolve, reject) => {
+    if (window.IMP) {
+      resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      `script[src="${PORTONE_SCRIPT_SRC}"]`,
+    );
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = PORTONE_SCRIPT_SRC;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject();
+    document.body.appendChild(script);
+  });
+}
+
 function formatPrice(price: number) {
-  return price === 0 ? '나눔' : price.toLocaleString('ko-KR') + '원';
+  return price === 0 ? '무료' : `${price.toLocaleString('ko-KR')}원`;
 }
 
 function StatusBadge({ status }: { status: Product['productStatus'] }) {
@@ -59,8 +119,7 @@ function ProductThumb({
         className,
       )}
     >
-      🛍️
-    </div>
+      ?썚截?    </div>
   );
 }
 
@@ -77,39 +136,105 @@ export default function CommunityMarketDetail({
   const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const sold = product.productStatus === 'DONE';
+  const [paymentDone, setPaymentDone] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const sold = product.productStatus === 'DONE' || paymentDone;
 
   const isOwner = memberId === product.memberId;
 
   const handleDelete = async () => {
-    if (!confirm('상품을 삭제할까요?')) return;
+    if (!confirm('?곹뭹????젣?좉퉴??')) return;
     try {
       await deleteProduct(product.productId);
-      alert('상품이 삭제되었습니다.');
+      alert('?곹뭹????젣?섏뿀?듬땲??');
       onBack();
     } catch (err) {
-      console.error('상품 삭제 실패:', err);
-      alert('상품 삭제에 실패했어.');
+      console.error('?곹뭹 ??젣 ?ㅽ뙣:', err);
+      alert('?곹뭹 ??젣???ㅽ뙣?덉뼱.');
     }
   };
 
   const handleToggleLike = async () => {
     if (!memberId) {
-      alert('로그인이 필요해.');
+      alert('濡쒓렇?몄씠 ?꾩슂??');
       return;
     }
     if (likeLoading) return;
-    // 낙관적 업데이트
+    // ?숆????낅뜲?댄듃
     setLiked((prev) => !prev);
     setLikeLoading(true);
     try {
       const res = await toggleProductLike(product.productId, memberId);
       setLiked(res.liked);
     } catch (err) {
-      console.error('찜 토글 실패:', err);
-      setLiked((prev) => !prev); // 롤백
+      console.error('李??좉? ?ㅽ뙣:', err);
+      setLiked((prev) => !prev); // 濡ㅻ갚
     } finally {
       setLikeLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!memberId) {
+      alert('濡쒓렇?몄씠 ?꾩슂??');
+      return;
+    }
+    if (isOwner) {
+      alert('蹂몄씤 ?곹뭹? 寃곗젣?????놁뼱.');
+      return;
+    }
+    if (sold || paymentLoading) return;
+
+    setPaymentLoading(true);
+    try {
+      const paymentConfig = await getPaymentConfig();
+      if (!paymentConfig.impCode) {
+        throw new Error('?ы듃??媛留뱀젏 ?앸퀎肄붾뱶媛 ?ㅼ젙?섏? ?딆븯??');
+      }
+
+      await loadPortOneScript();
+      if (!window.IMP) {
+        throw new Error('?ы듃??SDK瑜?遺덈윭?ㅼ? 紐삵뻽??');
+      }
+
+      window.IMP.init(paymentConfig.impCode);
+      window.IMP.request_pay(
+        {
+          pg: 'html5_inicis',
+          pay_method: 'card',
+          merchant_uid: `product_${product.productId}_${Date.now()}`,
+          name: product.productName,
+          amount: product.price,
+          buyer_name: 'Buyer',
+        },
+        async (response) => {
+          if (!response.imp_uid || !response.merchant_uid) {
+            alert(response.error_msg ?? '寃곗젣媛 ?꾨즺?섏? ?딆븯??');
+            setPaymentLoading(false);
+            return;
+          }
+
+          try {
+            await completePayment({
+              productId: product.productId,
+              buyerId: memberId,
+              impUid: response.imp_uid,
+              merchantUid: response.merchant_uid,
+            });
+            setPaymentDone(true);
+            alert('寃곗젣媛 ?꾨즺?먯뼱.');
+          } catch (err) {
+            console.error('寃곗젣 寃利??ㅽ뙣:', err);
+            alert('寃곗젣???붿껌?먯?留??쒕쾭 寃利앹뿉 ?ㅽ뙣?덉뼱.');
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+      );
+    } catch (err) {
+      console.error('寃곗젣 ?붿껌 ?ㅽ뙣:', err);
+      alert(err instanceof Error ? err.message : '寃곗젣 ?붿껌???ㅽ뙣?덉뼱.');
+      setPaymentLoading(false);
     }
   };
 
@@ -117,16 +242,15 @@ export default function CommunityMarketDetail({
     <>
       <div className="min-h-screen bg-slate-50 px-[30px] py-7">
         <div className="mx-auto max-w-[920px]">
-          {/* 뒤로가기 */}
+          {/* ?ㅻ줈媛湲?*/}
           <button
             onClick={onBack}
             className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700"
           >
-            <ArrowLeft className="size-4" /> 중고거래 홈
-          </button>
+            <ArrowLeft className="size-4" /> 以묎퀬嫄곕옒 ??          </button>
 
           <div className="flex items-start gap-6">
-            {/* 좌측 - 이미지 */}
+            {/* 醫뚯륫 - ?대?吏 */}
             <div className="w-[400px] shrink-0">
               <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
                 <ProductThumb className="aspect-square" sold={sold} />
@@ -148,11 +272,11 @@ export default function CommunityMarketDetail({
               </div>
             </div>
 
-            {/* 우측 - 상품 정보 */}
+            {/* ?곗륫 - ?곹뭹 ?뺣낫 */}
             <div className="min-w-0 flex-1">
               <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
                 <div className="p-5">
-                  {/* 상태 + 카테고리 */}
+                  {/* ?곹깭 + 移댄뀒怨좊━ */}
                   <div className="mb-3 flex items-center justify-between">
                     <StatusBadge status={product.productStatus} />
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
@@ -160,38 +284,38 @@ export default function CommunityMarketDetail({
                     </span>
                   </div>
 
-                  {/* 상품명 */}
+                  {/* ?곹뭹紐?*/}
                   <h2 className="mb-2 text-[18px] font-bold leading-snug tracking-tight text-slate-900">
                     {product.productName}
                   </h2>
 
-                  {/* 가격 */}
+                  {/* 媛寃?*/}
                   <div className="mb-3 text-[20px] font-extrabold tracking-tight text-slate-900">
                     {formatPrice(product.price)}
                   </div>
 
-                  {/* 조회/관심/채팅 */}
+                  {/* 議고쉶/愿??梨꾪똿 */}
                   <div className="mb-4 flex items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Eye className="size-3.5" />
-                      조회 {product.viewCount}
+                      議고쉶 {product.viewCount}
                     </span>
                     <span className="flex items-center gap-1">
                       <Heart className="size-3.5" />
-                      관심 {product.likeCount + (liked ? 1 : 0)}
+                      愿??{product.likeCount + (liked ? 1 : 0)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageCircle className="size-3.5" />
-                      채팅 {product.chatCount}
+                      梨꾪똿 {product.chatCount}
                     </span>
                   </div>
 
-                  {/* 설명 */}
+                  {/* ?ㅻ챸 */}
                   <p className="mb-5 text-[13px] leading-relaxed text-slate-500">
-                    {product.description ?? '상품 설명이 여기에 표시됩니다.'}
+                    {product.description ?? '?곹뭹 ?ㅻ챸???ш린???쒖떆?⑸땲??'}
                   </p>
 
-                  {/* 판매자 정보 */}
+                  {/* ?먮ℓ???뺣낫 */}
                   <div className="flex items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
                     <div className="flex size-[32px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm">
                       {product.sellerName.slice(0, 1)}
@@ -213,7 +337,7 @@ export default function CommunityMarketDetail({
                     </div>
                   </div>
 
-                  {/* 신고 / 삭제 */}
+                  {/* ?좉퀬 / ??젣 */}
                   <div className="mt-3 flex items-center justify-between">
                     {isOwner ? (
                       <button
@@ -221,7 +345,7 @@ export default function CommunityMarketDetail({
                         className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="size-3.5" />
-                        삭제하기
+                        ??젣?섍린
                       </button>
                     ) : (
                       <div />
@@ -231,11 +355,11 @@ export default function CommunityMarketDetail({
                       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                     >
                       <Flag className="size-3.5" />
-                      신고하기
+                      ?좉퀬?섍린
                     </button>
                   </div>
 
-                  {/* 액션 버튼 */}
+                  {/* ?≪뀡 踰꾪듉 */}
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       onClick={handleToggleLike}
@@ -250,31 +374,31 @@ export default function CommunityMarketDetail({
                       <Heart
                         className={cn('size-4', liked && 'fill-current')}
                       />
-                      관심 {product.likeCount + (liked ? 1 : 0)}
+                      愿??{product.likeCount + (liked ? 1 : 0)}
                     </button>
 
                     <button
                       disabled={sold}
-                      onClick={() => alert('채팅 기능은 추후 연결 예정입니다.')}
+                      onClick={() => alert('梨꾪똿 湲곕뒫? 異뷀썑 ?곌껐 ?덉젙?낅땲??')}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary py-2 text-[13px] font-semibold text-primary transition-all hover:bg-primary/5 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
-                      채팅으로 거래하기
+                      梨꾪똿?쇰줈 嫄곕옒?섍린
                     </button>
 
                     <button
-                      disabled={sold}
-                      onClick={() => alert('결제 기능은 추후 연결 예정입니다.')}
+                      disabled={sold || isOwner || paymentLoading}
+                      onClick={handlePayment}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-teal-600 disabled:opacity-40"
                     >
                       <CreditCard className="size-4" />
-                      결제하기
+                      {paymentLoading ? '결제 처리중' : '결제하기'}
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* 문의 댓글 */}
+              {/* 臾몄쓽 ?볤? */}
               <CommunityMarketComment productId={product.productId} />
             </div>
           </div>

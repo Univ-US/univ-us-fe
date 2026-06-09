@@ -131,3 +131,36 @@ export const getMyLikeList = async (memberId: number): Promise<Product[]> => {
   const res = await api.get('/api/market/likes', { params: { memberId } });
   return res.data.list;
 };
+
+export interface PaymentConfigResponse {
+  impCode: string;
+}
+
+export interface PaymentCompletePayload {
+  productId: number;
+  buyerId: number;
+  impUid: string;
+  merchantUid: string;
+}
+
+export interface PaymentCompleteResponse {
+  success: boolean;
+  payment: {
+    tradeId: number;
+    paymentId: number;
+    productStatus: string;
+    paymentStatus: string;
+  };
+}
+
+export const getPaymentConfig = async (): Promise<PaymentConfigResponse> => {
+  const res = await api.get('/api/market/payments/config');
+  return res.data;
+};
+
+export const completePayment = async (
+  payload: PaymentCompletePayload,
+): Promise<PaymentCompleteResponse> => {
+  const res = await api.post('/api/market/payments/complete', payload);
+  return res.data;
+};
