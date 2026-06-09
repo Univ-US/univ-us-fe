@@ -1,0 +1,209 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import {
+    getAdminNotices,
+    createAdminNotice,
+    updateAdminNotice,
+    deleteAdminNotice,
+    type ApiNotice,
+} from "@/lib/adminApi";
+
+function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    });
+}
+
+type EditTarget = { noticeId: number; title: string; content: string } | null;
+
+export default function NoticesView() {
+    const { memberId } = useAuthStore();
+    const [notices, setNotices] = useState<ApiNotice[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [editTarget, setEditTarget] = useState<EditTarget>(null);
+    const [form, setForm] = useState({ title: "", content: "" });
+    const [submitting, setSubmitting] = useState(false);
+
+    const fetchNotices = () => {
+        getAdminNotices()
+            .then(setNotices)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => { fetchNotices(); }, []);
+
+    const openCreate = () => {
+        setEditTarget(null);
+        setForm({ title: "", content: "" });
+        setShowModal(true);
+    };
+
+    const openEdit = (n: ApiNotice) => {
+        setEditTarget({ noticeId: n.noticeId, title: n.title, content: "" });
+        setForm({ title: n.title, content: "" });
+        setShowModal(true);
+    };
+
+    const submit = async () => {
+        if (!form.title.trim() || !memberId) return;
+        setSubmitting(true);
+        try {
+            if (editTarget) {
+                await updateAdminNotice(editTarget.noticeId, {
+                    memberId,
+                    title: form.title,
+                    content: form.content,
+                });
+            } else {
+                await createAdminNotice({ memberId, title: form.title, content: form.content });
+            }
+            setShowModal(false);
+            setForm({ title: "", content: "" });
+            setEditTarget(null);
+            fetchNotices();
+        } catch {
+            alert("저장에 실패했습니다.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (noticeId: number) => {
+        if (!confirm("공지를 삭제하시겠습니까?")) return;
+        try {
+            await deleteAdminNotice(noticeId);
+            fetchNotices();
+        } catch {
+            alert("삭제에 실패했습니다.");
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex h-64 items-center justify-center">
+                <p className="text-sm text-slate-400">불러오는 중...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-black tracking-tight">공지 관리</h1>
+                    <p className="mt-1 text-sm text-slate-500">소속 학교 구성원 대상 공지를 작성·수정·삭제합니다.</p>
+                </div>
+                <button
+                    onClick={openCreate}
+                    className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800"
+                >
+                    + 공지 작성
+                </button>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
+                        <tr>
+                            <th className="px-5 py-3">제목</th>
+                            <th className="px-5 py-3">작성일</th>
+                            <th className="px-5 py-3">수정일</th>
+                            <th className="px-5 py-3">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {notices.map((n) => (
+                            <tr key={n.noticeId} className="font-semibold text-slate-700 hover:bg-slate-50">
+                                <td className="px-5 py-4 font-black text-slate-950">{n.title}</td>
+                                <td className="px-5 py-4 text-slate-500">{formatDate(n.postedAt)}</td>
+                                <td className="px-5 py-4 text-slate-400">
+                                    {n.updatedAt ? formatDate(n.updatedAt) : "—"}
+                                </td>
+                                <td className="px-5 py-4">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => openEdit(n)}
+                                            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                        >
+                                            <Pencil className="size-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(n.noticeId)}
+                                            className="rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {notices.length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">
+                                    등록된 공지가 없습니다.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                        <h2 className="text-lg font-black">{editTarget ? "공지 수정" : "공지 작성"}</h2>
+                        <p className="mt-1 text-xs text-slate-500">작성된 공지는 홈-LMS의 최근 공지에 노출됩니다.</p>
+
+                        <div className="mt-5 space-y-4">
+                            <div>
+                                <label className="text-sm font-black">
+                                    제목 <span className="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    value={form.title}
+                                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                                    placeholder="예) 2026-1학기 기말고사 안내"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-black">내용</label>
+                                <textarea
+                                    value={form.content}
+                                    onChange={(e) => setForm({ ...form, content: e.target.value })}
+                                    placeholder="공지 내용을 입력하세요."
+                                    rows={5}
+                                    className="mt-2 w-full resize-none rounded-lg border border-border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:bg-slate-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={submit}
+                                disabled={submitting || !form.title.trim()}
+                                className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                            >
+                                {submitting ? "저장 중..." : editTarget ? "수정 완료" : "▶ 공지 등록"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

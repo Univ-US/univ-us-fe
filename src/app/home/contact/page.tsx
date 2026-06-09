@@ -17,6 +17,19 @@ export default function ContactPage() {
     const [message, setMessage] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
+    const [contactError, setContactError] = useState("");
+    const [schoolQuery, setSchoolQuery] = useState("");
+    const [showSchoolList, setShowSchoolList] = useState(false);
+
+    const filteredUniversities = universities.filter((u) =>
+        u.univName.toLowerCase().includes(schoolQuery.toLowerCase())
+    );
+
+    const isValidContact = (value: string) => {
+        const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneReg = /^[0-9]{9,11}$/;
+        return emailReg.test(value) || phoneReg.test(value.replace(/-/g, ""));
+    };
 
     useEffect(() => {
         getUniversities().then(setUniversities).catch(() => {});
@@ -26,7 +39,12 @@ export default function ContactPage() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (!memberName.trim() || !contact.trim() || !univId || !message.trim()) return;
+        if (!memberName.trim() || !contact.trim() || !univId || !message.trim() || !schoolQuery) return;
+        if (!isValidContact(contact)) {
+            setContactError("이메일 또는 전화번호 형식으로 입력해주세요.");
+            return;
+        }
+        setContactError("");
 
         try {
             setSubmitting(true);
@@ -96,26 +114,49 @@ export default function ContactPage() {
                                     required
                                     className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition"
                                 />
-                                <select
-                                    value={univId}
-                                    onChange={(e) => setUnivId(e.target.value)}
-                                    required
-                                    className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm outline-none focus:border-primary transition text-slate-700"
-                                >
-                                    <option value="" disabled>소속 학교 선택</option>
-                                    {universities.map((u) => (
-                                        <option key={u.univId} value={u.univId}>
-                                            {u.univName}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    value={contact}
-                                    onChange={(e) => setContact(e.target.value)}
-                                    placeholder="연락처 (이메일 또는 전화번호)"
-                                    required
-                                    className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition"
-                                />
+                                <div className="relative">
+                                    <input
+                                        value={schoolQuery}
+                                        onChange={(e) => {
+                                            setSchoolQuery(e.target.value);
+                                            setUnivId("");
+                                            setShowSchoolList(true);
+                                        }}
+                                        onFocus={() => setShowSchoolList(true)}
+                                        onBlur={() => setTimeout(() => setShowSchoolList(false), 150)}
+                                        placeholder="소속 학교 검색"
+                                        className={`h-11 w-full rounded-lg border px-3.5 text-sm outline-none focus:border-primary transition ${!univId && schoolQuery ? "border-slate-200" : univId ? "border-primary" : "border-slate-200"}`}
+                                    />
+                                    {showSchoolList && schoolQuery && filteredUniversities.length > 0 && (
+                                        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                                            {filteredUniversities.map((u) => (
+                                                <li key={u.univId}>
+                                                    <button
+                                                        type="button"
+                                                        onMouseDown={() => {
+                                                            setUnivId(String(u.univId));
+                                                            setSchoolQuery(u.univName);
+                                                            setShowSchoolList(false);
+                                                        }}
+                                                        className="w-full px-3.5 py-2.5 text-left text-sm hover:bg-slate-50"
+                                                    >
+                                                        {u.univName}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        value={contact}
+                                        onChange={(e) => { setContact(e.target.value); setContactError(""); }}
+                                        placeholder="연락처 (이메일 또는 전화번호)"
+                                        required
+                                        className={`h-11 w-full rounded-lg border px-3.5 text-sm outline-none focus:border-primary transition ${contactError ? "border-rose-400" : "border-slate-200"}`}
+                                    />
+                                    {contactError && <p className="mt-1 text-xs text-rose-500">{contactError}</p>}
+                                </div>
                                 <textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
