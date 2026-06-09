@@ -114,7 +114,7 @@ function BoardCard({ title, href, icon, iconBg, accentClass, posts }: {
       </Link>
       <div className='flex-1'>
         {posts.map((post) => (
-          <PostRow key={post.postId} post={post} href={href} accentClass={accentClass} />
+          <PostRow key={post.postId} post={post} href={`${href}?postId=${post.postId}`} accentClass={accentClass} />
         ))}
       </div>
     </div>

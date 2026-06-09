@@ -29,6 +29,7 @@ function formatViews(n: number) {
 import { Button } from '@/components/ui/button';
 import CommunityBoardDetail from '@/components/common/CommunityBoardDetail';
 import { getPostById } from '@/lib/postApi';
+import { useAuthStore } from '@/store/authStore';
 import type { Post, BoardType } from '@/types/community';
 
 const PAGE_SIZE = 10;
@@ -205,6 +206,7 @@ interface CommunityBoardViewProps {
 export default function CommunityBoardView({ board, posts, onRefresh }: CommunityBoardViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const role = useAuthStore((s) => s.role);
   const [, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -251,6 +253,8 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
     window.history.replaceState(null, '', `/community/${board}`);
     onRefresh?.();
   };
+  const canWriteNotice = role === 'SUA' || role === 'ADM';
+  const canWriteBoard = board !== 'notice' || canWriteNotice;
 
   if (selectedPost) {
     return (
@@ -348,7 +352,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
 
             <div className='relative mt-5 flex justify-center'>
               <Pagination page={page} totalPages={totalPages} onChange={(p) => { setPage(p); setSelectedPost(null); }} />
-              {board !== 'notice' && (
+              {canWriteBoard && (
                 <div className='absolute right-0'>
                   <Button onClick={() => router.push(`/community/${board}/write`)} className='shadow-sm'>
                     <Pencil className='size-3.5' />글쓰기

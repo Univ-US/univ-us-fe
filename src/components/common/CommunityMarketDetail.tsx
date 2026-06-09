@@ -10,6 +10,7 @@ import {
   Star,
   CreditCard,
   Flag,
+  Pencil,
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -119,7 +120,8 @@ function ProductThumb({
         className,
       )}
     >
-      ?썚截?    </div>
+      🛍️
+    </div>
   );
 }
 
@@ -133,6 +135,7 @@ export default function CommunityMarketDetail({
   onBack,
 }: CommunityMarketDetailProps) {
   const memberId = useAuthStore((s) => s.memberId);
+  const role = useAuthStore((s) => s.role);
   const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -141,34 +144,35 @@ export default function CommunityMarketDetail({
   const sold = product.productStatus === 'DONE' || paymentDone;
 
   const isOwner = memberId === product.memberId;
+  const canManageProduct = isOwner || role === 'SUA' || role === 'ADM';
 
   const handleDelete = async () => {
-    if (!confirm('?곹뭹????젣?좉퉴??')) return;
+    if (!confirm('상품을 삭제할까요?')) return;
     try {
       await deleteProduct(product.productId);
-      alert('?곹뭹????젣?섏뿀?듬땲??');
+      alert('상품이 삭제되었습니다.');
       onBack();
     } catch (err) {
-      console.error('?곹뭹 ??젣 ?ㅽ뙣:', err);
-      alert('?곹뭹 ??젣???ㅽ뙣?덉뼱.');
+      console.error('상품 삭제 실패:', err);
+      alert('상품 삭제에 실패했어.');
     }
   };
 
   const handleToggleLike = async () => {
     if (!memberId) {
-      alert('濡쒓렇?몄씠 ?꾩슂??');
+      alert('로그인이 필요해.');
       return;
     }
     if (likeLoading) return;
-    // ?숆????낅뜲?댄듃
+    // 낙관적 업데이트
     setLiked((prev) => !prev);
     setLikeLoading(true);
     try {
       const res = await toggleProductLike(product.productId, memberId);
       setLiked(res.liked);
     } catch (err) {
-      console.error('李??좉? ?ㅽ뙣:', err);
-      setLiked((prev) => !prev); // 濡ㅻ갚
+      console.error('찜 토글 실패:', err);
+      setLiked((prev) => !prev);
     } finally {
       setLikeLoading(false);
     }
@@ -176,11 +180,11 @@ export default function CommunityMarketDetail({
 
   const handlePayment = async () => {
     if (!memberId) {
-      alert('濡쒓렇?몄씠 ?꾩슂??');
+      alert('로그인이 필요해.');
       return;
     }
     if (isOwner) {
-      alert('蹂몄씤 ?곹뭹? 寃곗젣?????놁뼱.');
+      alert('본인 상품은 결제할 수 없어.');
       return;
     }
     if (sold || paymentLoading) return;
@@ -189,12 +193,12 @@ export default function CommunityMarketDetail({
     try {
       const paymentConfig = await getPaymentConfig();
       if (!paymentConfig.impCode) {
-        throw new Error('?ы듃??媛留뱀젏 ?앸퀎肄붾뱶媛 ?ㅼ젙?섏? ?딆븯??');
+        throw new Error('PortOne 가맹점 식별코드가 설정되지 않았어.');
       }
 
       await loadPortOneScript();
       if (!window.IMP) {
-        throw new Error('?ы듃??SDK瑜?遺덈윭?ㅼ? 紐삵뻽??');
+        throw new Error('PortOne SDK를 불러오지 못했어.');
       }
 
       window.IMP.init(paymentConfig.impCode);
@@ -209,7 +213,7 @@ export default function CommunityMarketDetail({
         },
         async (response) => {
           if (!response.imp_uid || !response.merchant_uid) {
-            alert(response.error_msg ?? '寃곗젣媛 ?꾨즺?섏? ?딆븯??');
+            alert(response.error_msg ?? '결제가 완료되지 않았어.');
             setPaymentLoading(false);
             return;
           }
@@ -222,18 +226,18 @@ export default function CommunityMarketDetail({
               merchantUid: response.merchant_uid,
             });
             setPaymentDone(true);
-            alert('寃곗젣媛 ?꾨즺?먯뼱.');
+            alert('결제가 완료됐어.');
           } catch (err) {
-            console.error('寃곗젣 寃利??ㅽ뙣:', err);
-            alert('寃곗젣???붿껌?먯?留??쒕쾭 寃利앹뿉 ?ㅽ뙣?덉뼱.');
+            console.error('결제 검증 실패:', err);
+            alert('결제는 요청됐지만 서버 검증에 실패했어.');
           } finally {
             setPaymentLoading(false);
           }
         },
       );
     } catch (err) {
-      console.error('寃곗젣 ?붿껌 ?ㅽ뙣:', err);
-      alert(err instanceof Error ? err.message : '寃곗젣 ?붿껌???ㅽ뙣?덉뼱.');
+      console.error('결제 요청 실패:', err);
+      alert(err instanceof Error ? err.message : '결제 요청에 실패했어.');
       setPaymentLoading(false);
     }
   };
@@ -242,15 +246,14 @@ export default function CommunityMarketDetail({
     <>
       <div className="min-h-screen bg-slate-50 px-[30px] py-7">
         <div className="mx-auto max-w-[920px]">
-          {/* ?ㅻ줈媛湲?*/}
           <button
             onClick={onBack}
             className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700"
           >
-            <ArrowLeft className="size-4" /> 以묎퀬嫄곕옒 ??          </button>
+            <ArrowLeft className="size-4" /> 중고거래 홈
+          </button>
 
           <div className="flex items-start gap-6">
-            {/* 醫뚯륫 - ?대?吏 */}
             <div className="w-[400px] shrink-0">
               <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
                 <ProductThumb className="aspect-square" sold={sold} />
@@ -272,11 +275,9 @@ export default function CommunityMarketDetail({
               </div>
             </div>
 
-            {/* ?곗륫 - ?곹뭹 ?뺣낫 */}
             <div className="min-w-0 flex-1">
               <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
                 <div className="p-5">
-                  {/* ?곹깭 + 移댄뀒怨좊━ */}
                   <div className="mb-3 flex items-center justify-between">
                     <StatusBadge status={product.productStatus} />
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
@@ -284,38 +285,33 @@ export default function CommunityMarketDetail({
                     </span>
                   </div>
 
-                  {/* ?곹뭹紐?*/}
                   <h2 className="mb-2 text-[18px] font-bold leading-snug tracking-tight text-slate-900">
                     {product.productName}
                   </h2>
 
-                  {/* 媛寃?*/}
                   <div className="mb-3 text-[20px] font-extrabold tracking-tight text-slate-900">
                     {formatPrice(product.price)}
                   </div>
 
-                  {/* 議고쉶/愿??梨꾪똿 */}
                   <div className="mb-4 flex items-center gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Eye className="size-3.5" />
-                      議고쉶 {product.viewCount}
+                      조회 {product.viewCount}
                     </span>
                     <span className="flex items-center gap-1">
                       <Heart className="size-3.5" />
-                      愿??{product.likeCount + (liked ? 1 : 0)}
+                      관심 {product.likeCount + (liked ? 1 : 0)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageCircle className="size-3.5" />
-                      梨꾪똿 {product.chatCount}
+                      채팅 {product.chatCount}
                     </span>
                   </div>
 
-                  {/* ?ㅻ챸 */}
                   <p className="mb-5 text-[13px] leading-relaxed text-slate-500">
-                    {product.description ?? '?곹뭹 ?ㅻ챸???ш린???쒖떆?⑸땲??'}
+                    {product.description ?? '상품 설명이 여기에 표시됩니다.'}
                   </p>
 
-                  {/* ?먮ℓ???뺣낫 */}
                   <div className="flex items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
                     <div className="flex size-[32px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm">
                       {product.sellerName.slice(0, 1)}
@@ -337,16 +333,24 @@ export default function CommunityMarketDetail({
                     </div>
                   </div>
 
-                  {/* ?좉퀬 / ??젣 */}
                   <div className="mt-3 flex items-center justify-between">
-                    {isOwner ? (
-                      <button
-                        onClick={handleDelete}
-                        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="size-3.5" />
-                        ??젣?섍린
-                      </button>
+                    {canManageProduct ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => window.location.href = `/community/market/write?productId=${product.productId}`}
+                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-primary"
+                        >
+                          <Pencil className="size-3.5" />
+                          수정하기
+                        </button>
+                        <button
+                          onClick={handleDelete}
+                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="size-3.5" />
+                          삭제하기
+                        </button>
+                      </div>
                     ) : (
                       <div />
                     )}
@@ -355,11 +359,10 @@ export default function CommunityMarketDetail({
                       className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                     >
                       <Flag className="size-3.5" />
-                      ?좉퀬?섍린
+                      신고하기
                     </button>
                   </div>
 
-                  {/* ?≪뀡 踰꾪듉 */}
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       onClick={handleToggleLike}
@@ -374,16 +377,16 @@ export default function CommunityMarketDetail({
                       <Heart
                         className={cn('size-4', liked && 'fill-current')}
                       />
-                      愿??{product.likeCount + (liked ? 1 : 0)}
+                      관심 {product.likeCount + (liked ? 1 : 0)}
                     </button>
 
                     <button
                       disabled={sold}
-                      onClick={() => alert('梨꾪똿 湲곕뒫? 異뷀썑 ?곌껐 ?덉젙?낅땲??')}
+                      onClick={() => alert('채팅 기능은 추후 연결 예정입니다.')}
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary py-2 text-[13px] font-semibold text-primary transition-all hover:bg-primary/5 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
-                      梨꾪똿?쇰줈 嫄곕옒?섍린
+                      채팅으로 거래하기
                     </button>
 
                     <button
@@ -398,7 +401,6 @@ export default function CommunityMarketDetail({
                 </div>
               </div>
 
-              {/* 臾몄쓽 ?볤? */}
               <CommunityMarketComment productId={product.productId} />
             </div>
           </div>
