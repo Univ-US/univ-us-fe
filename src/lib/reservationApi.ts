@@ -63,6 +63,50 @@ export type ReadingSeatReservation = {
   createdAt: string | null;
 };
 
+export type RoomReservationSlot = {
+  roomId: number;
+  reservationId: number | null;
+  reservedMemberId: number | null;
+  startTime: string;
+  endTime: string;
+  status: string | null;
+  available: boolean;
+};
+
+export type RoomAvailability = {
+  roomId: number;
+  roomName: string;
+  roomType: string;
+  floorName: string | null;
+  location: string | null;
+  capacity: number;
+  description: string | null;
+  isActive: number;
+  createdAt: string;
+  slots: RoomReservationSlot[];
+};
+
+export type RoomReservationRequest = {
+  roomId: number;
+  startTime: string;
+  endTime: string;
+  purpose?: string;
+};
+
+export type RoomReservation = {
+  reservationId: number;
+  memberId: number;
+  roomId: number;
+  roomName: string | null;
+  roomType: string | null;
+  capacity: number | null;
+  purpose: string | null;
+  startTime: string;
+  endTime: string;
+  status: string;
+  createdAt: string | null;
+};
+
 export type ReservationMutationResponse = {
   success: boolean;
   message: string;
@@ -90,6 +134,42 @@ export async function getMyReadingSeatReservations() {
 export async function cancelReadingSeatReservation(reservationId: number) {
   const res = await api.delete<ReservationMutationResponse>(
     `/api/reservations/seats/${reservationId}`,
+  );
+
+  return res.data;
+}
+
+export async function getRoomAvailability(date: string) {
+  const res = await api.get<RoomAvailability[]>(
+    '/api/reservations/rooms/availability',
+    {
+      params: { date },
+    },
+  );
+
+  return res.data;
+}
+
+export async function getMyRoomReservations() {
+  const res = await api.get<RoomReservation[]>(
+    '/api/reservations/rooms/me',
+  );
+
+  return res.data;
+}
+
+export async function reserveRoom(request: RoomReservationRequest) {
+  const res = await api.post<RoomReservation>(
+    '/api/reservations/rooms',
+    request,
+  );
+
+  return res.data;
+}
+
+export async function cancelRoomReservation(reservationId: number) {
+  const res = await api.delete<ReservationMutationResponse>(
+    `/api/reservations/rooms/${reservationId}`,
   );
 
   return res.data;
