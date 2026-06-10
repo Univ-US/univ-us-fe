@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
+import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 
 // PLM(교수 LMS) 접근 허용 역할: 서비스/학교 관리자 + 교수
@@ -30,7 +31,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "강의 내역", icon: "📖" },
       { label: "수강생 현황", icon: "👥", href: "/lms/professor/Enrollee" },
-      { label: "채점 현황", icon: "✅", href: "/lms/professor/grading", badge: 5 },
+      // '채점 현황' 배지는 하드코딩 X — 실제 미채점 건수(overview.totalUngraded)를 스토어에서 주입(아래 렌더)
+      { label: "채점 현황", icon: "✅", href: "/lms/professor/grading" },
     ],
   },
   {
@@ -55,14 +57,24 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const logoutAction = useAuthStore((s) => s.logoutAction);
+  const role = useAuthStore((s) => s.role);
   // 사이드바 헤더(학교/이름/소속/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useProfessorProfileStore((s) => s.profile);
   const loadProfile = useProfessorProfileStore((s) => s.load);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
 
+  // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
+  const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
+  const loadUngradedCount = useLmsGradingStore((s) => s.loadUngradedCount);
+
   useEffect(() => {
     loadProfile().catch(() => setLoadFailed(true));
   }, [loadProfile]);
+
+  // 미채점 건수는 PROF 본인 강의 한정(SUA/ADM은 403 → 조회 생략, 배지 없음)
+  useEffect(() => {
+    if (role === "PROF") loadUngradedCount();
+  }, [role, loadUngradedCount]);
 
   const handleLogout = async () => {
     try {
@@ -138,13 +150,16 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
               {section.items.map((item) => {
                 const active =
                   item.href && stripSlash(pathname) === stripSlash(item.href);
+                // '채점 현황'은 실제 미채점 건수 주입, 나머지는 정적 badge. 0/미로딩이면 숨김.
+                const badge =
+                  item.href === "/lms/professor/grading" ? ungradedCount : item.badge;
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
                     <span className="flex-1">{item.label}</span>
-                    {item.badge != null && (
+                    {badge != null && badge > 0 && (
                       <span className="rounded-full bg-emerald-500/90 px-1.5 text-[11px] font-semibold text-white">
-                        {item.badge}
+                        {badge}
                       </span>
                     )}
                   </>
