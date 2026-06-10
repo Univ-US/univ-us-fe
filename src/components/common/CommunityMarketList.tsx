@@ -208,7 +208,7 @@ export default function CommunityMarketList({
     async (productId: number) => {
       // 로그인 체크
       if (!memberId) {
-        alert('로그인이 필요해.');
+        alert('로그인이 필요합니다.');
         return;
       }
       // 낙관적 업데이트: 먼저 UI 반영 후 API 호출

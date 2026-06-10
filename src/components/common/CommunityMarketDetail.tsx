@@ -261,13 +261,13 @@ export default function CommunityMarketDetail({
       onBack();
     } catch (err) {
       console.error('상품 삭제 실패:', err);
-      alert('상품 삭제에 실패했어.');
+      alert('상품 삭제에 실패했습니다.');
     }
   };
 
   const handleToggleLike = async () => {
     if (!memberId) {
-      alert('로그인이 필요해.');
+      alert('로그인이 필요합니다.');
       return;
     }
     if (likeLoading) return;
@@ -291,11 +291,11 @@ export default function CommunityMarketDetail({
 
   const handlePayment = async () => {
     if (!memberId) {
-      alert('로그인이 필요해.');
+      alert('로그인이 필요합니다.');
       return;
     }
     if (isOwner) {
-      alert('본인 상품은 결제할 수 없어.');
+      alert('본인 상품은 결제할 수 없습니다.');
       return;
     }
     if (sold || paymentLoading) return;
@@ -304,12 +304,12 @@ export default function CommunityMarketDetail({
     try {
       const paymentConfig = await getPaymentConfig();
       if (!paymentConfig.storeId) {
-        throw new Error('PortOne 상점 ID가 설정되지 않았어.');
+        throw new Error('PortOne 상점 ID가 설정되지 않았습니다.');
       }
 
       await loadPortOneScript();
       if (!window.PortOne) {
-        throw new Error('PortOne SDK를 불러오지 못했어.');
+        throw new Error('PortOne SDK를 불러오지 못했습니다.');
       }
 
       const selectedPaymentMethod =
@@ -317,7 +317,7 @@ export default function CommunityMarketDetail({
         PAYMENT_METHODS[0];
       const channelKey = paymentConfig[selectedPaymentMethod.channelKeyType];
       if (!channelKey) {
-        throw new Error(`${selectedPaymentMethod.label} 채널키가 설정되지 않았어.`);
+        throw new Error(`${selectedPaymentMethod.label} 채널키가 설정되지 않았습니다.`);
       }
       const paymentId = `market_${product.productId}_${Date.now()}`;
       const customerEmail =
@@ -343,7 +343,7 @@ export default function CommunityMarketDetail({
       });
 
       if (response.code) {
-        alert(response.message ?? '결제가 완료되지 않았어.');
+        alert(response.message ?? '결제가 완료되지 않았습니다.');
         setPaymentLoading(false);
         return;
       }
@@ -357,13 +357,13 @@ export default function CommunityMarketDetail({
         alert('결제가 완료됐어.');
       } catch (err) {
         console.error('결제 검증 실패:', err);
-        alert(getApiErrorMessage(err, '결제는 요청됐지만 서버 검증에 실패했어.'));
+        alert(getApiErrorMessage(err, '결제는 요청됐지만 서버 검증에 실패했습니다.'));
       } finally {
         setPaymentLoading(false);
       }
     } catch (err) {
       console.error('결제 요청 실패:', err);
-      alert(err instanceof Error ? err.message : '결제 요청에 실패했어.');
+      alert(err instanceof Error ? err.message : '결제 요청에 실패했습니다.');
       setPaymentLoading(false);
     }
   };
