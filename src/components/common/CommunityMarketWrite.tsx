@@ -12,10 +12,16 @@ import {
   updateProduct,
   uploadProductImages,
 } from '@/lib/marketApi';
-import type { ProductCategory } from '@/types/community';
+import type { ProductCategory, TradeStatus } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
 const CATEGORIES: ProductCategory[] = ['교재', '전자기기', '생활용품', '기타'];
+const EDITABLE_PRODUCT_STATUSES: TradeStatus[] = ['SALE', 'RESERVE'];
+const PRODUCT_STATUS_LABELS: Record<TradeStatus, string> = {
+  SALE: '판매중',
+  RESERVE: '예약중',
+  DONE: '거래완료',
+};
 
 // ── 칩 버튼 ───────────────────────────────────────────
 function Chip({
@@ -73,6 +79,7 @@ export default function CommunityMarketWrite() {
   const [isFree, setIsFree] = useState(false);
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
+  const [productStatus, setProductStatus] = useState<TradeStatus>('SALE');
   const [images, setImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -100,6 +107,7 @@ export default function CommunityMarketWrite() {
         setIsFree(product.price === 0);
         setPlace(product.place ?? '');
         setDescription(product.description ?? '');
+        setProductStatus(product.productStatus === 'DONE' ? 'SALE' : product.productStatus);
       } catch (err) {
         console.error('상품 조회 실패:', err);
         alert('상품 정보를 불러오지 못했어.');
@@ -154,7 +162,7 @@ export default function CommunityMarketWrite() {
         description: description.trim(),
         place: place.trim(),
         category,
-        productStatus: 'SALE',
+        productStatus: isEdit ? productStatus : 'SALE',
       };
 
       const res = isEdit
@@ -273,6 +281,21 @@ export default function CommunityMarketWrite() {
             ))}
           </div>
         </Field>
+
+        {isEdit && (
+          <Field label="판매 상태" hint="거래완료는 결제 완료 시 자동으로 변경돼요.">
+            <div className="flex flex-wrap gap-2">
+              {EDITABLE_PRODUCT_STATUSES.map((status) => (
+                <Chip
+                  key={status}
+                  label={PRODUCT_STATUS_LABELS[status]}
+                  active={productStatus === status}
+                  onClick={() => setProductStatus(status)}
+                />
+              ))}
+            </div>
+          </Field>
+        )}
 
         {/* 가격 */}
         <Field label="가격">
