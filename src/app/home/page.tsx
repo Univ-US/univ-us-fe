@@ -431,6 +431,11 @@ export default function CampusHomePage() {
                     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
+                            {isLoggedIn && (
+                                <Link href="/home/notices" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                                    더보기
+                                </Link>
+                            )}
                         </div>
                         {!isLoggedIn ? (
                             <p className="text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>

@@ -20,6 +20,8 @@ export interface ApiNotice {
     noticeId: number;
     memberId: number;
     title: string;
+    content: string;
+    target: "ALL" | "STU" | "PROF";
     postedAt: string;
     updatedAt: string | null;
 }
@@ -77,6 +79,7 @@ export const createAdminNotice = async (data: {
     memberId: number;
     title: string;
     content: string;
+    target: string;
 }) => {
     await api.post("/api/admin/notices", data);
 };
@@ -84,7 +87,7 @@ export const createAdminNotice = async (data: {
 // 공지 수정
 export const updateAdminNotice = async (
     noticeId: number,
-    data: { memberId: number; title: string; content: string }
+    data: { memberId: number; title: string; content: string; target: string }
 ) => {
     await api.put(`/api/admin/notices/${noticeId}`, data);
 };
