@@ -5,7 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Camera, X, MapPin, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { createProduct, getProductDetail, updateProduct } from '@/lib/marketApi';
+import {
+  createProduct,
+  getProductDetail,
+  replaceProductImages,
+  updateProduct,
+  uploadProductImages,
+} from '@/lib/marketApi';
 import type { ProductCategory } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
@@ -67,10 +73,20 @@ export default function CommunityMarketWrite() {
   const [isFree, setIsFree] = useState(false);
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
-  const [imageCount, setImageCount] = useState(0); // TODO: 실제 파일 업로드로 교체
+  const [images, setImages] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const handleBack = useCallback(() => router.push('/community/market'), [router]);
+
+  useEffect(() => {
+    const urls = images.map((image) => URL.createObjectURL(image));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [images]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -93,6 +109,24 @@ export default function CommunityMarketWrite() {
 
     fetchProduct();
   }, [handleBack, isEdit, productId]);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    const imageFiles = selectedFiles.filter((file) =>
+      ['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
+    );
+
+    if (imageFiles.length !== selectedFiles.length) {
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있어.');
+    }
+
+    setImages((prev) => [...prev, ...imageFiles].slice(0, 5));
+    event.target.value = '';
+  };
+
+  const handleRemoveImage = (removeIndex: number) => {
+    setImages((prev) => prev.filter((_, index) => index !== removeIndex));
+  };
 
   const handleSubmit = async () => {
     if (!productName.trim()) {
@@ -128,6 +162,19 @@ export default function CommunityMarketWrite() {
         : await createProduct(payload);
 
       if (res.success) {
+        if (images.length > 0) {
+          const savedProductId = isEdit ? Number(productId) : res.productId;
+          if (!savedProductId) {
+            throw new Error('상품 이미지 업로드에 필요한 상품 ID가 없습니다.');
+          }
+
+          if (isEdit) {
+            await replaceProductImages(savedProductId, images);
+          } else {
+            await uploadProductImages(savedProductId, images);
+          }
+        }
+
         alert(isEdit ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.');
         handleBack();
       } else {
@@ -165,24 +212,35 @@ export default function CommunityMarketWrite() {
 
         {/* 사진 첨부 */}
         <Field label="상품 사진" hint="최대 5장까지 첨부할 수 있어요.">
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                if (imageCount < 5) setImageCount(imageCount + 1);
-              }}
+          <div className="flex flex-wrap gap-3">
+            <label
               className="flex size-[100px] flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100"
             >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="sr-only"
+                disabled={images.length >= 5}
+                onChange={handleImageChange}
+              />
               <Camera className="size-[22px]" />
-              <span className="text-xs font-semibold">{imageCount} / 5</span>
-            </button>
+              <span className="text-xs font-semibold">{images.length} / 5</span>
+            </label>
 
-            {Array.from({ length: imageCount }).map((_, i) => (
+            {previewUrls.map((previewUrl, i) => (
               <div
-                key={i}
-                className="relative size-[100px] overflow-hidden rounded-xl bg-gradient-to-br from-teal-400 to-teal-700"
+                key={`${previewUrl}-${i}`}
+                className="relative size-[100px] overflow-hidden rounded-xl border border-border bg-slate-100"
               >
+                <img
+                  src={previewUrl}
+                  alt={`상품 이미지 미리보기 ${i + 1}`}
+                  className="size-full object-cover"
+                />
                 <button
-                  onClick={() => setImageCount(imageCount - 1)}
+                  type="button"
+                  onClick={() => handleRemoveImage(i)}
                   className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white"
                 >
                   <X className="size-3.5" />

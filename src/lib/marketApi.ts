@@ -1,6 +1,6 @@
 // src/lib/marketApi.ts
 import api from '@/lib/api';
-import type { Product, ProductComment } from '@/types/community';
+import type { Product, ProductComment, ProductImage } from '@/types/community';
 
 // ── 상품 목록 조회 ────────────────────────────────────────────────────────
 export interface ProductSearchParams {
@@ -44,7 +44,7 @@ export interface ProductCreatePayload {
 
 export const createProduct = async (
   payload: ProductCreatePayload,
-): Promise<{ success: boolean; message: string }> => {
+): Promise<{ success: boolean; message: string; productId?: number }> => {
   const res = await api.post('/api/market/products', payload);
   return res.data;
 };
@@ -62,8 +62,30 @@ export interface ProductUpdatePayload {
 export const updateProduct = async (
   productId: number,
   payload: ProductUpdatePayload,
-): Promise<{ success: boolean; message: string }> => {
+): Promise<{ success: boolean; message: string; productId?: number }> => {
   const res = await api.put(`/api/market/products/${productId}`, payload);
+  return res.data;
+};
+
+export const uploadProductImages = async (
+  productId: number,
+  images: File[],
+): Promise<{ message: string; images: ProductImage[] }> => {
+  const formData = new FormData();
+  images.forEach((image) => formData.append('images', image));
+
+  const res = await api.post(`/api/market/products/${productId}/images`, formData);
+  return res.data;
+};
+
+export const replaceProductImages = async (
+  productId: number,
+  images: File[],
+): Promise<{ message: string; images: ProductImage[] }> => {
+  const formData = new FormData();
+  images.forEach((image) => formData.append('images', image));
+
+  const res = await api.put(`/api/market/products/${productId}/images`, formData);
   return res.data;
 };
 
@@ -113,7 +135,8 @@ export const deleteProductComment = async (
 export interface ProductLikeResponse {
   success: boolean;
   liked: boolean;
-  message: string;
+  likeCount: number;
+  message?: string;
 }
 
 export const toggleProductLike = async (
@@ -126,6 +149,13 @@ export const toggleProductLike = async (
   return res.data;
 };
 
+export const getProductLikeStatus = async (
+  productId: number,
+): Promise<ProductLikeResponse> => {
+  const res = await api.get(`/api/market/products/${productId}/like`);
+  return res.data;
+};
+
 // ── 내 찜 목록 ────────────────────────────────────────────────────────────
 export const getMyLikeList = async (memberId: number): Promise<Product[]> => {
   const res = await api.get('/api/market/likes', { params: { memberId } });
@@ -133,14 +163,14 @@ export const getMyLikeList = async (memberId: number): Promise<Product[]> => {
 };
 
 export interface PaymentConfigResponse {
-  impCode: string;
+  storeId: string;
+  kgInicisChannelKey: string;
+  kakaoPayChannelKey: string;
 }
 
 export interface PaymentCompletePayload {
   productId: number;
-  buyerId: number;
-  impUid: string;
-  merchantUid: string;
+  paymentId: string;
 }
 
 export interface PaymentCompleteResponse {
