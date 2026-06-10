@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -21,7 +21,7 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities } from "@/lib/homeApi";
+import { getUniversities, sendChatMessage } from "@/lib/homeApi";
 import api from "@/lib/api";
 
 const BASE_SHORTCUTS = [
@@ -137,6 +137,9 @@ export default function CampusHomePage() {
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
     const [activeTab, setActiveTab] = useState<NoticeTab>("전체");
     const [chatInput, setChatInput] = useState("");
+    const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+    const [chatLoading, setChatLoading] = useState(false);
+    const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
 
     // 어드민은 대시보드로
@@ -165,6 +168,26 @@ export default function CampusHomePage() {
             router.push("/home/login");
         }
     };
+
+    const handleChatSend = async () => {
+        const msg = chatInput.trim();
+        if (!msg || chatLoading) return;
+        setChatMessages((prev) => [...prev, { role: "user", text: msg }]);
+        setChatInput("");
+        setChatLoading(true);
+        try {
+            const answer = await sendChatMessage(msg);
+            setChatMessages((prev) => [...prev, { role: "ai", text: answer }]);
+        } catch {
+            setChatMessages((prev) => [...prev, { role: "ai", text: "죄송해요, 답변을 가져오지 못했어요." }]);
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatMessages, chatLoading]);
 
     return (
         <div className="min-h-screen bg-[#f4f6f8]">
@@ -271,40 +294,75 @@ export default function CampusHomePage() {
                     </section>
 
                     {/* AI 챗봇 */}
-                    {/* TODO(HOM-003): LLM API + RAG 벡터DB 연동 */}
                     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">AI 챗봇</h2>
                             <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
-                                RAG 연동
+                                Groq · llama-3.1
                             </span>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-3 mb-3 text-sm text-slate-600 leading-relaxed">
-                            안녕하세요! 유니버스 AI 도우미에요. 학교 도서관 직원 등 궁금한 걸 물어보세요 🤔
-                        </div>
-                        <div className="flex gap-2 mb-3 flex-wrap">
-                            {["도서관 운영시간", "오늘 학식 메뉴", "스터디룸 예약 방법"].map((q) => (
-                                <button
-                                    key={q}
-                                    onClick={(e) => { requireLogin(e); if (isLoggedIn) setChatInput(q); }}
-                                    className="text-xs border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600 transition-colors"
+
+                        {/* 메시지 영역 */}
+                        <div className="flex flex-col gap-2 mb-3 max-h-64 overflow-y-auto">
+                            {chatMessages.length === 0 && (
+                                <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 leading-relaxed">
+                                    안녕하세요! 유니버스 AI 도우미에요. 궁금한 걸 물어보세요 🤔
+                                </div>
+                            )}
+                            {chatMessages.map((m, i) => (
+                                <div
+                                    key={i}
+                                    className={`rounded-lg px-3 py-2 text-sm leading-relaxed max-w-[85%] ${
+                                        m.role === "user"
+                                            ? "bg-primary text-white self-end"
+                                            : "bg-slate-50 text-slate-700 self-start"
+                                    }`}
                                 >
-                                    {q}
-                                </button>
+                                    {m.text}
+                                </div>
                             ))}
+                            {chatLoading && (
+                                <div className="bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400 self-start animate-pulse">
+                                    답변 생성 중...
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
                         </div>
+
+                        {/* 추천 질문 */}
+                        {chatMessages.length === 0 && (
+                            <div className="flex gap-2 mb-3 flex-wrap">
+                                {["도서관 운영시간", "오늘 학식 메뉴", "스터디룸 예약 방법"].map((q) => (
+                                    <button
+                                        key={q}
+                                        onClick={(e) => {
+                                            if (!isLoggedIn) { requireLogin(e); return; }
+                                            setChatInput(q);
+                                        }}
+                                        className="text-xs border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600 transition-colors"
+                                    >
+                                        {q}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 입력창 */}
                         <div className="flex gap-2">
                             <input
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (isLoggedIn) handleChatSend(); } }}
                                 onFocus={(e) => { if (!isLoggedIn) { e.target.blur(); router.push("/home/login"); } }}
                                 placeholder={isLoggedIn ? "무엇이 궁금하신가요?" : "로그인 후 이용할 수 있어요"}
                                 readOnly={!isLoggedIn}
-                                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+                                disabled={chatLoading}
+                                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 transition disabled:opacity-50"
                             />
                             <button
-                                onClick={requireLogin}
-                                className="bg-primary text-white rounded-lg px-3 py-2 hover:opacity-90 transition"
+                                onClick={() => { if (isLoggedIn) handleChatSend(); else router.push("/home/login"); }}
+                                disabled={chatLoading || !chatInput.trim()}
+                                className="bg-primary text-white rounded-lg px-3 py-2 hover:opacity-90 transition disabled:opacity-40"
                             >
                                 <Send className="w-4 h-4" />
                             </button>
