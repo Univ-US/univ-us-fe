@@ -120,8 +120,7 @@ export default function SeatReservationSection({
                     : 'text-primary',
                 )}
               >
-                {room.availableSeatCount <= 5 ? '마감 임박' : '여유 있음'} ·
-                전체 {room.totalSeatCount}석
+                빈좌석 {room.availableSeatCount}석 / 전체 {room.totalSeatCount}석
               </div>
             </div>
           </button>

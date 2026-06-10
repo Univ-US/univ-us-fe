@@ -29,11 +29,17 @@ import {
 } from '@/lib/reservationApi';
 import { getApiErrorMessage, isApiErrorStatus } from '@/lib/apiError';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
+import SeatCancelModal from './seat/SeatCancelModal';
+import SeatReservationModal from './seat/SeatReservationModal';
 import SeatReservationSection from './seat/SeatReservationSection';
-import { useReservationRealtimeStatus } from './useReservationRealtimeStatus';
+import {
+  useReservationRealtimeStatus,
+  type ReadingSeatRealtimeEvent,
+} from './useReservationRealtimeStatus';
 import {
   DEFAULT_SLOT_INDEX,
   MAX_SELECTED_SLOT_COUNT,
@@ -54,8 +60,21 @@ import {
   toReservationDateTime,
 } from './reservationUtils';
 
+function isOverlappingRealtimeEvent(
+  event: ReadingSeatRealtimeEvent,
+  startTime: string,
+  endTime: string,
+) {
+  return !!event.startTime
+    && !!event.endTime
+    && !!startTime
+    && !!endTime
+    && event.startTime < endTime
+    && event.endTime > startTime;
+}
+
 export default function CommunityReservation() {
-  const realtimeStatus = useReservationRealtimeStatus();
+  const currentMemberId = useAuthStore((state) => state.memberId);
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
   const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
@@ -94,6 +113,11 @@ export default function CommunityReservation() {
   const [roomReservationModalOpen, setRoomReservationModalOpen] = useState(false);
   const [roomReservationPurpose, setRoomReservationPurpose] = useState('');
   const [roomReservationError, setRoomReservationError] = useState('');
+  const [seatReservationModalOpen, setSeatReservationModalOpen] = useState(false);
+  const [seatReservationError, setSeatReservationError] = useState('');
+  const [cancelReservationTarget, setCancelReservationTarget] =
+    useState<ReadingSeatReservation | null>(null);
+  const [cancelReservationError, setCancelReservationError] = useState('');
   const [cancelRoomReservationTarget, setCancelRoomReservationTarget] =
     useState<RoomReservation | null>(null);
   const [cancelRoomReservationError, setCancelRoomReservationError] = useState('');
@@ -131,7 +155,6 @@ export default function CommunityReservation() {
   const availableRoomCount = roomAvailabilities.filter((room) =>
     room.slots.some((slot) => slot.available)
   ).length;
-  const isRealtimeConnected = realtimeStatus === 'connected';
   const currentRoom = rooms.find((room) => room.readingRoomId === selRoomId);
   const selectedDateLabel = selectedDay?.today
     ? '오늘'
@@ -211,6 +234,35 @@ export default function CommunityReservation() {
     const data = await getRoomAvailability(selectedDay.date);
     setRoomAvailabilities(data);
   }, [selectedDay]);
+
+  const handleSeatRealtimeEvent = useCallback((event: ReadingSeatRealtimeEvent) => {
+    if (!isOverlappingRealtimeEvent(event, startTime, endTime)) {
+      return;
+    }
+
+    void Promise.allSettled([
+      refreshSelectedSeatAvailability().then(() => {
+        if (selSeat?.seatId === event.seatId) {
+          setSelSeat(null);
+        }
+      }),
+      event.memberId === currentMemberId
+        ? loadMyReservations()
+        : Promise.resolve(),
+    ]);
+  }, [
+    currentMemberId,
+    endTime,
+    loadMyReservations,
+    refreshSelectedSeatAvailability,
+    selSeat?.seatId,
+    startTime,
+  ]);
+
+  const realtimeStatus = useReservationRealtimeStatus({
+    onSeatEvent: handleSeatRealtimeEvent,
+  });
+  const isRealtimeConnected = realtimeStatus === 'connected';
 
   useEffect(() => {
     let mounted = true;
@@ -498,10 +550,20 @@ export default function CommunityReservation() {
     setSelSeat(null);
   }
 
+  function handleOpenSeatReservationModal() {
+    if (!selSeat) {
+      return;
+    }
+
+    setSeatReservationError('');
+    setSeatReservationModalOpen(true);
+  }
+
   async function handleReserveSeat() {
     if (!selSeat) return;
 
     setReservationLoading(true);
+    setSeatReservationError('');
 
     try {
       await reserveReadingSeat({
@@ -516,7 +578,8 @@ export default function CommunityReservation() {
         loadMyReservations(),
       ]);
 
-      window.alert('좌석 예약이 완료되었습니다.');
+      setSeatReservationModalOpen(false);
+      setSeatReservationError('');
     } catch (error) {
       console.error(error);
       const message = getApiErrorMessage(
@@ -531,26 +594,39 @@ export default function CommunityReservation() {
         ]);
       }
 
-      window.alert(message);
+      setSeatReservationError(message);
     } finally {
       setReservationLoading(false);
     }
   }
 
-  async function handleCancelReservation(reservationId: number) {
-    if (!window.confirm('예약을 취소할까요?')) {
+  function handleOpenCancelReservationModal(reservationId: number) {
+    const reservation = myReservations.find(
+      (item) => item.reservationId === reservationId,
+    );
+
+    if (!reservation) {
       return;
     }
 
-    setCancelingReservationId(reservationId);
+    setCancelReservationTarget(reservation);
+    setCancelReservationError('');
+  }
+
+  async function handleCancelReservation() {
+    if (!cancelReservationTarget) return;
+
+    setCancelingReservationId(cancelReservationTarget.reservationId);
+    setCancelReservationError('');
 
     try {
-      const result = await cancelReadingSeatReservation(reservationId);
+      await cancelReadingSeatReservation(cancelReservationTarget.reservationId);
       await Promise.all([
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
       ]);
-      window.alert(result.message || '예약이 취소되었습니다.');
+      setCancelReservationTarget(null);
+      setCancelReservationError('');
     } catch (error) {
       console.error(error);
       const message = getApiErrorMessage(
@@ -563,7 +639,7 @@ export default function CommunityReservation() {
         refreshSelectedSeatAvailability(),
       ]);
 
-      window.alert(message);
+      setCancelReservationError(message);
     } finally {
       setCancelingReservationId(null);
     }
@@ -814,7 +890,7 @@ export default function CommunityReservation() {
             reservationsLoading={myReservationsLoading}
             reservationError={myReservationError}
             cancelingReservationId={cancelingReservationId}
-            onCancelReservation={handleCancelReservation}
+            onCancelReservation={handleOpenCancelReservationModal}
             onRefreshReservations={loadMyReservations}
             rooms={rooms}
             currentRoom={currentRoom}
@@ -827,7 +903,7 @@ export default function CommunityReservation() {
             seatLoading={seatLoading}
             reservationLoading={reservationLoading}
             selectedTimeLabel={selectedTimeLabel}
-            onReserveSeat={handleReserveSeat}
+            onReserveSeat={handleOpenSeatReservationModal}
           />
         )}
 
@@ -852,6 +928,41 @@ export default function CommunityReservation() {
             onRoomSlotMouseEnter={handleRoomSlotMouseEnter}
             onRoomSlotMouseUp={() => setRoomDragAnchor(null)}
             onReserveRoom={handleOpenRoomReservationModal}
+          />
+        )}
+
+        {seatReservationModalOpen && selSeat && (
+          <SeatReservationModal
+            seat={selSeat}
+            roomName={currentRoom?.roomName}
+            startTime={startTime}
+            endTime={endTime}
+            durationHours={selectedDurationHours}
+            error={seatReservationError}
+            loading={reservationLoading}
+            onClose={() => {
+              if (reservationLoading) return;
+              setSeatReservationModalOpen(false);
+              setSeatReservationError('');
+            }}
+            onSubmit={handleReserveSeat}
+          />
+        )}
+
+        {cancelReservationTarget && (
+          <SeatCancelModal
+            reservation={cancelReservationTarget}
+            error={cancelReservationError}
+            loading={
+              cancelingReservationId
+                === cancelReservationTarget.reservationId
+            }
+            onClose={() => {
+              if (cancelingReservationId) return;
+              setCancelReservationTarget(null);
+              setCancelReservationError('');
+            }}
+            onSubmit={handleCancelReservation}
           />
         )}
 
