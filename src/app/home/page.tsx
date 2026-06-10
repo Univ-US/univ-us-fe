@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getUniversities } from "@/lib/homeApi";
+import api from "@/lib/api";
 
 const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-blue-500" },
@@ -111,25 +112,9 @@ function useWeather() {
         if (!navigator.geolocation) return;
         navigator.geolocation.getCurrentPosition(async ({ coords }) => {
             try {
-                const key = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
                 const { latitude: lat, longitude: lon } = coords;
-
-                const [weatherRes, geoRes] = await Promise.all([
-                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric&lang=kr`),
-                    fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${key}`),
-                ]);
-
-                if (!weatherRes.ok) return;
-                const data = await weatherRes.json();
-                const geoData = geoRes.ok ? await geoRes.json() : [];
-                const cityKo = geoData[0]?.local_names?.ko ?? geoData[0]?.name ?? data.name;
-
-                setWeather({
-                    temp: Math.round(data.main.temp),
-                    description: data.weather[0].description,
-                    city: cityKo,
-                    icon: data.weather[0].icon,
-                });
+                const res = await api.get<WeatherData>(`/api/weather`, { params: { lat, lon } });
+                setWeather(res.data);
             } catch {}
         });
     }, []);
