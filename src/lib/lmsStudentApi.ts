@@ -5,8 +5,8 @@ import api from "@/lib/api";
 /** SLM-001 학생 프로필 조회 응답 (BE: LmsStudentProfileResponseDto) */
 export interface LmsStudentProfile {
   lmsStudentProfileName: string; // 이름 (읽기전용 · 관리자 변경)
-  lmsStudentProfileStudentNo: string; // 학번 (읽기전용 · 입학연도+memberId 조립)
-  lmsStudentProfileDepartment: string; // 학과 (읽기전용 · 관리자 변경)
+  lmsStudentProfileStudentNo: string; // 학번 (읽기전용 · = MEMBER.LOGIN_ID)
+  lmsStudentProfileDepartment: string | null; // 학과 (읽기전용 · 미설정 시 null, DEPARTMENT LEFT JOIN)
   lmsStudentProfilePhoneNumber: string; // 휴대폰 번호 (읽기전용 · 관리자 변경)
   lmsStudentProfileEmail: string; // 이메일 (수정 가능)
   lmsStudentProfileImageUrl: string | null; // 프로필 이미지 URL (예: /uploads/lms/student/image/xxx)

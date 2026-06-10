@@ -9,6 +9,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
+import LmsGuard from "@/components/auth/LmsGuard";
+
+// SLM(학생 LMS) 접근 허용 역할: 서비스/학교 관리자 + 학생 + 졸업생
+const STUDENT_LMS_ROLES = ["SUA", "ADM", "STU", "ALU"];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
@@ -42,7 +46,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-export default function LmsStudentLayout({ children }: { children: ReactNode }) {
+function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const logoutAction = useAuthStore((s) => s.logoutAction);
@@ -74,9 +78,8 @@ export default function LmsStudentLayout({ children }: { children: ReactNode }) 
       <aside className="flex w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80">
         {/* 브랜드: 학교명(API) + UniVUs */}
         <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-lg font-bold text-white">
-            U
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
           <div className="min-w-0">
             <p className="truncate text-[11px] text-emerald-200/70">
               {/* 학교명: BE 제공(계정 미설정이면 null) */}
@@ -182,5 +185,14 @@ export default function LmsStudentLayout({ children }: { children: ReactNode }) 
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-x-hidden">{children}</div>
     </div>
+  );
+}
+
+// 접근 가드로 감싼다. 권한 없는 사용자는 내부 레이아웃(프로필 로드 등)이 아예 마운트되지 않는다.
+export default function LmsStudentLayout({ children }: { children: ReactNode }) {
+  return (
+    <LmsGuard allowedRoles={STUDENT_LMS_ROLES}>
+      <LmsStudentLayoutInner>{children}</LmsStudentLayoutInner>
+    </LmsGuard>
   );
 }

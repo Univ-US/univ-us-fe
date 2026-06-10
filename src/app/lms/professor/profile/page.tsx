@@ -225,10 +225,13 @@ export default function ProfessorProfilePage() {
             <p className="text-xs text-slate-400">이미지를 클릭하여 변경 · JPG, PNG / 최대 30MB</p>
           </div>
 
-          {/* 이름 / 소속 학과 (읽기전용) */}
+          {/* 이름 / 사번 / 소속 학과 (읽기전용) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="이름" note="※ 이름은 관리자를 통해 변경 가능">
               <input value={profile?.lmsProfessorProfileName ?? ""} readOnly className={readonlyInput} />
+            </Field>
+            <Field label="사번" note="※ 사번은 관리자를 통해 변경 가능">
+              <input value={profile?.lmsProfessorProfileEmployeeNo ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="소속 학과" note="※ 소속 학과는 관리자를 통해 변경 가능">
               <input value={profile?.lmsProfessorProfileDepartment ?? ""} readOnly className={readonlyInput} />

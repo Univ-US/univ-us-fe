@@ -3,14 +3,11 @@
 // ─────────────────────────────────────────────────────────────
 // [공용 모달 컴포넌트] PLM-004-01 제출 파일 미리보기 다이얼로그
 // - PLM-004(채점 현황) 채점 행의 '보기' 클릭 시 표시
-// - ⭐ 미리보기는 "이미지 파일만" 지원. 비이미지(zip/pdf 등)는 미리보기 대신 안내 + 원본 다운로드.
+// - ⭐ 설계 변경(2026-06-10): 파일 상세 내용 미리보기 영역 제거 → 파일 정보 + 원본 다운로드만 제공.
 // - 데이터(submission)는 부모(페이지)가 주입 — 표시만 담당
 // ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
-import {
-  isImageFile,
-  type Submission,
-} from "@/lib/lmsProfessorGradingApi";
+import { type Submission } from "@/lib/lmsProfessorGradingApi";
 
 // 사이드바(w-60=240px) 제외 본문 영역 기준 중앙
 interface SubmissionPreviewDialogProps {
@@ -26,7 +23,6 @@ export default function SubmissionPreviewDialog({
 }: SubmissionPreviewDialogProps) {
   if (!open || !submission) return null;
   const file = submission.file;
-  const previewable = isImageFile(file);
 
   return (
     <div
@@ -56,41 +52,17 @@ export default function SubmissionPreviewDialog({
               제출된 파일이 없습니다.
             </div>
           ) : (
-            <>
-              {/* 파일 정보 */}
-              <div className="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                <span className="text-xl">📄</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">{file.fileName}</p>
-                  <p className="truncate text-xs text-slate-500">
-                    {submission.studentName} · 제출 {submission.submittedAt ?? "-"}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-slate-400">{file.fileSize}</span>
+            // 파일 정보만 표시 — 상세 내용 미리보기 영역은 설계 변경으로 제거됨
+            <div className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+              <span className="text-xl">📄</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{file.fileName}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {submission.studentName} · 제출 {submission.submittedAt ?? "-"}
+                </p>
               </div>
-
-              {/* 미리보기 — 이미지만 */}
-              {previewable ? (
-                <div className="flex justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-900/90 p-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={file.fileUrl}
-                    alt={`${submission.studentName} 제출 이미지`}
-                    className="max-h-[50vh] w-auto object-contain"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
-                  <span className="text-2xl">🗂️</span>
-                  <p className="text-sm font-medium text-slate-600">
-                    이미지 파일만 미리보기를 지원합니다.
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    원본을 다운로드해 확인해주세요. ({file.fileName.split(".").pop()?.toUpperCase()})
-                  </p>
-                </div>
-              )}
-            </>
+              <span className="shrink-0 text-xs text-slate-400">{file.fileSize}</span>
+            </div>
           )}
         </div>
 
