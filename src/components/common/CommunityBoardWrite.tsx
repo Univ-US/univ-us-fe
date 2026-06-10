@@ -99,7 +99,7 @@ export default function CommunityBoardWrite({
         setContent(post.content ?? '');
         if (post.category) setCategory(post.category);
       } catch {
-        alert('게시글을 불러오는 데 실패했어.');
+        alert('게시글을 불러오는 데 실패했습니다.');
         router.back();
       }
     };
@@ -121,7 +121,7 @@ export default function CommunityBoardWrite({
     );
 
     if (validImages.length !== selectedFiles.length) {
-      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있어.');
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
     setImages((prev) => [...prev, ...validImages].slice(0, 10));
@@ -130,11 +130,11 @@ export default function CommunityBoardWrite({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert('제목을 입력해주세요.');
+      alert('제목을 입력해 주세요.');
       return;
     }
     if (!content.trim()) {
-      alert('내용을 입력해주세요.');
+      alert('내용을 입력해 주세요.');
       return;
     }
 
@@ -176,7 +176,7 @@ export default function CommunityBoardWrite({
       handleBack();
     } catch (err) {
       console.error('writePost error:', err);
-      alert(isEdit ? '수정에 실패했어. 다시 시도해줘.' : '게시글 등록에 실패했어. 다시 시도해줘.');
+      alert(isEdit ? '수정에 실패했습니다. 다시 시도해 주세요.' : '게시글 등록에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
@@ -199,15 +199,15 @@ export default function CommunityBoardWrite({
         {/* 익명 안내 */}
         {isAnon && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700'>
-            익명으로 작성돼요. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
-            부탁드려요.
+            익명으로 작성됩니다. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
+            부탁드립니다.
           </div>
         )}
 
         {/* 공지사항 안내 */}
         {isNotice && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700'>
-            공지사항은 운영 권한이 있는 계정만 게시할 수 있어요.
+            공지사항은 운영 권한이 있는 계정만 게시할 수 있습니다.
           </div>
         )}
 
@@ -243,7 +243,7 @@ export default function CommunityBoardWrite({
           hint={
             isAnon
               ? '개인정보가 드러나지 않도록 주의해 주세요.'
-              : '이미지는 아래 버튼으로 추가할 수 있어요.'
+              : '이미지는 아래 버튼으로 추가할 수 있습니다.'
           }
         >
           <textarea
@@ -255,7 +255,7 @@ export default function CommunityBoardWrite({
                 ? '익명으로 편하게 이야기를 들려주세요.'
                 : isNotice
                   ? '공지 내용을 입력하세요. 일정·대상·문의처를 함께 적어주세요.'
-                  : '자유롭게 이야기를 적어보세요.'
+                  : '자유롭게 이야기를 적어 보세요.'
             }
             className='flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />

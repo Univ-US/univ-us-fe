@@ -77,7 +77,7 @@ export default function CommunityBoardDetail({
         likeCount: result.liked ? prev.likeCount + 1 : prev.likeCount - 1,
       }));
     } catch {
-      alert('좋아요 처리에 실패했어.');
+      alert('좋아요 처리에 실패했습니다.');
     }
   };
 
@@ -91,7 +91,7 @@ export default function CommunityBoardDetail({
       await deletePost(post.postId);
       onBack();
     } catch {
-      alert('삭제에 실패했어. 다시 시도해줘.');
+      alert('삭제에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
@@ -110,11 +110,11 @@ export default function CommunityBoardDetail({
             <EyeOff className='size-[26px] text-red-400' />
           </span>
           <h2 className='mb-2 mt-4 text-[16px] font-extrabold text-slate-800'>
-            블라인드 처리된 게시글이에요
+            블라인드 처리된 게시글입니다.
           </h2>
           <p className='mx-auto max-w-[360px] text-[13px] leading-relaxed text-slate-400'>
             신고가 <b className='text-red-500'>{post.reportCount}회</b> 누적되어
-            자동으로 가려진 게시글이에요.
+            자동으로 가려진 게시글입니다.
             <br /> 열람이 제한됩니다.
           </p>
           <Button variant='outline' className='mt-6' onClick={onBack}>

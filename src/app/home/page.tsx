@@ -21,7 +21,7 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities, sendChatMessage } from "@/lib/homeApi";
+import { getUniversities, getNotices, Notice, sendChatMessage } from "@/lib/homeApi";
 import api from "@/lib/api";
 
 const BASE_SHORTCUTS = [
@@ -40,18 +40,6 @@ const EXTRA_SHORTCUTS = [
     { label: "취업정보", icon: Briefcase, bg: "bg-orange-500", href: "https://www.jobkorea.co.kr" },
 ];
 
-const NOTICE_TABS = ["전체", "LMS", "커뮤니티"] as const;
-type NoticeTab = (typeof NOTICE_TABS)[number];
-
-// TODO(HOM-005): 관리자 공지 API 연동으로 교체
-const MOCK_NOTICES = [
-    { tag: "학사", title: "[교고] 2025학년도 후기(2026년 8월) 졸업예정자 학위...", date: "05.18", type: "LMS" },
-    { tag: "취업", title: "[취업] 2026년 2월(2025년 전기) 졸업예정자 학위수여...", date: "05.13", type: "LMS" },
-    { tag: "학사", title: "2026-1학기 국가장학금 2차 신청 마감D-3 안내", date: "05.09", type: "LMS" },
-    { tag: "카뉴", title: "[고교마켓] 자료구조 재시험 이수 수칙 변경", date: "05.07", type: "커뮤니티" },
-    { tag: "학사", title: "[수입] 2026-1학기 기말고사 강의실 배정 및 유의사항", date: "05.02", type: "LMS" },
-    { tag: "D-3", title: "2026 봄 대동제 '유니버스 페스티벌' 버스 운행 신청", date: "04.26", type: "커뮤니티" },
-];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -135,7 +123,8 @@ export default function CampusHomePage() {
     const now = useNow();
     const weather = useWeather();
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
-    const [activeTab, setActiveTab] = useState<NoticeTab>("전체");
+    const [notices, setNotices] = useState<Notice[]>([]);
+    const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -149,6 +138,11 @@ export default function CampusHomePage() {
         if (role === "SUA") { router.replace("/dashboard/service-admin"); return; }
     }, [isInitialized, role, router]);
 
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        getNotices().then(setNotices).catch(() => {});
+    }, [isLoggedIn]);
+
     // LMS 바로가기: role에 따라 교수(PLM)/학생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
     const lmsHref =
         role === "PROF" ? "/lms/professor/profile" : role === "STU" ? "/lms/student/profile" : undefined;
@@ -156,9 +150,6 @@ export default function CampusHomePage() {
     const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
     const dayStr = `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})`;
-
-    const filteredNotices =
-        activeTab === "전체" ? MOCK_NOTICES : MOCK_NOTICES.filter((n) => n.type === activeTab);
 
     const handleLogout = async () => {
         await logoutAction();
@@ -444,43 +435,38 @@ export default function CampusHomePage() {
                     )}
 
                     {/* 최근 공지 */}
-                    {/* TODO(HOM-005): 관리자 공지 API 연동 */}
                     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
-                            <button
-                                onClick={requireLogin}
-                                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                더보기
-                            </button>
+                            {isLoggedIn && (
+                                <Link href="/home/notices" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                                    더보기
+                                </Link>
+                            )}
                         </div>
-                        <div className="flex gap-1 mb-3">
-                            {NOTICE_TABS.map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${
-                                        activeTab === tab
-                                            ? "bg-primary text-white"
-                                            : "text-slate-500 hover:bg-slate-100"
-                                    }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                        </div>
-                        <ul className="divide-y divide-slate-100">
-                            {filteredNotices.map((n, i) => (
-                                <li key={i} className="flex items-center gap-2 py-2 text-xs">
-                                    <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
-                                        {n.tag}
-                                    </span>
-                                    <span className="flex-1 text-slate-700 truncate">{n.title}</span>
-                                    <span className="shrink-0 text-slate-400">{n.date}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        {!isLoggedIn ? (
+                            <p className="text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>
+                        ) : notices.length === 0 ? (
+                            <p className="text-sm text-slate-400">등록된 공지가 없어요.</p>
+                        ) : (
+                            <ul className="divide-y divide-slate-100">
+                                {notices.slice(0, 6).map((n) => (
+                                    <li
+                                        key={n.noticeId}
+                                        onClick={() => setSelectedNotice(n)}
+                                        className="flex items-center gap-2 py-2 text-xs cursor-pointer hover:bg-slate-50 rounded transition-colors"
+                                    >
+                                        <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
+                                            공지
+                                        </span>
+                                        <span className="flex-1 text-slate-700 truncate">{n.title}</span>
+                                        <span className="shrink-0 text-slate-400">
+                                            {(() => { const d = new Date(n.postedAt); return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </section>
 
                     {/* 오늘의 학식 */}
@@ -512,6 +498,30 @@ export default function CampusHomePage() {
                 </div>
             </div>
 
+
+            {/* 공지 상세 모달 */}
+            {selectedNotice && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    onClick={() => setSelectedNotice(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 flex flex-col gap-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-extrabold text-slate-800 text-base leading-snug">{selectedNotice.title}</h3>
+                            <button onClick={() => setSelectedNotice(null)} className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors text-lg leading-none">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                            {selectedNotice.memberName} · {(() => { const d = new Date(selectedNotice.postedAt); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                        </p>
+                        <div className="border-t border-slate-100 pt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {selectedNotice.content}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 푸터 */}
             {schoolInfo?.address && (

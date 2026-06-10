@@ -87,7 +87,7 @@ export default function RoomReservationSection({
           예약 가능한 공간이 없습니다.
         </div>
       ) : (
-        <div className='overflow-x-auto rounded-2xl border border-border bg-white shadow-sm'>
+        <div className='overflow-x-auto rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:shadow-md'>
           <div className='min-w-[920px]'>
             <div className='flex border-b border-border'>
               <div className='w-[220px] shrink-0 border-r border-border px-4 py-3 text-[12px] font-bold text-slate-400'>
@@ -106,11 +106,11 @@ export default function RoomReservationSection({
             {roomAvailabilities.map((room) => (
               <div
                 key={room.roomId}
-                className='flex border-b border-border last:border-0'
+                className='group/room flex border-b border-border transition-colors duration-200 last:border-0 hover:bg-slate-50/70'
               >
                 <div className='w-[220px] shrink-0 border-r border-border px-4 py-4'>
                   <div className='flex flex-wrap items-center gap-1.5'>
-                    <span className='rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary'>
+                    <span className='rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary transition-transform duration-200 group-hover/room:scale-105'>
                       {formatRoomType(room.roomType)}
                     </span>
                     <span className='text-[13px] font-bold text-slate-800'>
@@ -144,12 +144,12 @@ export default function RoomReservationSection({
                       }
                       onMouseUp={onRoomSlotMouseUp}
                       className={cn(
-                        'flex-1 border-r border-border py-4 text-center text-[12px] font-semibold transition-all last:border-0',
+                        'flex-1 border-r border-border py-4 text-center text-[12px] font-semibold transition-all duration-200 last:border-0 active:scale-95',
                         !slot.available
                           ? 'cursor-not-allowed text-slate-400'
                           : isSelected
-                            ? 'bg-primary text-white'
-                            : 'hover:bg-primary/5 hover:text-primary',
+                            ? 'scale-[1.02] bg-primary text-white shadow-inner'
+                            : 'hover:-translate-y-0.5 hover:bg-primary/5 hover:text-primary hover:shadow-sm',
                       )}
                       style={
                         !slot.available
@@ -192,7 +192,7 @@ export default function RoomReservationSection({
       </div>
 
       {selectedSlot && (
-        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
+        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'>
           <div>
             <div className='text-[11px] font-semibold text-primary'>
               선택한 시간
@@ -210,7 +210,7 @@ export default function RoomReservationSection({
           <button
             disabled={reservationLoading}
             onClick={onReserveRoom}
-            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-colors'
+            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
             style={{ background: '#0FA896' }}
             onMouseEnter={(event) =>
               (event.currentTarget.style.background = 'var(--brand-hover)')

@@ -71,16 +71,16 @@ export default function SeatMap({
             : `${seat.seatNumber}번 좌석`
         }
         className={cn(
-          'relative flex size-[44px] items-center justify-center rounded-lg text-[13px] font-bold transition-all',
+          'relative flex size-[44px] items-center justify-center rounded-lg text-[13px] font-bold transition-all duration-200 active:scale-95',
           isDisabled
             ? 'cursor-not-allowed bg-slate-200 text-slate-400'
             : isSelected
-              ? 'bg-primary text-white shadow-md'
+              ? 'scale-105 bg-primary text-white shadow-md'
               : canChat
-                ? 'border border-primary/20 bg-primary/10 text-primary hover:border-primary hover:bg-primary/15'
+                ? 'border border-primary/20 bg-primary/10 text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 hover:shadow-sm'
                 : isMine
                   ? 'border border-blue-100 bg-blue-50 text-blue-500'
-                  : 'border border-border bg-white text-slate-600 hover:border-primary hover:text-primary',
+                  : 'border border-border bg-white text-slate-600 hover:-translate-y-0.5 hover:border-primary hover:shadow-sm hover:text-primary',
         )}
       >
         {isSelected ? <Check className='size-4' /> : seat.seatNumber}
@@ -92,7 +92,7 @@ export default function SeatMap({
   };
 
   return (
-    <div className='mt-4 overflow-hidden rounded-2xl border border-border bg-slate-50 p-6'>
+    <div className='mt-4 overflow-hidden rounded-2xl border border-border bg-slate-50 p-6 transition-all duration-300 hover:shadow-md'>
       <div className='mb-4 flex items-center justify-end gap-4 text-[12px] text-slate-500'>
         <span className='flex items-center gap-1.5'>
           <span className='size-3 rounded-sm border border-border bg-white' />

@@ -790,7 +790,7 @@ export default function CommunityReservation() {
           </div>
           <div className='flex items-center gap-2'>
             <span
-              className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold'
+              className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm'
               style={{
                 background: isRealtimeConnected
                   ? 'var(--brand-soft)'
@@ -812,7 +812,7 @@ export default function CommunityReservation() {
               />
               {isRealtimeConnected ? '실시간' : '네트워크 연결안됨'}
             </span>
-            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600'>
+            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm'>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
               공간 <b className='text-slate-900'>{availableRoomCount}</b>곳
             </span>
@@ -823,10 +823,10 @@ export default function CommunityReservation() {
           <button
             onClick={() => setTab('seat')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all',
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
               tab === 'seat'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:text-slate-700',
+                ? 'scale-[1.03] bg-white text-primary shadow-sm'
+                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
             )}
           >
             <BookOpen className='size-3.5' />
@@ -835,10 +835,10 @@ export default function CommunityReservation() {
           <button
             onClick={() => setTab('room')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all',
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
               tab === 'room'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:text-slate-700',
+                ? 'scale-[1.03] bg-white text-primary shadow-sm'
+                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
             )}
           >
             <Monitor className='size-3.5' />
@@ -856,9 +856,9 @@ export default function CommunityReservation() {
                 key={day.key}
                 onClick={() => handleDaySelect(day, index)}
                 className={cn(
-                  'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all',
+                  'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                   selDay === index
-                    ? 'border-primary bg-primary text-white shadow-md'
+                    ? 'scale-[1.04] border-primary bg-primary text-white shadow-md'
                     : day.sat
                       ? 'border-border bg-white text-blue-500'
                       : day.sun

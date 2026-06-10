@@ -26,8 +26,9 @@ export interface Lecture {
   lecCode: string;
   lecSection: string | number; // 분반
   semId: number;
-  year?: number | null; // 강의 목록 응답에선 null, students.lecture 응답엔 채워짐
+  year?: number | null; // 학기 (같은 강의명 학기별 구분용)
   termCode?: string | null;
+  lecValStatus?: string | null; // 강의 상태 OPEN/PROG/CLSD/CNCL → LEC_VAL_STATUS 라벨
 }
 
 export interface CourseSummary {
@@ -202,12 +203,23 @@ export const semesterLabel = (sem: Semester, termMap: Record<string, string>) =>
   `${sem.year}년 ${termMap[sem.termCode] ?? sem.termCode}`;
 
 /**
- * 강의 드롭다운 라벨: "웹프로그래밍 · 2026년 1학기"
- * '전체' 학기 선택 시 같은 강의명이 학기별로 중복되므로 학기를 붙여 구분한다.
+ * 강의 드롭다운 라벨: "웹프로그래밍 · 2026년 1학기 (강의진행중)"
+ * - 학기: '전체' 선택 시 동명 강의 구분 (year + termCode→SEM_TERM)
+ * - 상태: lecValStatus→LEC_VAL_STATUS (폐강·종료 구분). 값 없으면 생략.
  */
-export const lectureLabel = (lec: Lecture, termMap: Record<string, string>) => {
-  if (lec.year == null || !lec.termCode) return lec.lecName;
-  return `${lec.lecName} · ${lec.year}년 ${termMap[lec.termCode] ?? lec.termCode}`;
+export const lectureLabel = (
+  lec: Lecture,
+  termMap: Record<string, string>,
+  statusMap: Record<string, string> = {}
+) => {
+  let label = lec.lecName;
+  if (lec.year != null && lec.termCode) {
+    label += ` · ${lec.year}년 ${termMap[lec.termCode] ?? lec.termCode}`;
+  }
+  if (lec.lecValStatus) {
+    label += ` (${statusMap[lec.lecValStatus] ?? lec.lecValStatus})`;
+  }
+  return label;
 };
 
 /** 이미지 상대경로(/uploads/...)를 로컬 개발 땐 API 도메인으로 보정 */

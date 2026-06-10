@@ -39,6 +39,7 @@ type Order = "asc" | "desc";
 export default function ProfessorStudentsPage() {
   // 드롭다운/구조
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({}); // LEC_VAL_STATUS
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [selectedSemId, setSelectedSemId] = useState<number | "all">("all");
@@ -57,6 +58,10 @@ export default function ProfessorStudentsPage() {
   const [order, setOrder] = useState<Order>("asc");
   const [page, setPage] = useState(0); // 0-based
   const [filterOpen, setFilterOpen] = useState(false);
+  // 필터 패널 드래프트(‘확인’ 전까지 서버 미적용)
+  const [draftSubmission, setDraftSubmission] = useState<Submission>("");
+  const [draftSort, setDraftSort] = useState<Sort>("name");
+  const [draftOrder, setDraftOrder] = useState<Order>("asc");
 
   // 내보내기/모달
   const [exporting, setExporting] = useState(false);
@@ -76,9 +81,11 @@ export default function ProfessorStudentsPage() {
     (async () => {
       try {
         const tMap = await getCommonCodeMap("SEM_TERM");
+        const stMap = await getCommonCodeMap("LEC_VAL_STATUS");
         const sems = await getSemesters();
         const lecs = await getLectures(); // 기본 '전체'
         setTermMap(tMap);
+        setStatusMap(stMap);
         setSemesters(sems);
         setLectures(lecs);
         setSelectedSemId("all");
@@ -148,11 +155,24 @@ export default function ProfessorStudentsPage() {
     setPage(0);
   };
 
-  const applyFilter = (next: { submission?: Submission; sort?: Sort; order?: Order }) => {
-    if (next.submission !== undefined) setSubmission(next.submission);
-    if (next.sort !== undefined) setSort(next.sort);
-    if (next.order !== undefined) setOrder(next.order);
+  // 필터 패널: 열 때 현재 적용값을 드래프트로 복사 → 선택은 드래프트만 변경 → '확인'에서만 적용
+  const openFilter = () => {
+    setDraftSubmission(submission);
+    setDraftSort(sort);
+    setDraftOrder(order);
+    setFilterOpen(true);
+  };
+  const resetDraft = () => {
+    setDraftSubmission("");
+    setDraftSort("name");
+    setDraftOrder("asc");
+  };
+  const confirmFilter = () => {
+    setSubmission(draftSubmission);
+    setSort(draftSort);
+    setOrder(draftOrder);
     setPage(0);
+    setFilterOpen(false);
   };
 
   const handleExport = async () => {
@@ -216,6 +236,9 @@ export default function ProfessorStudentsPage() {
   const students = data?.students ?? [];
   const selectedLectureName =
     lectures.find((l) => l.lecId === selectedLecId)?.lecName ?? "강의 선택";
+  // 응답 lecture의 강의 상태(lecValStatus) → 목록 헤더 배지
+  const lecStatusCode = data?.lecture?.lecValStatus ?? null;
+  const lecStatusLabel = lecStatusCode ? statusMap[lecStatusCode] ?? lecStatusCode : null;
 
   // 페이지네이션(서버 0-based → 표시 1-based). 0~10명이어도 최소 1페이지.
   const totalElements = pagination?.totalElements ?? 0;
@@ -223,8 +246,8 @@ export default function ProfessorStudentsPage() {
   const currentPage = page + 1;
   const startIdx = page * PAGE_SIZE;
   const filterActive = !!submission || sort !== "name" || order !== "asc";
-  // 정렬 기준 = 과제제출(필터)이면 'submission', 아니면 현재 sort
-  const criterion: Sort | "submission" = submission ? "submission" : sort;
+  // 드래프트 정렬 기준 = 과제제출이면 'submission', 아니면 draftSort
+  const draftCriterion: Sort | "submission" = draftSubmission ? "submission" : draftSort;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8">
@@ -258,7 +281,7 @@ export default function ProfessorStudentsPage() {
               value={selectedLecId ?? ""}
               onChange={(e) => handleLectureChange(Number(e.target.value))}
               disabled={lectures.length === 0}
-              className={`${selectClass} w-44 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
+              className={`${selectClass} w-64 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
             >
               {lectures.length === 0 ? (
                 <option value="" disabled>
@@ -267,7 +290,7 @@ export default function ProfessorStudentsPage() {
               ) : (
                 lectures.map((l) => (
                   <option key={l.lecId} value={l.lecId}>
-                    {lectureLabel(l, termMap)}
+                    {lectureLabel(l, termMap, statusMap)}
                   </option>
                 ))
               )}
@@ -307,33 +330,50 @@ export default function ProfessorStudentsPage() {
         {/* 수강생 목록 */}
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-800">
-              {selectedLectureName} — 수강생 목록
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-800">
+                {selectedLectureName} — 수강생 목록
+              </h2>
+              {lecStatusLabel && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${lecStatusBadgeClass(
+                    lecStatusCode
+                  )}`}
+                >
+                  {lecStatusLabel}
+                </span>
+              )}
+            </div>
             <div className="flex gap-2">
               {/* 필터(제출 상태/정렬) 팝오버 */}
               <div className="relative">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setFilterOpen((v) => !v)}
+                  onClick={() => (filterOpen ? setFilterOpen(false) : openFilter())}
                   className={filterActive ? "border-slate-400 text-slate-900" : ""}
                 >
                   {filterActive ? "● 필터" : "필터"}
                 </Button>
                 {filterOpen && (
                   <>
+                    {/* 바깥 클릭 = 취소(미적용) */}
                     <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
                     <div className="absolute right-0 z-20 mt-1 w-60 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
-                      {/* 정렬 기준: 이름/학번/출석률/평균점수/과제제출 (택1) */}
+                      {/* 정렬 기준: 이름/학번/출석률/평균점수/과제제출 (택1) — 드래프트 */}
                       <label className="mb-1 block text-xs font-medium text-slate-500">정렬 기준</label>
                       <select
-                        value={criterion}
+                        value={draftCriterion}
                         onChange={(e) => {
                           const v = e.target.value;
-                          if (v === "submission")
-                            applyFilter({ submission: "complete", sort: "name", order: "asc" });
-                          else applyFilter({ sort: v as Sort, submission: "" });
+                          if (v === "submission") {
+                            setDraftSubmission("complete");
+                            setDraftSort("name");
+                            setDraftOrder("asc");
+                          } else {
+                            setDraftSort(v as Sort);
+                            setDraftSubmission("");
+                          }
                         }}
                         className={`${selectClass} mb-2 w-full`}
                       >
@@ -345,10 +385,10 @@ export default function ProfessorStudentsPage() {
                       </select>
 
                       {/* 과제 제출이면 제출완료/미제출, 그 외엔 오름/내림차순 */}
-                      {criterion === "submission" ? (
+                      {draftCriterion === "submission" ? (
                         <select
-                          value={submission}
-                          onChange={(e) => applyFilter({ submission: e.target.value as Submission })}
+                          value={draftSubmission}
+                          onChange={(e) => setDraftSubmission(e.target.value as Submission)}
                           className={`${selectClass} w-full`}
                         >
                           <option value="complete">제출 완료</option>
@@ -356,8 +396,8 @@ export default function ProfessorStudentsPage() {
                         </select>
                       ) : (
                         <select
-                          value={order}
-                          onChange={(e) => applyFilter({ order: e.target.value as Order })}
+                          value={draftOrder}
+                          onChange={(e) => setDraftOrder(e.target.value as Order)}
                           className={`${selectClass} w-full`}
                         >
                           <option value="asc">오름차순</option>
@@ -365,15 +405,23 @@ export default function ProfessorStudentsPage() {
                         </select>
                       )}
 
-                      {filterActive && (
+                      {/* 확인 = 적용 + 닫힘 / 초기화 = 드래프트 기본값 */}
+                      <div className="mt-3 flex items-center justify-between">
                         <button
                           type="button"
-                          onClick={() => applyFilter({ submission: "", sort: "name", order: "asc" })}
-                          className="mt-3 text-xs text-slate-400 hover:text-slate-600 hover:underline"
+                          onClick={resetDraft}
+                          className="text-xs text-slate-400 hover:text-slate-600 hover:underline"
                         >
                           필터 초기화
                         </button>
-                      )}
+                        <Button
+                          size="sm"
+                          onClick={confirmFilter}
+                          className="bg-slate-800 text-white hover:bg-slate-700"
+                        >
+                          확인
+                        </Button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -548,6 +596,22 @@ function PageBtn({
       {label}
     </button>
   );
+}
+
+// 강의 상태(LEC_VAL_STATUS) 배지 색
+function lecStatusBadgeClass(code: string | null) {
+  switch (code) {
+    case "PROG":
+      return "bg-emerald-100 text-emerald-700"; // 강의진행중
+    case "OPEN":
+      return "bg-sky-100 text-sky-700"; // 수강신청중
+    case "CLSD":
+      return "bg-slate-100 text-slate-500"; // 강의종료
+    case "CNCL":
+      return "bg-red-100 text-red-600"; // 폐강
+    default:
+      return "bg-slate-100 text-slate-500";
+  }
 }
 
 function attendanceBarColor(rate: number) {

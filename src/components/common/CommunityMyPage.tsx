@@ -82,7 +82,7 @@ const SAMPLE_MY_POSTS: MyPost[] = [
   },
   {
     postId: 3,
-    title: '이번 학기 꿀교양 추천 좀 해주세요',
+    title: '이번 학기 꿀교양을 추천해 주세요',
     board: '익명',
     createdAt: '3시간 전',
     likeCount: 31,
@@ -502,7 +502,7 @@ function MyWishlist({ wishlist }: { wishlist: MyWishlist[] }) {
 function MyProfile({ profile }: { profile: UserProfile }) {
   const [nickname, setNickname] = useState(profile.nickname);
   const [bio, setBio] = useState(
-    '자료구조 스터디 운영 중이에요. 같이 공부해요!',
+    '자료구조 스터디를 운영 중입니다. 함께 공부하고 있습니다.',
   );
 
   return (
@@ -577,7 +577,7 @@ function MyAccount() {
               계정 상태
             </div>
             <div className='mt-1 text-[13px] text-slate-400'>
-              정상 이용 중인 계정이에요.
+              정상 이용 중인 계정입니다.
             </div>
           </div>
           <span className='flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-[12px] font-bold text-emerald-700'>
@@ -594,7 +594,7 @@ function MyAccount() {
               회원 탈퇴
             </div>
             <div className='mt-1.5 text-[13px] leading-relaxed text-slate-500'>
-              탈퇴 시 작성한 글·댓글·거래 내역이 모두 삭제되며 복구할 수 없어요.
+              탈퇴 시 작성한 글·댓글·거래 내역이 모두 삭제되며 복구할 수 없습니다.
             </div>
           </div>
           <button className='shrink-0 rounded-xl bg-red-500 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-red-600'>
