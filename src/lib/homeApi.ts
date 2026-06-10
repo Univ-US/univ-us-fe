@@ -36,6 +36,7 @@ export interface Notice {
     title: string;
     content: string;
     memberName: string;
+    target: "ALL" | "STU" | "PROF";
     postedAt: string;
 }
 
