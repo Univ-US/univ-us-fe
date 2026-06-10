@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Eye, MapPin, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { toggleProductLike } from '@/lib/marketApi';
+import { API_BASE_URL } from '@/lib/api';
+import { formatDate } from '@/lib/utils';
+import { getMyLikeList, toggleProductLike } from '@/lib/marketApi';
 import { useAuthStore } from '@/store/authStore';
 import type { Product, ProductCategory } from '@/types/community';
 
@@ -22,6 +24,9 @@ function formatPrice(price: number) {
 }
 
 // ── 상태 뱃지 ──────────────────────────────────────────
+const resolveImageUrl = (url: string) =>
+  url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
 function StatusBadge({ status }: { status: Product['productStatus'] }) {
   const styles: Record<string, string> = {
     SALE: 'bg-emerald-100 text-emerald-700',
@@ -46,15 +51,18 @@ function StatusBadge({ status }: { status: Product['productStatus'] }) {
 function ProductCard({
   product,
   liked,
+  likeCount,
   onToggleLike,
   onOpen,
 }: {
   product: Product;
   liked: boolean;
+  likeCount: number;
   onToggleLike: () => void;
   onOpen: () => void;
 }) {
   const sold = product.productStatus === 'DONE';
+  const thumbnailUrl = product.images?.[0]?.imageUrl;
 
   return (
     <div
@@ -63,9 +71,25 @@ function ProductCard({
     >
       {/* 썸네일 */}
       <div className="relative">
+        {thumbnailUrl && (
+          <div
+            className={cn(
+              'absolute inset-0 z-0 overflow-hidden bg-slate-100',
+              sold && 'opacity-40',
+            )}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={resolveImageUrl(thumbnailUrl)}
+              alt="상품 이미지"
+              className="size-full object-cover"
+            />
+          </div>
+        )}
         <div
           className={cn(
             'flex aspect-square items-center justify-center bg-gradient-to-br from-primary to-teal-700 text-5xl',
+            thumbnailUrl && 'opacity-0',
             sold && 'opacity-40',
           )}
         >
@@ -113,12 +137,12 @@ function ProductCard({
           <MapPin className="size-3" />
           {product.place}
           <span className="mx-1">·</span>
-          {String(product.createdAt)}
+          {String(formatDate(product.createdAt))}
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
           <span className="flex items-center gap-1">
             <Heart className="size-3" />
-            {product.likeCount + (liked ? 1 : 0)}
+            {likeCount}
           </span>
           <span className="flex items-center gap-1">
             <MessageCircle className="size-3" />
@@ -153,6 +177,32 @@ export default function CommunityMarketList({
   const [onlyLiked, setOnlyLiked] = useState(false);
   // 낙관적 업데이트용 로컬 찜 상태 (Set: productId)
   const [likedSet, setLikedSet] = useState<Set<number>>(new Set());
+  const [likeCountById, setLikeCountById] = useState<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    setLikeCountById(new Map(products.map((product) => [product.productId, product.likeCount])));
+  }, [products]);
+
+  useEffect(() => {
+    if (!memberId) {
+      setLikedSet(new Set());
+      return;
+    }
+
+    let ignore = false;
+    getMyLikeList(memberId)
+      .then((likedProducts) => {
+        if (ignore) return;
+        setLikedSet(new Set(likedProducts.map((product) => product.productId)));
+      })
+      .catch((err) => {
+        console.error('찜 목록 조회 실패:', err);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [memberId]);
 
   const toggleLike = useCallback(
     async (productId: number) => {
@@ -162,25 +212,60 @@ export default function CommunityMarketList({
         return;
       }
       // 낙관적 업데이트: 먼저 UI 반영 후 API 호출
+      const wasLiked = likedSet.has(productId);
       setLikedSet((prev) => {
         const next = new Set(prev);
-        next.has(productId) ? next.delete(productId) : next.add(productId);
+        if (next.has(productId)) {
+          next.delete(productId);
+        } else {
+          next.add(productId);
+        }
+        return next;
+      });
+      setLikeCountById((prev) => {
+        const next = new Map(prev);
+        const current = next.get(productId) ?? products.find((product) => product.productId === productId)?.likeCount ?? 0;
+        next.set(productId, Math.max(0, current + (wasLiked ? -1 : 1)));
         return next;
       });
       try {
-        await toggleProductLike(productId, memberId);
+        const res = await toggleProductLike(productId, memberId);
+        setLikedSet((prev) => {
+          const next = new Set(prev);
+          if (res.liked) {
+            next.add(productId);
+          } else {
+            next.delete(productId);
+          }
+          return next;
+        });
+        setLikeCountById((prev) => {
+          const next = new Map(prev);
+          next.set(productId, res.likeCount);
+          return next;
+        });
         onRefresh?.(); // 목록 새로고침 (서버의 실제 likeCount 반영)
       } catch (err) {
         console.error('찜 토글 실패:', err);
         // 실패 시 롤백
         setLikedSet((prev) => {
           const next = new Set(prev);
-          next.has(productId) ? next.delete(productId) : next.add(productId);
+          if (next.has(productId)) {
+            next.delete(productId);
+          } else {
+            next.add(productId);
+          }
+          return next;
+        });
+        setLikeCountById((prev) => {
+          const next = new Map(prev);
+          const current = next.get(productId) ?? 0;
+          next.set(productId, Math.max(0, current + (wasLiked ? 1 : -1)));
           return next;
         });
       }
     },
-    [memberId, onRefresh],
+    [likedSet, memberId, onRefresh, products],
   );
 
   let filtered = products.filter((p) =>
@@ -253,6 +338,7 @@ export default function CommunityMarketList({
                 key={product.productId}
                 product={product}
                 liked={likedSet.has(product.productId)}
+                likeCount={likeCountById.get(product.productId) ?? product.likeCount}
                 onToggleLike={() => toggleLike(product.productId)}
                 onOpen={() => router.push(`/community/market/${product.productId}`)}
               />
