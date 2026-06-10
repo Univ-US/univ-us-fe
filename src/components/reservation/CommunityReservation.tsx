@@ -33,6 +33,7 @@ import { useAuthStore } from '@/store/authStore';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
+import SeatChatDrawer from './seat/SeatChatDrawer';
 import SeatCancelModal from './seat/SeatCancelModal';
 import SeatReservationModal from './seat/SeatReservationModal';
 import SeatReservationSection from './seat/SeatReservationSection';
@@ -118,6 +119,9 @@ export default function CommunityReservation() {
   const [cancelReservationTarget, setCancelReservationTarget] =
     useState<ReadingSeatReservation | null>(null);
   const [cancelReservationError, setCancelReservationError] = useState('');
+  const [seatChatOpen, setSeatChatOpen] = useState(false);
+  const [seatChatTargetSeat, setSeatChatTargetSeat] =
+    useState<ReadingSeatAvailability | null>(null);
   const [cancelRoomReservationTarget, setCancelRoomReservationTarget] =
     useState<RoomReservation | null>(null);
   const [cancelRoomReservationError, setCancelRoomReservationError] = useState('');
@@ -559,6 +563,11 @@ export default function CommunityReservation() {
     setSeatReservationModalOpen(true);
   }
 
+  function handleOpenSeatChat(seat: ReadingSeatAvailability | null) {
+    setSeatChatTargetSeat(seat);
+    setSeatChatOpen(true);
+  }
+
   async function handleReserveSeat() {
     if (!selSeat) return;
 
@@ -899,6 +908,8 @@ export default function CommunityReservation() {
             seats={seats}
             selectedSeat={selSeat}
             onSelectSeat={setSelSeat}
+            currentMemberId={currentMemberId}
+            onOpenSeatChat={handleOpenSeatChat}
             seatError={seatError}
             seatLoading={seatLoading}
             reservationLoading={reservationLoading}
@@ -965,6 +976,15 @@ export default function CommunityReservation() {
             onSubmit={handleCancelReservation}
           />
         )}
+
+        <SeatChatDrawer
+          open={seatChatOpen}
+          targetSeat={seatChatTargetSeat}
+          onClose={() => {
+            setSeatChatOpen(false);
+            setSeatChatTargetSeat(null);
+          }}
+        />
 
         {roomReservationModalOpen && selSlot && (
           <RoomReservationModal
