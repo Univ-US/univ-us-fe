@@ -40,6 +40,7 @@ import SeatReservationSection from './seat/SeatReservationSection';
 import {
   useReservationRealtimeStatus,
   type ReadingSeatRealtimeEvent,
+  type RoomReservationRealtimeEvent,
 } from './useReservationRealtimeStatus';
 import {
   DEFAULT_SLOT_INDEX,
@@ -72,6 +73,13 @@ function isOverlappingRealtimeEvent(
     && !!endTime
     && event.startTime < endTime
     && event.endTime > startTime;
+}
+
+function isRoomRealtimeEventForDate(
+  event: RoomReservationRealtimeEvent,
+  date: string,
+) {
+  return !!event.startTime && event.startTime.slice(0, 10) === date;
 }
 
 export default function CommunityReservation() {
@@ -263,8 +271,31 @@ export default function CommunityReservation() {
     startTime,
   ]);
 
+  const handleRoomRealtimeEvent = useCallback((event: RoomReservationRealtimeEvent) => {
+    if (!selectedDay || !isRoomRealtimeEventForDate(event, selectedDay.date)) {
+      return;
+    }
+
+    void Promise.allSettled([
+      refreshRoomAvailability().then(() => {
+        setSelSlot((current) =>
+          current?.room.roomId === event.roomId ? null : current,
+        );
+      }),
+      event.memberId === currentMemberId
+        ? loadMyRoomReservations()
+        : Promise.resolve(),
+    ]);
+  }, [
+    currentMemberId,
+    loadMyRoomReservations,
+    refreshRoomAvailability,
+    selectedDay,
+  ]);
+
   const realtimeStatus = useReservationRealtimeStatus({
     onSeatEvent: handleSeatRealtimeEvent,
+    onRoomEvent: handleRoomRealtimeEvent,
   });
   const isRealtimeConnected = realtimeStatus === 'connected';
 
