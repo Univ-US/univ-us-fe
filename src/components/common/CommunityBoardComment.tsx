@@ -162,7 +162,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
       await fetchComments();
       onRefresh?.();
     } catch {
-      alert('댓글 등록에 실패했어. 다시 시도해줘.');
+      alert('댓글 등록에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +183,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
       await fetchComments();
       onRefresh?.();
     } catch {
-      alert('삭제에 실패했어. 다시 시도해줘.');
+      alert('삭제에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
@@ -199,7 +199,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
           <Avatar size='sm' name='나' />
           <input value={draft} onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !submitting && handleCommentSubmit()}
-            placeholder={isAnon ? '익명으로 댓글을 남겨보세요' : '따뜻한 댓글을 남겨보세요'}
+            placeholder={isAnon ? '익명으로 댓글을 남겨 보세요' : '따뜻한 댓글을 남겨 보세요'}
             className='flex-1 bg-transparent py-1.5 text-sm outline-none' />
           <Button size='sm' onClick={handleCommentSubmit} disabled={submitting}>등록</Button>
         </div>
@@ -210,7 +210,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
         {loading ? (
           <p className='py-8 text-center text-sm text-muted-foreground'>불러오는 중...</p>
         ) : comments.length === 0 ? (
-          <p className='py-8 text-center text-sm text-muted-foreground'>첫 번째 댓글을 남겨보세요!</p>
+          <p className='py-8 text-center text-sm text-muted-foreground'>첫 번째 댓글을 남겨 보세요.</p>
         ) : (
           comments.map((comment, i) => (
             <CommentItem key={comment.commentId} comment={comment} isAnon={isAnon}

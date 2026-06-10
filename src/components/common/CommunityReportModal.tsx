@@ -53,7 +53,7 @@ export default function CommunityReportModal({
       setSubmitted(true);
       setTimeout(() => onClose(true), 1500);
     } catch {
-      setErrorMsg("신고 접수 중 오류가 발생했어요. 다시 시도해주세요.");
+      setErrorMsg("신고 접수 중 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setLoading(false);
     }
@@ -74,9 +74,9 @@ export default function CommunityReportModal({
               <CheckCircle2 className="size-8 text-primary" />
             </div>
             <div>
-              <p className="text-[18px] font-extrabold text-slate-900">신고가 접수되었어요</p>
+              <p className="text-[18px] font-extrabold text-slate-900">신고가 접수되었습니다.</p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-                검토 후 조치가 이루어질 예정이에요.<br />신고해주셔서 감사해요.
+                검토 후 조치가 이루어질 예정입니다.<br />신고해 주셔서 감사합니다.
               </p>
             </div>
             <Button onClick={() => onClose()} className="mt-2 px-8">확인</Button>
@@ -91,7 +91,7 @@ export default function CommunityReportModal({
                 </div>
                 <div>
                   <h2 className="text-[15px] font-extrabold text-slate-900">{targetLabel} 신고</h2>
-                  <p className="text-[11px] text-slate-400">신고 사유를 선택해주세요</p>
+                  <p className="text-[11px] text-slate-400">신고 사유를 선택해 주세요</p>
                 </div>
               </div>
               <button
@@ -107,7 +107,7 @@ export default function CommunityReportModal({
               <div className="mb-4 flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
                 <p className="text-[12px] leading-relaxed text-amber-700">
-                  허위 신고 시 이용이 제한될 수 있어요. 신중하게 신고해주세요.
+                  허위 신고 시 이용이 제한될 수 있습니다. 신중하게 신고해 주세요.
                 </p>
               </div>
 

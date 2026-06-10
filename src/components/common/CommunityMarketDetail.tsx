@@ -14,6 +14,7 @@ import {
   Trash2,
   Landmark,
   Wallet,
+  PackageOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CommunityMarketComment from '@/components/common/CommunityMarketComment';
@@ -155,7 +156,7 @@ function StatusBadge({ status }: { status: Product['productStatus'] }) {
   };
   return (
     <span
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${styles[status]}`}
+      className={`rounded-md px-2.5 py-0.5 text-[11px] font-bold ${styles[status]}`}
     >
       {labels[status]}
     </span>
@@ -184,7 +185,7 @@ function ProductThumb({
         <img
           src={resolveImageUrl(imageUrl)}
           alt="상품 이미지"
-          className="size-full object-cover"
+          className="size-full object-cover transition-transform duration-500 group-hover/thumb:scale-105"
         />
       </div>
     );
@@ -193,12 +194,12 @@ function ProductThumb({
   return (
     <div
       className={cn(
-        'flex items-center justify-center bg-gradient-to-br from-primary to-teal-700 text-6xl',
+        'flex items-center justify-center bg-slate-100 text-primary transition-transform duration-300 group-hover/thumb:scale-105',
         sold && 'opacity-40',
         className,
       )}
     >
-      🛍️
+      <PackageOpen className="size-14" />
     </div>
   );
 }
@@ -354,7 +355,7 @@ export default function CommunityMarketDetail({
           paymentId: response.paymentId ?? paymentId,
         });
         setPaymentDone(true);
-        alert('결제가 완료됐어.');
+        alert('결제가 완료되었습니다.');
       } catch (err) {
         console.error('결제 검증 실패:', err);
         alert(getApiErrorMessage(err, '결제는 요청됐지만 서버 검증에 실패했습니다.'));
@@ -371,17 +372,17 @@ export default function CommunityMarketDetail({
   return (
     <>
       <div className="min-h-screen bg-slate-50 px-[30px] py-7">
-        <div className="mx-auto max-w-[920px]">
+        <div className="mx-auto max-w-[1080px]">
           <button
             onClick={onBack}
-            className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700"
+            className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900"
           >
             <ArrowLeft className="size-4" /> 중고거래 홈
           </button>
 
-          <div className="flex items-start gap-6">
-            <div className="w-[400px] shrink-0">
-              <div className="overflow-hidden rounded-2xl border border-border shadow-sm">
+          <div className="grid grid-cols-[460px_1fr] items-start gap-6">
+            <div className="shrink-0">
+              <div className="group/thumb overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
                 <ProductThumb
                   className="aspect-square"
                   imageUrl={selectedImage?.imageUrl}
@@ -396,9 +397,9 @@ export default function CommunityMarketDetail({
                       type="button"
                       onClick={() => setSelectedImageIndex(i)}
                       className={cn(
-                        'size-[70px] overflow-hidden rounded-xl border-2 transition-all',
+                        'group/thumb size-[72px] overflow-hidden rounded-lg border-2 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:scale-105',
                         i === selectedImageIndex
-                          ? 'border-primary shadow-sm'
+                          ? 'scale-[1.03] border-primary shadow-sm'
                           : 'border-transparent opacity-60 hover:opacity-90',
                       )}
                     >
@@ -414,20 +415,20 @@ export default function CommunityMarketDetail({
             </div>
 
             <div className="min-w-0 flex-1">
-              <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-                <div className="p-5">
+              <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <div className="p-6">
                   <div className="mb-3 flex items-center justify-between">
                     <StatusBadge status={product.productStatus} />
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
+                    <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
                       {product.category}
                     </span>
                   </div>
 
-                  <h2 className="mb-2 text-[18px] font-bold leading-snug tracking-tight text-slate-900">
+                  <h2 className="mb-2 text-[22px] font-extrabold leading-snug tracking-tight text-slate-900">
                     {product.productName}
                   </h2>
 
-                  <div className="mb-3 text-[20px] font-extrabold tracking-tight text-slate-900">
+                  <div className="mb-4 text-[24px] font-extrabold tracking-tight text-slate-900">
                     {formatPrice(product.price)}
                   </div>
 
@@ -446,12 +447,12 @@ export default function CommunityMarketDetail({
                     </span>
                   </div>
 
-                  <p className="mb-5 text-[13px] leading-relaxed text-slate-500">
+                  <p className="mb-5 min-h-[96px] rounded-lg border border-border bg-slate-50 px-4 py-3 text-[13px] leading-relaxed text-slate-600">
                     {product.description ?? '상품 설명이 여기에 표시됩니다.'}
                   </p>
 
-                  <div className="flex items-center gap-3 rounded-xl border border-border bg-slate-50 px-4 py-3">
-                    <div className="flex size-[32px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm">
+                  <div className="flex items-center gap-3 rounded-lg border border-border bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md">
+                    <div className="flex size-[34px] items-center justify-center rounded-md bg-primary text-sm font-bold text-white shadow-sm transition-transform duration-200 hover:scale-105">
                       {product.sellerName.slice(0, 1)}
                     </div>
                     <div className="flex-1">
@@ -476,14 +477,14 @@ export default function CommunityMarketDetail({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => window.location.href = `/community/market/write?productId=${product.productId}`}
-                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-primary"
+                          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-primary active:translate-y-0"
                         >
                           <Pencil className="size-3.5" />
                           수정하기
                         </button>
                         <button
                           onClick={handleDelete}
-                          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-red-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-600 active:translate-y-0"
                         >
                           <Trash2 className="size-3.5" />
                           삭제하기
@@ -494,7 +495,7 @@ export default function CommunityMarketDetail({
                     )}
                     <button
                       onClick={() => setReporting(true)}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                      className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700 active:translate-y-0"
                     >
                       <Flag className="size-3.5" />
                       신고하기
@@ -506,14 +507,14 @@ export default function CommunityMarketDetail({
                       onClick={handleToggleLike}
                       disabled={sold || likeLoading}
                       className={cn(
-                        'flex items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-semibold transition-all disabled:opacity-40',
+                        'flex items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40',
                         liked
                           ? 'border-red-300 bg-red-50 text-red-500'
                           : 'border-border bg-white text-slate-500 hover:border-red-300 hover:text-red-500',
                       )}
                     >
                       <Heart
-                        className={cn('size-4', liked && 'fill-current')}
+                        className={cn('size-4 transition-transform duration-200', liked && 'fill-current scale-110')}
                       />
                       관심 {likeCount}
                     </button>
@@ -521,7 +522,7 @@ export default function CommunityMarketDetail({
                     <button
                       disabled={sold}
                       onClick={() => alert('채팅 기능은 추후 연결 예정입니다.')}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-primary py-2 text-[13px] font-semibold text-primary transition-all hover:bg-primary/5 disabled:opacity-40"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary py-2 text-[13px] font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-sm active:translate-y-0 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
                       채팅으로 거래하기
@@ -529,7 +530,7 @@ export default function CommunityMarketDetail({
                   </div>
 
                   {!canManageProduct && !sold && (
-                    <div className="mt-3 rounded-xl border border-border bg-slate-50 p-3">
+                    <div className="mt-3 rounded-lg border border-border bg-slate-50 p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[12px] font-bold text-slate-700">
                           결제수단
@@ -545,9 +546,9 @@ export default function CommunityMarketDetail({
                             type="button"
                             onClick={() => setPaymentMethod(value)}
                             className={cn(
-                              'flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-lg border bg-white px-2 py-2 text-center transition-all',
+                              'flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-lg border bg-white px-2 py-2 text-center transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:scale-110',
                               paymentMethod === value
-                                ? 'border-primary text-primary shadow-sm'
+                                ? 'scale-[1.02] border-primary text-primary shadow-sm'
                                 : 'border-border text-slate-500 hover:border-primary/60 hover:text-primary',
                             )}
                           >
@@ -564,7 +565,7 @@ export default function CommunityMarketDetail({
                       <button
                         disabled={paymentLoading}
                         onClick={handlePayment}
-                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-teal-600 disabled:opacity-40"
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-600 hover:shadow-md active:translate-y-0 disabled:opacity-40"
                       >
                         <CreditCard className="size-4" />
                         {paymentLoading ? '결제 처리중' : `${formatPrice(product.price)} 결제하기`}

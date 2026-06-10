@@ -236,7 +236,7 @@ export default function CommunitySearch() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder='게시글, 상품을 검색해보세요'
+              placeholder='게시글, 상품을 검색해 보세요'
               className='flex-1 bg-transparent text-[14px] outline-none placeholder:text-slate-400'
             />
             {inputValue && (
@@ -263,10 +263,10 @@ export default function CommunitySearch() {
               <Search className='size-7 text-slate-300' />
             </div>
             <p className='mt-4 text-[14px] font-bold text-slate-700'>
-              검색어를 입력해주세요
+              검색어를 입력해 주세요
             </p>
             <p className='mt-1.5 text-[13px] text-slate-400'>
-              게시글, 상품을 통합 검색할 수 있어요
+              게시글, 상품을 통합 검색할 수 있습니다.
             </p>
           </div>
         )}
@@ -305,10 +305,10 @@ export default function CommunitySearch() {
                   <Search className='size-7 text-slate-300' />
                 </div>
                 <p className='mt-4 text-[14px] font-bold text-slate-700'>
-                  검색 결과가 없어요
+                  검색 결과가 없습니다.
                 </p>
                 <p className='mt-1.5 text-[13px] text-slate-400'>
-                  다른 검색어로 시도해보세요
+                  다른 검색어로 시도해 보세요.
                 </p>
               </div>
             )}

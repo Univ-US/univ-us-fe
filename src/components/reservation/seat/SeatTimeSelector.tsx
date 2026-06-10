@@ -40,14 +40,14 @@ export default function SeatTimeSelector({
                 disabled={isClosed}
                 onClick={() => onTimeSlotClick(index)}
                 className={cn(
-                  'h-[44px] min-w-[104px] rounded-xl border px-3 text-[12px] font-bold transition-all',
+                  'h-[44px] min-w-[104px] rounded-xl border px-3 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                   isClosed
                     ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-300'
                     : isSelected
                       ? isStartSlot
-                        ? 'border-primary bg-primary text-white shadow-md'
-                        : 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-white text-slate-600 hover:border-primary hover:text-primary',
+                        ? 'scale-[1.03] border-primary bg-primary text-white shadow-md'
+                        : 'scale-[1.02] border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-white text-slate-600 hover:border-primary hover:shadow-sm hover:text-primary',
                 )}
               >
                 {formatHour(slot.startHour)} - {formatHour(slot.endHour)}
@@ -56,11 +56,11 @@ export default function SeatTimeSelector({
           })}
         </div>
         <div className='flex flex-wrap items-center gap-2 text-[12px] font-bold'>
-          <span className='rounded-full bg-primary/10 px-3 py-1 text-primary'>
+          <span className='rounded-full bg-primary/10 px-3 py-1 text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm'>
             선택 시간 {formatHour(selectedStartHour)} ~{' '}
             {formatHour(selectedEndHour)}
           </span>
-          <span className='rounded-full bg-slate-100 px-3 py-1 text-slate-500'>
+          <span className='rounded-full bg-slate-100 px-3 py-1 text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm'>
             총 {selectedDurationHours}시간
           </span>
         </div>

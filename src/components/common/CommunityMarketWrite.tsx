@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Camera, X, MapPin, Send } from 'lucide-react';
+import { ArrowLeft, Camera, X, MapPin, Send, ImagePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,9 +37,9 @@ function Chip({
     <button
       onClick={onClick}
       className={cn(
-        'rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition-colors',
+        'rounded-md border px-3.5 py-1.5 text-[12px] font-medium transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
         active
-          ? 'border-primary bg-primary text-white'
+          ? 'scale-[1.03] border-primary bg-primary text-white shadow-sm'
           : 'border-border bg-card text-muted-foreground hover:bg-slate-50',
       )}
     >
@@ -60,7 +60,7 @@ function Field({
 }) {
   return (
     <div className="mb-[22px]">
-      <label className="mb-2.5 block text-[13px] font-bold">{label}</label>
+      <label className="mb-2.5 block text-[13px] font-bold text-slate-800">{label}</label>
       {children}
       {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
     </div>
@@ -110,7 +110,7 @@ export default function CommunityMarketWrite() {
         setProductStatus(product.productStatus === 'DONE' ? 'SALE' : product.productStatus);
       } catch (err) {
         console.error('상품 조회 실패:', err);
-        alert('상품 정보를 불러오지 못했어.');
+        alert('상품 정보를 불러오지 못했습니다.');
         handleBack();
       }
     };
@@ -125,7 +125,7 @@ export default function CommunityMarketWrite() {
     );
 
     if (imageFiles.length !== selectedFiles.length) {
-      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있어.');
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
     setImages((prev) => [...prev, ...imageFiles].slice(0, 5));
@@ -138,19 +138,19 @@ export default function CommunityMarketWrite() {
 
   const handleSubmit = async () => {
     if (!productName.trim()) {
-      alert('상품명을 입력해주세요.');
+      alert('상품명을 입력해 주세요.');
       return;
     }
     if (!isFree && !price.trim()) {
-      alert('가격을 입력해주세요.');
+      alert('가격을 입력해 주세요.');
       return;
     }
     if (!place.trim()) {
-      alert('거래 희망 장소를 입력해주세요.');
+      alert('거래 희망 장소를 입력해 주세요.');
       return;
     }
     if (!description.trim()) {
-      alert('상품 설명을 입력해주세요.');
+      alert('상품 설명을 입력해 주세요.');
       return;
     }
 
@@ -186,11 +186,11 @@ export default function CommunityMarketWrite() {
         alert(isEdit ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.');
         handleBack();
       } else {
-        alert(res.message ?? (isEdit ? '상품 수정에 실패했어.' : '상품 등록에 실패했어.'));
+        alert(res.message ?? (isEdit ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.'));
       }
     } catch (err) {
       console.error('상품 등록 실패:', err);
-      alert(isEdit ? '상품 수정에 실패했어. 다시 시도해줘.' : '상품 등록에 실패했어. 다시 시도해줘.');
+      alert(isEdit ? '상품 수정에 실패했습니다. 다시 시도해 주세요.' : '상품 등록에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       setSubmitting(false);
     }
@@ -203,167 +203,194 @@ export default function CommunityMarketWrite() {
   };
 
   return (
-    <div className="px-[30px] py-7">
-      <div className="mx-auto max-w-[760px]">
+    <div className="min-h-screen bg-slate-50 px-[30px] py-7">
+      <div className="mx-auto max-w-[920px]">
         {/* 뒤로가기 */}
         <button
           onClick={handleBack}
-          className="mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground"
+          className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-500 transition-all duration-200 hover:-translate-x-0.5 hover:text-slate-900"
         >
           <ArrowLeft className="size-4" />
           중고거래 홈
         </button>
 
-        <h2 className="mb-5 text-[22px] font-extrabold tracking-tight">
-          {isEdit ? '상품 수정' : '상품 등록'}
-        </h2>
+        <div className="mb-5 flex items-end justify-between border-b border-border pb-4">
+          <div>
+            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-primary">
+              Market Form
+            </p>
+            <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-900">
+              {isEdit ? '상품 수정' : '상품 등록'}
+            </h2>
+          </div>
+          <p className="text-[12px] text-slate-500">
+            사진, 가격, 거래 장소를 정확히 적으면 문의가 빨라집니다.
+          </p>
+        </div>
 
-        {/* 사진 첨부 */}
-        <Field label="상품 사진" hint="최대 5장까지 첨부할 수 있어요.">
-          <div className="flex flex-wrap gap-3">
-            <label
-              className="flex size-[100px] flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100"
-            >
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                className="sr-only"
-                disabled={images.length >= 5}
-                onChange={handleImageChange}
-              />
-              <Camera className="size-[22px]" />
-              <span className="text-xs font-semibold">{images.length} / 5</span>
-            </label>
-
-            {previewUrls.map((previewUrl, i) => (
-              <div
-                key={`${previewUrl}-${i}`}
-                className="relative size-[100px] overflow-hidden rounded-xl border border-border bg-slate-100"
+        <div className="rounded-lg border border-border bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md">
+          {/* 사진 첨부 */}
+          <Field label="상품 사진" hint="최대 5장까지 첨부할 수 있습니다. 첫 번째 사진이 대표 이미지로 표시됩니다.">
+            <div className="flex flex-wrap gap-3">
+              <label
+                className="flex size-[108px] flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 hover:text-primary active:translate-y-0"
               >
-                <img
-                  src={previewUrl}
-                  alt={`상품 이미지 미리보기 ${i + 1}`}
-                  className="size-full object-cover"
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="sr-only"
+                  disabled={images.length >= 5}
+                  onChange={handleImageChange}
                 />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(i)}
-                  className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white"
+                {images.length === 0 ? (
+                  <ImagePlus className="size-[24px]" />
+                ) : (
+                  <Camera className="size-[22px]" />
+                )}
+                <span className="text-xs font-semibold">{images.length} / 5</span>
+              </label>
+
+              {previewUrls.map((previewUrl, i) => (
+                <div
+                  key={`${previewUrl}-${i}`}
+                  className="group/preview relative size-[108px] overflow-hidden rounded-lg border border-border bg-slate-100 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                 >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </Field>
-
-        {/* 상품명 */}
-        <Field label="상품명">
-          <input
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="예) 자료구조 전공서적 (거의 새것)"
-            className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[13px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
-          />
-        </Field>
-
-        {/* 카테고리 */}
-        <Field label="카테고리">
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <Chip
-                key={cat}
-                label={cat}
-                active={category === cat}
-                onClick={() => setCategory(cat)}
-              />
-            ))}
-          </div>
-        </Field>
-
-        {isEdit && (
-          <Field label="판매 상태" hint="거래완료는 결제 완료 시 자동으로 변경돼요.">
-            <div className="flex flex-wrap gap-2">
-              {EDITABLE_PRODUCT_STATUSES.map((status) => (
-                <Chip
-                  key={status}
-                  label={PRODUCT_STATUS_LABELS[status]}
-                  active={productStatus === status}
-                  onClick={() => setProductStatus(status)}
-                />
+                  <img
+                    src={previewUrl}
+                    alt={`상품 이미지 미리보기 ${i + 1}`}
+                    className="size-full object-cover transition-transform duration-300 group-hover/preview:scale-105"
+                  />
+                  {i === 0 && (
+                    <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      대표
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(i)}
+                    className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-md bg-black/60 text-white transition-all duration-200 hover:scale-105 hover:bg-black/75 active:scale-95"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           </Field>
-        )}
 
-        {/* 가격 */}
-        <Field label="가격">
-          <div className="flex gap-3">
-            <div
-              className={cn(
-                'flex flex-1 items-center gap-2 rounded-lg border border-input px-3.5 py-2.5',
-                isFree && 'bg-slate-50',
-              )}
-            >
-              <input
-                disabled={isFree}
-                value={isFree ? '' : price}
-                onChange={handlePriceChange}
-                placeholder="0"
-                className="flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
-              />
-              <span className="text-[13px] font-semibold text-muted-foreground">
-                원
-              </span>
+          <div className="grid grid-cols-[1fr_240px] gap-5">
+            <div>
+              {/* 상품명 */}
+              <Field label="상품명">
+                <input
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="예) 자료구조 전공서적 (거의 새것)"
+                  className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[13px] outline-none transition-all duration-200 placeholder:text-muted-foreground/70 focus:border-primary focus:shadow-sm focus:ring-2 focus:ring-primary/10"
+                />
+              </Field>
+
+              {/* 거래 희망 장소 */}
+              <Field label="거래 희망 장소">
+                <div className="flex h-11 items-center gap-2 rounded-lg border border-input px-3.5 transition-all duration-200 focus-within:border-primary focus-within:shadow-sm focus-within:ring-2 focus-within:ring-primary/10">
+                  <MapPin className="size-[17px] shrink-0 text-muted-foreground" />
+                  <input
+                    value={place}
+                    onChange={(e) => setPlace(e.target.value)}
+                    placeholder="예) 중앙도서관 앞"
+                    className="flex-1 bg-transparent text-[13px] outline-none"
+                  />
+                </div>
+              </Field>
+
+              {/* 상품 설명 */}
+              <Field
+                label="상품 설명"
+                hint="상품 상태, 구매 시기, 거래 방식 등을 적어주세요."
+              >
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={7}
+                  placeholder="상품에 대해 자세히 설명해 주세요."
+                  className="flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[13px] leading-relaxed outline-none transition-all duration-200 placeholder:text-muted-foreground/70 focus:border-primary focus:shadow-sm focus:ring-2 focus:ring-primary/10"
+                />
+              </Field>
             </div>
-            <Chip
-              label="나눔 (무료)"
-              active={isFree}
-              onClick={() => {
-                setIsFree(!isFree);
-                setPrice('');
-              }}
-            />
+
+            <div className="rounded-lg border border-border bg-slate-50 p-4">
+              {/* 카테고리 */}
+              <Field label="카테고리">
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map((cat) => (
+                    <Chip
+                      key={cat}
+                      label={cat}
+                      active={category === cat}
+                      onClick={() => setCategory(cat)}
+                    />
+                  ))}
+                </div>
+              </Field>
+
+              {isEdit && (
+                <Field label="판매 상태" hint="거래완료는 결제 완료 시 자동으로 변경됩니다.">
+                  <div className="flex flex-wrap gap-2">
+                    {EDITABLE_PRODUCT_STATUSES.map((status) => (
+                      <Chip
+                        key={status}
+                        label={PRODUCT_STATUS_LABELS[status]}
+                        active={productStatus === status}
+                        onClick={() => setProductStatus(status)}
+                      />
+                    ))}
+                  </div>
+                </Field>
+              )}
+
+              {/* 가격 */}
+              <Field label="가격">
+                <div className="space-y-2">
+                  <div
+                    className={cn(
+                      'flex h-11 items-center gap-2 rounded-lg border border-input bg-white px-3.5 transition-all duration-200 focus-within:border-primary focus-within:shadow-sm focus-within:ring-2 focus-within:ring-primary/10',
+                      isFree && 'bg-slate-100',
+                    )}
+                  >
+                    <input
+                      disabled={isFree}
+                      value={isFree ? '' : price}
+                      onChange={handlePriceChange}
+                      placeholder="0"
+                      className="flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
+                    />
+                    <span className="text-[13px] font-semibold text-muted-foreground">
+                      원
+                    </span>
+                  </div>
+                  <Chip
+                    label="나눔 (무료)"
+                    active={isFree}
+                    onClick={() => {
+                      setIsFree(!isFree);
+                      setPrice('');
+                    }}
+                  />
+                </div>
+              </Field>
+            </div>
           </div>
-        </Field>
 
-        {/* 거래 희망 장소 */}
-        <Field label="거래 희망 장소">
-          <div className="flex items-center gap-2 rounded-lg border border-input px-3.5 py-2.5 focus-within:border-primary">
-            <MapPin className="size-[17px] shrink-0 text-muted-foreground" />
-            <input
-              value={place}
-              onChange={(e) => setPlace(e.target.value)}
-              placeholder="예) 중앙도서관 앞"
-              className="flex-1 bg-transparent text-[13px] outline-none"
-            />
+          {/* 하단 버튼 */}
+          <div className="flex justify-end gap-2 border-t border-border pt-4">
+            <Button variant="outline" onClick={handleBack} disabled={submitting} className="transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+              취소
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting} className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:translate-x-0.5">
+              <Send className="size-4" />
+              {submitting ? (isEdit ? '수정 중...' : '등록 중...') : isEdit ? '상품 수정' : '상품 등록'}
+            </Button>
           </div>
-        </Field>
-
-        {/* 상품 설명 */}
-        <Field
-          label="상품 설명"
-          hint="상품 상태, 구매 시기, 거래 방식 등을 적어주세요."
-        >
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={6}
-            placeholder="상품에 대해 자세히 설명해주세요."
-            className="flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[13px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary"
-          />
-        </Field>
-
-        {/* 하단 버튼 */}
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
-          <Button variant="outline" onClick={handleBack} disabled={submitting}>
-            취소
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            <Send className="size-4" />
-            {submitting ? (isEdit ? '수정 중...' : '등록 중...') : isEdit ? '상품 수정' : '상품 등록'}
-          </Button>
         </div>
       </div>
     </div>

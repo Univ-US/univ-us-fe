@@ -98,9 +98,9 @@ export default function SeatReservationSection({
             key={room.readingRoomId}
             onClick={() => onSelectRoom(room.readingRoomId)}
             className={cn(
-              'flex items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all',
+              'flex items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:translate-y-0',
               selectedRoomId === room.readingRoomId
-                ? 'border-primary bg-primary/5 shadow-md'
+                ? 'scale-[1.02] border-primary bg-primary/5 shadow-md'
                 : 'border-border bg-white hover:border-primary',
             )}
           >
@@ -139,7 +139,7 @@ export default function SeatReservationSection({
           <button
             type='button'
             onClick={() => onOpenSeatChat(null)}
-            className='flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-colors hover:border-primary hover:bg-primary/10'
+            className='flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10 hover:shadow-sm active:translate-y-0'
           >
             <MessageCircle className='size-3.5' />
             좌석 채팅
@@ -171,7 +171,7 @@ export default function SeatReservationSection({
       </div>
 
       {selectedSeat && (
-        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
+        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'>
           <div>
             <div className='text-[11px] font-semibold text-primary'>
               선택한 좌석
@@ -187,7 +187,7 @@ export default function SeatReservationSection({
           <button
             disabled={reservationLoading}
             onClick={onReserveSeat}
-            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-colors'
+            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
             style={{ background: '#0FA896' }}
             onMouseEnter={(event) =>
               (event.currentTarget.style.background = 'var(--brand-hover)')
