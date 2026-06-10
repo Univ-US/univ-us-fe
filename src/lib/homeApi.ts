@@ -25,3 +25,8 @@ export const getUniversities = async (): Promise<University[]> => {
     const res = await api.get<University[]>("/api/admin/universities");
     return res.data;
 };
+
+export const sendChatMessage = async (message: string): Promise<string> => {
+    const res = await api.post<{ response: string }>("/api/ai", { message });
+    return res.data.response;
+};
