@@ -1,18 +1,37 @@
 import { Client, type IStompSocket } from '@stomp/stompjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 
 import { getWebSocketEndpointUrl } from '@/lib/realtime';
 
 export type ReservationRealtimeStatus = 'connected' | 'disconnected';
 
+export type ReadingSeatRealtimeEvent = {
+  action: 'RESERVED' | 'CANCELLED' | string;
+  reservationId: number;
+  memberId: number;
+  seatId: number;
+  readingRoomId: number;
+  startTime: string;
+  endTime: string;
+};
+
+type ReservationRealtimeOptions = {
+  onSeatEvent?: (event: ReadingSeatRealtimeEvent) => void;
+};
+
 function isBrowserOnline() {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
-export function useReservationRealtimeStatus() {
+export function useReservationRealtimeStatus(options?: ReservationRealtimeOptions) {
   const [status, setStatus] =
     useState<ReservationRealtimeStatus>('disconnected');
+  const onSeatEventRef = useRef(options?.onSeatEvent);
+
+  useEffect(() => {
+    onSeatEventRef.current = options?.onSeatEvent;
+  }, [options?.onSeatEvent]);
 
   useEffect(() => {
     let client: Client | null = null;
@@ -46,6 +65,19 @@ export function useReservationRealtimeStatus() {
           if (isBrowserOnline()) {
             setStatus('connected');
           }
+
+          nextClient.subscribe('/sub/reservations/seats', (message) => {
+            if (!message.body) {
+              return;
+            }
+
+            try {
+              const event = JSON.parse(message.body) as ReadingSeatRealtimeEvent;
+              onSeatEventRef.current?.(event);
+            } catch {
+              // Ignore malformed realtime messages without breaking the socket.
+            }
+          });
         },
         onDisconnect: () => setStatus('disconnected'),
         onStompError: () => setStatus('disconnected'),
