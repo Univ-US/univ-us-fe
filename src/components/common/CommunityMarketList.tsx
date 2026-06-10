@@ -2,7 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Eye, MapPin, Plus } from 'lucide-react';
+import {
+  Heart,
+  MessageCircle,
+  Eye,
+  MapPin,
+  Plus,
+  PackageOpen,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL } from '@/lib/api';
@@ -40,7 +47,7 @@ function StatusBadge({ status }: { status: Product['productStatus'] }) {
   };
   return (
     <span
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${styles[status]}`}
+      className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${styles[status]}`}
     >
       {labels[status]}
     </span>
@@ -67,10 +74,10 @@ function ProductCard({
   return (
     <div
       onClick={onOpen}
-      className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+      className="group/card cursor-pointer overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg"
     >
       {/* 썸네일 */}
-      <div className="relative">
+      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         {thumbnailUrl && (
           <div
             className={cn(
@@ -82,18 +89,18 @@ function ProductCard({
             <img
               src={resolveImageUrl(thumbnailUrl)}
               alt="상품 이미지"
-              className="size-full object-cover"
+              className="size-full object-cover transition-transform duration-500 group-hover/card:scale-105"
             />
           </div>
         )}
         <div
           className={cn(
-            'flex aspect-square items-center justify-center bg-gradient-to-br from-primary to-teal-700 text-5xl',
+            'flex size-full items-center justify-center bg-slate-100 text-primary transition-transform duration-300 group-hover/card:scale-105',
             thumbnailUrl && 'opacity-0',
             sold && 'opacity-40',
           )}
         >
-          🛍️
+          <PackageOpen className="size-10" />
         </div>
 
         <span className="absolute left-2.5 top-2.5">
@@ -107,11 +114,11 @@ function ProductCard({
             onToggleLike();
           }}
           className={cn(
-            'absolute right-2.5 top-2.5 flex size-[34px] items-center justify-center rounded-full bg-white/90 shadow-sm transition-all hover:scale-110',
+            'absolute right-2.5 top-2.5 flex size-8 items-center justify-center rounded-md bg-white/90 shadow-sm transition-all duration-200 hover:scale-110 active:scale-95',
             liked ? 'text-red-500' : 'text-slate-400',
           )}
         >
-          <Heart className={cn('size-4', liked && 'fill-current')} />
+          <Heart className={cn('size-4 transition-transform duration-200', liked && 'fill-current scale-105')} />
         </button>
       </div>
 
@@ -119,7 +126,7 @@ function ProductCard({
       <div className="px-3.5 pb-4 pt-3">
         <div
           className={cn(
-            'h-[40px] overflow-hidden text-[13px] font-semibold leading-snug text-slate-800',
+            'h-[40px] overflow-hidden text-[13px] font-semibold leading-snug text-slate-800 transition-colors duration-200 group-hover/card:text-slate-950',
             sold && 'text-slate-400',
           )}
         >
@@ -127,17 +134,17 @@ function ProductCard({
         </div>
         <div
           className={cn(
-            'mt-1.5 text-[16px] font-extrabold tracking-tight text-slate-900',
+            'mt-1.5 text-[16px] font-extrabold tracking-tight text-slate-900 transition-colors duration-200 group-hover/card:text-primary',
             sold && 'text-slate-400',
           )}
         >
           {formatPrice(product.price)}
         </div>
-        <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400">
+        <div className="mt-2 flex min-w-0 items-center gap-1 text-[11px] text-slate-400">
           <MapPin className="size-3" />
-          {product.place}
+          <span className="truncate">{product.place}</span>
           <span className="mx-1">·</span>
-          {String(formatDate(product.createdAt))}
+          <span className="shrink-0">{String(formatDate(product.createdAt))}</span>
         </div>
         <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
           <span className="flex items-center gap-1">
@@ -276,17 +283,34 @@ export default function CommunityMarketList({
   return (
     <div className="min-h-screen bg-slate-50 px-[30px] py-7">
       <div className="mx-auto max-w-[1140px]">
+        <div className="mb-5 flex items-end justify-between border-b border-border pb-4">
+          <div>
+            <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-primary">
+              UnivUS Market
+            </p>
+            <h1 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-900">
+              중고거래
+            </h1>
+            <p className="mt-1 text-[13px] text-slate-500">
+              캠퍼스 안에서 필요한 물건을 빠르게 찾아 보세요.
+            </p>
+          </div>
+          <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-primary">
+            상품 {products.length}개
+          </p>
+        </div>
+
         {/* 필터 + 버튼 */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between rounded-lg border border-border bg-white px-4 py-3 shadow-sm">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
                 className={cn(
-                  'rounded-full border px-4 py-1.5 text-[13px] font-semibold transition-all',
+                  'rounded-md border px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                   category === cat
-                    ? 'border-primary bg-primary text-white shadow-sm'
+                    ? 'scale-[1.03] border-primary bg-primary text-white shadow-sm'
                     : 'border-border bg-white text-slate-500 hover:border-primary hover:text-primary',
                 )}
               >
@@ -299,9 +323,9 @@ export default function CommunityMarketList({
             <button
               onClick={() => setOnlyLiked(!onlyLiked)}
               className={cn(
-                'flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[13px] font-semibold transition-all',
+                'flex items-center justify-center gap-1.5 rounded-md border px-3.5 py-1.5 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                 onlyLiked
-                  ? 'border-red-500 bg-red-500 text-white shadow-sm'
+                  ? 'scale-[1.03] border-red-500 bg-red-500 text-white shadow-sm'
                   : 'border-border bg-white text-slate-500 hover:border-red-400 hover:text-red-500',
               )}
             >
@@ -310,7 +334,7 @@ export default function CommunityMarketList({
             </button>
             <Button
               onClick={() => router.push('/community/market/write')}
-              className="shadow-sm"
+              className="h-auto rounded-md px-3.5 py-1.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:rotate-90"
             >
               <Plus className="size-4" />
               판매하기
@@ -320,15 +344,27 @@ export default function CommunityMarketList({
 
         {/* 빈 관심목록 */}
         {onlyLiked && filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-24 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-slate-100">
+          <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-white py-20 text-center">
+            <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100">
               <Heart className="size-7 text-slate-300" />
             </div>
             <div className="mt-4 text-[15px] font-bold text-slate-700">
-              아직 찜한 상품이 없어요
+              아직 찜한 상품이 없습니다.
             </div>
             <div className="mt-1.5 text-[13px] text-slate-400">
-              마음에 드는 상품의 하트를 눌러 모아보세요.
+              마음에 드는 상품의 하트를 눌러 모아 보세요.
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center rounded-lg border border-dashed border-border bg-white py-20 text-center">
+            <div className="flex size-14 items-center justify-center rounded-lg bg-slate-100">
+              <PackageOpen className="size-7 text-slate-300" />
+            </div>
+            <div className="mt-4 text-[15px] font-bold text-slate-700">
+              등록된 상품이 없습니다.
+            </div>
+            <div className="mt-1.5 text-[13px] text-slate-400">
+              첫 상품을 올려서 캠퍼스 거래를 시작해 보세요.
             </div>
           </div>
         ) : (

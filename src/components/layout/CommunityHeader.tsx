@@ -78,20 +78,23 @@ export default function CommunityHeader() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-[13.5px] font-semibold transition-colors',
+                  'group/nav relative flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-[13.5px] font-semibold transition-all duration-200 hover:-translate-y-0.5',
                   active
-                    ? 'text-primary'
+                    ? 'bg-primary/5 text-primary'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                 )}
               >
                 {item.label}
                 {item.count ? (
-                  <span className='rounded-full bg-primary/10 px-[7px] py-px text-[11px] font-bold text-primary'>
+                  <span className='rounded-full bg-primary/10 px-[7px] py-px text-[11px] font-bold text-primary transition-transform duration-200 group-hover/nav:scale-105'>
                     {item.count}
                   </span>
                 ) : null}
                 {active && (
-                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] rounded-full bg-primary' />
+                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] origin-center animate-in fade-in zoom-in-75 rounded-full bg-primary duration-300' />
+                )}
+                {!active && (
+                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] origin-center scale-x-0 rounded-full bg-primary/40 transition-transform duration-200 group-hover/nav:scale-x-100' />
                 )}
               </Link>
             );
