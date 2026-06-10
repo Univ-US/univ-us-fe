@@ -9,6 +9,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
+import LmsGuard from "@/components/auth/LmsGuard";
+
+// PLM(교수 LMS) 접근 허용 역할: 서비스/학교 관리자 + 교수
+const PROFESSOR_LMS_ROLES = ["SUA", "ADM", "PROF"];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
@@ -47,7 +51,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-export default function LmsProfessorLayout({ children }: { children: ReactNode }) {
+function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const logoutAction = useAuthStore((s) => s.logoutAction);
@@ -79,9 +83,8 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
       <aside className="flex w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
         {/* 브랜드: 학교명(API) + UniVUs */}
         <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-lg font-bold text-white">
-            U
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
           <div className="min-w-0">
             <p className="truncate text-[11px] text-slate-400">
               {/* 학교명: BE 제공(계정 미설정이면 null) */}
@@ -109,7 +112,11 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
               {profile?.lmsProfessorProfileName ?? "교수"} {profile?.lmsProfessorProfileRole || "교수"}
             </p>
             <p className="truncate text-xs text-slate-400">
+              {/* 학과 · 사번 (학생 사이드바의 학과·학번과 동일 패턴) */}
               {profile?.lmsProfessorProfileDepartment ?? "—"}
+              {profile?.lmsProfessorProfileEmployeeNo
+                ? ` · ${profile.lmsProfessorProfileEmployeeNo}`
+                : ""}
             </p>
           </div>
         </div>
@@ -183,5 +190,14 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-x-hidden">{children}</div>
     </div>
+  );
+}
+
+// 접근 가드로 감싼다. 권한 없는 사용자는 내부 레이아웃(프로필 로드 등)이 아예 마운트되지 않는다.
+export default function LmsProfessorLayout({ children }: { children: ReactNode }) {
+  return (
+    <LmsGuard allowedRoles={PROFESSOR_LMS_ROLES}>
+      <LmsProfessorLayoutInner>{children}</LmsProfessorLayoutInner>
+    </LmsGuard>
   );
 }

@@ -149,6 +149,10 @@ export default function CampusHomePage() {
         if (role === "SUA") { router.replace("/dashboard/service-admin"); return; }
     }, [isInitialized, role, router]);
 
+    // LMS 바로가기: role에 따라 교수(PLM)/학생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
+    const lmsHref =
+        role === "PROF" ? "/lms/professor/profile" : role === "STU" ? "/lms/student/profile" : undefined;
+
     const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
     const dayStr = `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})`;
@@ -275,7 +279,10 @@ export default function CampusHomePage() {
                                 );
                                 const labelEl = <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>;
 
-                                const resolvedHref = s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined) : s.href;
+                                const resolvedHref =
+                                    s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
+                                    : s.label === "LMS" ? lmsHref
+                                    : s.href;
                                 if (resolvedHref && isLoggedIn) {
                                     const isExternal = resolvedHref.startsWith("http");
                                     return (
