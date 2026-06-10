@@ -58,7 +58,7 @@ export default function UserLoginPage() {
     }, []);
 
     useEffect(() => {
-        getUniversities().then(setUniversities).catch(() => {});
+        getUniversities().then(setUniversities).catch(console.error);
     }, []);
 
     const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
