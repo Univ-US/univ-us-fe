@@ -1,4 +1,4 @@
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, MessageCircle } from 'lucide-react';
 
 import type {
   ReadingRoomAvailability,
@@ -33,6 +33,8 @@ type SeatReservationSectionProps = {
   seats: ReadingSeatAvailability[];
   selectedSeat: ReadingSeatAvailability | null;
   onSelectSeat: (seat: ReadingSeatAvailability) => void;
+  currentMemberId?: number | null;
+  onOpenSeatChat: (seat: ReadingSeatAvailability | null) => void;
   seatError: string;
   seatLoading: boolean;
   reservationLoading: boolean;
@@ -61,6 +63,8 @@ export default function SeatReservationSection({
   seats,
   selectedSeat,
   onSelectSeat,
+  currentMemberId,
+  onOpenSeatChat,
   seatError,
   seatLoading,
   reservationLoading,
@@ -128,8 +132,18 @@ export default function SeatReservationSection({
       </div>
 
       <div className='overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
-        <div className='mb-1 text-[14px] font-bold text-slate-900'>
-          {currentRoom?.roomName ?? '독서실'} 좌석 배치도
+        <div className='mb-3 flex flex-wrap items-center justify-between gap-3'>
+          <div className='text-[14px] font-bold text-slate-900'>
+            {currentRoom?.roomName ?? '독서실'} 좌석 배치도
+          </div>
+          <button
+            type='button'
+            onClick={() => onOpenSeatChat(null)}
+            className='flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-colors hover:border-primary hover:bg-primary/10'
+          >
+            <MessageCircle className='size-3.5' />
+            좌석 채팅
+          </button>
         </div>
         {seatError ? (
           <div className='mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-8 text-center text-[13px] font-semibold text-red-500'>
@@ -148,6 +162,8 @@ export default function SeatReservationSection({
             seats={seats}
             selectedSeat={selectedSeat}
             onSelect={onSelectSeat}
+            onOpenChat={onOpenSeatChat}
+            currentMemberId={currentMemberId}
             readingRoomId={currentRoom?.readingRoomId}
             roomName={currentRoom?.roomName}
           />
