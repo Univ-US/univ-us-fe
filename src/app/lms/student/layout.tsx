@@ -4,7 +4,7 @@
 // - 사이드바 상단: 학교명(API) + UniVUs 브랜드 + 사용자(이름/학과/아바타, API)
 // - 네비: '프로필'만 활성(SLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 LMS 페이지(현재는 /lms/student/profile)
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -49,9 +49,10 @@ export default function LmsStudentLayout({ children }: { children: ReactNode }) 
   // 사이드바 헤더(학교/이름/학과/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useStudentProfileStore((s) => s.profile);
   const loadProfile = useStudentProfileStore((s) => s.load);
+  const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
 
   useEffect(() => {
-    loadProfile().catch(() => {});
+    loadProfile().catch(() => setLoadFailed(true));
   }, [loadProfile]);
 
   const handleLogout = async () => {
@@ -111,6 +112,13 @@ export default function LmsStudentLayout({ children }: { children: ReactNode }) 
             </p>
           </div>
         </div>
+
+        {/* 프로필 로드 실패 시 (가짜 정보로 가리지 않고 표기) */}
+        {loadFailed && !profile && (
+          <p className="mx-3 -mt-2 mb-3 text-[11px] text-amber-300">
+            ⚠ 프로필 정보를 불러오지 못했습니다 (서버 확인)
+          </p>
+        )}
 
         {/* 네비게이션 */}
         <nav className="flex-1 overflow-y-auto px-3">

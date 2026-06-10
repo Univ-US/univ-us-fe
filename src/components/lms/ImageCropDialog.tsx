@@ -52,7 +52,8 @@ export default function ImageCropDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      // 사이드바(w-60=240px)를 제외한 본문 영역 기준으로 중앙 정렬 (left-60)
+      className="fixed inset-y-0 right-0 left-60 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="프로필 이미지 위치 조정"
