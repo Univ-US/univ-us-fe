@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Building2, Cloud, Database, Grid2x2, Link2, Megaphone, Settings, Upload } from "lucide-react";
+import { Bot, Building2, Cloud, Database, Grid2x2, Link2, Megaphone, Play, Save, Settings, Upload } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getAdminUniversity, type ApiUniversity } from "@/lib/adminApi";
+import { getAdminUniversity, updateAdminUniversityLinks, type ApiUniversity } from "@/lib/adminApi";
 import { Toggle } from "../_components";
 
 export default function SettingsView() {
@@ -11,6 +11,10 @@ export default function SettingsView() {
     const [tab, setTab] = useState<"info" | "home" | "api">("info");
     const [university, setUniversity] = useState<ApiUniversity | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const [links, setLinks] = useState({ youtubeUrl: "", clubUrl: "", snsUrl: "" });
+    const [linksSaving, setLinksSaving] = useState(false);
+    const [linksSaved, setLinksSaved] = useState(false);
 
     const [widgets, setWidgets] = useState({
         weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
@@ -24,10 +28,35 @@ export default function SettingsView() {
     useEffect(() => {
         if (!univId) return;
         getAdminUniversity(univId)
-            .then(setUniversity)
+            .then((u) => {
+                setUniversity(u);
+                setLinks({
+                    youtubeUrl: u.youtubeUrl ?? "",
+                    clubUrl: u.clubUrl ?? "",
+                    snsUrl: u.snsUrl ?? "",
+                });
+            })
             .catch(console.error)
             .finally(() => setLoading(false));
     }, [univId]);
+
+    const handleSaveLinks = async () => {
+        if (!univId) return;
+        setLinksSaving(true);
+        try {
+            await updateAdminUniversityLinks(univId, {
+                youtubeUrl: links.youtubeUrl || null,
+                clubUrl: links.clubUrl || null,
+                snsUrl: links.snsUrl || null,
+            });
+            setLinksSaved(true);
+            setTimeout(() => setLinksSaved(false), 2000);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLinksSaving(false);
+        }
+    };
 
     const apis = [
         { name: "OpenWeatherMap", desc: "날씨 위젯 API", connected: true, icon: Cloud },
@@ -61,34 +90,69 @@ export default function SettingsView() {
 
             {tab === "info" && (
                 <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
-                        <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
-                            <Building2 className="size-4" /> 기본 정보
-                        </div>
-                        <p className="mt-1 text-xs text-slate-400">홈-로그인 화면에 노출되는 학교 정보입니다.</p>
+                    <div className="space-y-5">
+                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
+                                <Building2 className="size-4" /> 기본 정보
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">홈-로그인 화면에 노출되는 학교 정보입니다.</p>
 
-                        {loading ? (
-                            <p className="mt-6 text-sm text-slate-400">불러오는 중...</p>
-                        ) : (
+                            {loading ? (
+                                <p className="mt-6 text-sm text-slate-400">불러오는 중...</p>
+                            ) : (
+                                <div className="mt-5 space-y-4">
+                                    {[
+                                        { label: "학교명", value: university?.univName ?? "—" },
+                                        { label: "대표 전화", value: university?.schoolPhone ?? "—" },
+                                        { label: "홈페이지", value: university?.homepage ?? "—" },
+                                        { label: "주소", value: university?.address ?? "—" },
+                                    ].map(({ label, value }) => (
+                                        <div key={label}>
+                                            <p className="text-xs font-black text-slate-500">{label}</p>
+                                            <p className="mt-1 rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <p className="mt-4 text-xs text-slate-400">
+                                학교 기본 정보 변경은 서비스 관리자에게 문의해 주세요.
+                            </p>
+                        </section>
+
+                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
+                                <Play className="size-4" /> 링크·바로가기
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">학생 홈 화면 바로가기 타일에 연결됩니다.</p>
                             <div className="mt-5 space-y-4">
-                                {[
-                                    { label: "학교명", value: university?.univName ?? "—" },
-                                    { label: "대표 전화", value: university?.schoolPhone ?? "—" },
-                                    { label: "홈페이지", value: university?.homepage ?? "—" },
-                                    { label: "주소", value: university?.address ?? "—" },
-                                ].map(({ label, value }) => (
-                                    <div key={label}>
+                                {([
+                                    { key: "youtubeUrl", label: "YouTube 채널", placeholder: "https://youtube.com/@..." },
+                                    { key: "clubUrl", label: "동아리 사이트", placeholder: "https://..." },
+                                    { key: "snsUrl", label: "학교 SNS", placeholder: "https://instagram.com/..." },
+                                ] as const).map(({ key, label, placeholder }) => (
+                                    <div key={key}>
                                         <p className="text-xs font-black text-slate-500">{label}</p>
-                                        <p className="mt-1 rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
+                                        <input
+                                            type="url"
+                                            value={links[key]}
+                                            onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
+                                            placeholder={placeholder}
+                                            className="mt-1 w-full rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-emerald-500 focus:bg-white"
+                                        />
                                     </div>
                                 ))}
                             </div>
-                        )}
-
-                        <p className="mt-4 text-xs text-slate-400">
-                            학교 기본 정보 변경은 서비스 관리자에게 문의해 주세요.
-                        </p>
-                    </section>
+                            <button
+                                onClick={handleSaveLinks}
+                                disabled={linksSaving}
+                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2.5 text-sm font-black text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
+                            >
+                                <Save className="size-4" />
+                                {linksSaved ? "저장됨!" : linksSaving ? "저장 중..." : "링크 저장"}
+                            </button>
+                        </section>
+                    </div>
 
                     <div className="space-y-5">
                         <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">

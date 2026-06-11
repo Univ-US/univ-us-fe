@@ -13,15 +13,16 @@ export default function InquiriesView() {
     const [resolving, setResolving] = useState(false);
 
     const handleResolve = async () => {
-        if (!selected) return;
+        if (!selected || !univId) return;
         setResolving(true);
         try {
             await updateSupportStatus(selected.supportId, 1);
-            const updated = { ...selected, status: 1 };
-            setInquiries((prev) => prev.map((i) => i.supportId === selected.supportId ? updated : i));
-            setSelected(updated);
+            const fresh = await getAdminSupports(univId);
+            setInquiries(fresh);
+            setSelected(fresh.find((i) => i.supportId === selected.supportId) ?? null);
         } catch (e) {
             console.error(e);
+            alert("처리 중 오류가 발생했습니다. 다시 시도해 주세요.");
         } finally {
             setResolving(false);
         }

@@ -32,7 +32,17 @@ export interface ApiUniversity {
     schoolPhone: string | null;
     homepage: string | null;
     address: string | null;
+    youtubeUrl: string | null;
+    clubUrl: string | null;
+    snsUrl: string | null;
 }
+
+export const updateAdminUniversityLinks = async (
+    univId: number,
+    links: { youtubeUrl: string | null; clubUrl: string | null; snsUrl: string | null },
+) => {
+    await api.patch(`/api/admin/universities/${univId}`, links);
+};
 
 export const ROLE_LABEL: Record<string, string> = {
     STU: "학생",

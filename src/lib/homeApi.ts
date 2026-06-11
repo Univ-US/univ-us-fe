@@ -6,6 +6,7 @@ export interface HomeProfile {
     phoneNumber: string;
     youtubeUrl: string | null;
     clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 export const getHomeProfile = async (): Promise<HomeProfile> => {
@@ -19,6 +20,9 @@ export interface University {
     schoolPhone: string;
     homepage: string | null;
     address: string | null;
+    youtubeUrl: string | null;
+    clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 export const getUniversities = async (): Promise<University[]> => {

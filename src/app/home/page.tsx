@@ -17,7 +17,9 @@ import {
     Monitor,
     Send,
     Smartphone,
+    Play,
     Sun,
+    Users,
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -32,6 +34,8 @@ const BASE_SHORTCUTS = [
     { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
     { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
     { label: "학교 SNS", icon: Hash, bg: "bg-pink-500" },
+    { label: "YouTube", icon: Play, bg: "bg-red-600" },
+    { label: "동아리", icon: Users, bg: "bg-amber-500" },
     { label: "커뮤니티", icon: MessageSquare, bg: "bg-sky-500", href: "/community" },
     { label: "LMS", icon: LayoutDashboard, bg: "bg-indigo-500", href: "#" },
 ];
@@ -71,6 +75,9 @@ interface SchoolInfo {
     schoolPhone: string;
     homepage: string | null;
     address: string | null;
+    youtubeUrl: string | null;
+    clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
@@ -84,7 +91,15 @@ function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
                 if (univ) {
                     const hp = univ.homepage;
                     const homepage = hp ? (hp.startsWith("http") ? hp : `https://${hp}`) : null;
-                    setInfo({ schoolName: univ.univName, schoolPhone: univ.schoolPhone, homepage, address: univ.address ?? null });
+                    setInfo({
+                        schoolName: univ.univName,
+                        schoolPhone: univ.schoolPhone,
+                        homepage,
+                        address: univ.address ?? null,
+                        youtubeUrl: univ.youtubeUrl ?? null,
+                        clubUrl: univ.clubUrl ?? null,
+                        snsUrl: univ.snsUrl ?? null,
+                    });
                 }
             })
             .catch(() => {});
@@ -129,7 +144,6 @@ export default function CampusHomePage() {
     const [chatLoading, setChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
-
     useEffect(() => {
         if (!isLoggedIn) return;
         getNotices().then(setNotices).catch(() => {});
@@ -265,17 +279,21 @@ export default function CampusHomePage() {
                                 const resolvedHref =
                                     s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
                                     : s.label === "LMS" ? lmsHref
+                                    : s.label === "학교 SNS" ? (schoolInfo?.snsUrl ?? undefined)
+                                    : s.label === "YouTube" ? (schoolInfo?.youtubeUrl ?? undefined)
+                                    : s.label === "동아리" ? (schoolInfo?.clubUrl ?? undefined)
                                     : s.href;
-                                if (resolvedHref && isLoggedIn) {
-                                    const isExternal = resolvedHref.startsWith("http");
-                                    return (
-                                        <a key={s.label} href={resolvedHref} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined} className="flex flex-col items-center gap-2 group">
-                                            {iconEl}{labelEl}
-                                        </a>
-                                    );
-                                }
+                                const handleClick = () => {
+                                    if (!isLoggedIn) { router.push("/home/login"); return; }
+                                    if (!resolvedHref) return;
+                                    if (resolvedHref.startsWith("http")) {
+                                        window.open(resolvedHref, "_blank", "noopener,noreferrer");
+                                    } else {
+                                        router.push(resolvedHref);
+                                    }
+                                };
                                 return (
-                                    <button key={s.label} onClick={() => { if (!isLoggedIn) router.push("/home/login"); }} className="flex flex-col items-center gap-2 group">
+                                    <button key={s.label} onClick={handleClick} className="flex flex-col items-center gap-2 group">
                                         {iconEl}{labelEl}
                                     </button>
                                 );
@@ -383,8 +401,10 @@ export default function CampusHomePage() {
                     {/* 학교 유튜브 · 동아리 */}
                     <div className="grid grid-cols-2 gap-3">
                         <a
-                            href="#"
-                            onClick={requireLogin}
+                            href={isLoggedIn && schoolInfo?.youtubeUrl ? schoolInfo.youtubeUrl : undefined}
+                            onClick={!isLoggedIn ? requireLogin : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
                         >
                             <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-white">
@@ -394,8 +414,10 @@ export default function CampusHomePage() {
                             <span className="text-[11px] font-semibold text-primary">바로가기 →</span>
                         </a>
                         <a
-                            href="#"
-                            onClick={requireLogin}
+                            href={isLoggedIn && schoolInfo?.clubUrl ? schoolInfo.clubUrl : undefined}
+                            onClick={!isLoggedIn ? requireLogin : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
                         >
                             <div className="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center text-white">
