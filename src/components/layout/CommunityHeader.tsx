@@ -6,6 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 import {
   Search,
   Bell,
+  MessageCircle,
+  PackageOpen,
   UserRound,
   GraduationCap,
   ChevronDown,
@@ -27,13 +29,25 @@ export default function CommunityHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const univName = useAuthStore((s) => s.univName);
   const { memberName, communityNickname, logoutAction } = useAuthStore();
   const displayName = communityNickname || memberName || '사용자';
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
+
+  const submitSearch = () => {
+    const trimmed = searchValue.trim();
+    router.push(
+      trimmed
+        ? `/community/search?q=${encodeURIComponent(trimmed)}`
+        : '/community/search',
+    );
+  };
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -43,6 +57,12 @@ export default function CommunityHeader() {
         !dropdownRef.current.contains(e.target as Node)
       ) {
         setDropdownOpen(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(e.target as Node)
+      ) {
+        setNotificationOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -118,27 +138,81 @@ export default function CommunityHeader() {
           <div className='relative hidden lg:block'>
             <Search className='pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400' />
             <input
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               placeholder='게시글, 상품 검색'
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  const value = (e.target as HTMLInputElement).value.trim();
-                  if (value)
-                    router.push(
-                      `/community/search?q=${encodeURIComponent(value)}`,
-                    );
-                  else router.push('/community/search');
+                  submitSearch();
                 }
               }}
-              onClick={() => router.push('/community/search')}
+              onFocus={() => {
+                if (pathname !== '/community/search') {
+                  router.prefetch('/community/search');
+                }
+              }}
               className='h-9 w-56 rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-sm cursor-pointer'
             />
           </div>
 
           {/* 알림 버튼 */}
-          <button className='relative flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-all hover:border-primary hover:text-primary hover:shadow-md hover:shadow-primary/10'>
-            <Bell className='size-[18px]' />
-            <span className='absolute right-2 top-2 size-[7px] rounded-full border-2 border-white bg-red-500' />
-          </button>
+          <div className='relative' ref={notificationRef}>
+            <button
+              type='button'
+              onClick={() => setNotificationOpen((prev) => !prev)}
+              className={cn(
+                'relative flex size-9 shrink-0 items-center justify-center rounded-full border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10 active:translate-y-0',
+                notificationOpen
+                  ? 'border-primary text-primary'
+                  : 'border-slate-200 text-slate-500 hover:border-primary hover:text-primary',
+              )}
+              aria-label='알림함 열기'
+            >
+              <Bell className='size-[18px]' />
+              <span className='absolute right-2 top-2 size-[7px] rounded-full border-2 border-white bg-red-500' />
+            </button>
+
+            {notificationOpen && (
+              <div className='absolute right-0 top-[calc(100%+10px)] z-50 w-[320px] animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-xl border border-border bg-white shadow-lg duration-300'>
+                <div className='flex items-center justify-between border-b border-border px-4 py-3'>
+                  <div>
+                    <div className='text-[13px] font-extrabold text-slate-900'>알림</div>
+                    <div className='text-[11px] font-medium text-slate-400'>전체 커뮤니티 알림함</div>
+                  </div>
+                  <span className='rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary'>
+                    준비중
+                  </span>
+                </div>
+                <div className='divide-y divide-slate-100'>
+                  <div className='flex items-start gap-3 px-4 py-3'>
+                    <span className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                      <MessageCircle className='size-4' />
+                    </span>
+                    <div className='min-w-0 flex-1'>
+                      <div className='text-[12px] font-bold text-slate-800'>댓글/답글 알림</div>
+                      <p className='mt-0.5 text-[11px] leading-relaxed text-slate-400'>
+                        내 글과 댓글에 달린 새 반응이 여기에 표시됩니다.
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-start gap-3 px-4 py-3'>
+                    <span className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-500'>
+                      <PackageOpen className='size-4' />
+                    </span>
+                    <div className='min-w-0 flex-1'>
+                      <div className='text-[12px] font-bold text-slate-800'>거래/예약 알림</div>
+                      <p className='mt-0.5 text-[11px] leading-relaxed text-slate-400'>
+                        중고거래 채팅, 결제, 시설 예약 알림을 연결할 예정입니다.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className='bg-slate-50 px-4 py-3 text-center text-[11px] font-semibold text-slate-400'>
+                  백엔드 알림 API 연결 전 임시 알림함입니다.
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 프로필 드롭다운 */}
           <div className='relative' ref={dropdownRef}>

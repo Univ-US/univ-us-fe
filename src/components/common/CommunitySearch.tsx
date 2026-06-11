@@ -1,11 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, FileText, ShoppingBag, X } from 'lucide-react';
+import { Search, FileText, PackageOpen, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SAMPLE_POSTS, SAMPLE_PRODUCTS } from '@/lib/sampleData';
+import { getPostList } from '@/lib/postApi';
+import { getProductList } from '@/lib/marketApi';
 import type { Post, Product } from '@/types/community';
+
+const BOARD_HREF: Record<number, string> = {
+  1: '/community/free',
+  2: '/community/secret',
+  3: '/community/notice',
+};
+
+const BOARD_LABEL: Record<number, string> = {
+  1: '자유게시판',
+  2: '익명게시판',
+  3: '공지사항',
+};
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 function formatPrice(price: number) {
   return price === 0 ? '나눔' : price.toLocaleString('ko-KR') + '원';
@@ -13,7 +30,7 @@ function formatPrice(price: number) {
 
 function Highlight({ text, keyword }: { text: string; keyword: string }) {
   if (!keyword.trim()) return <>{text}</>;
-  const parts = text.split(new RegExp(`(${keyword})`, 'gi'));
+  const parts = text.split(new RegExp(`(${escapeRegExp(keyword)})`, 'gi'));
   return (
     <>
       {parts.map((part, i) =>
@@ -31,20 +48,12 @@ function Highlight({ text, keyword }: { text: string; keyword: string }) {
 
 function PostResultCard({ post, keyword }: { post: Post; keyword: string }) {
   const router = useRouter();
-  const boardHref: Record<number, string> = {
-    1: '/community/free',
-    2: '/community/secret',
-    3: '/community/notice',
-  };
-  const boardLabel: Record<number, string> = {
-    1: '자유게시판',
-    2: '익명게시판',
-    3: '공지사항',
-  };
 
   return (
     <button
-      onClick={() => router.push(boardHref[post.boardId] ?? '/community')}
+      onClick={() =>
+        router.push(`${BOARD_HREF[post.boardId] ?? '/community'}?postId=${post.postId}`)
+      }
       className='flex w-full items-start gap-4 rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md'
     >
       <div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10'>
@@ -53,7 +62,7 @@ function PostResultCard({ post, keyword }: { post: Post; keyword: string }) {
       <div className='min-w-0 flex-1'>
         <div className='mb-1 flex items-center gap-2'>
           <span className='rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary'>
-            {boardLabel[post.boardId]}
+            {BOARD_LABEL[post.boardId]}
           </span>
           {post.category && (
             <span className='text-[11px] text-slate-400'>{post.category}</span>
@@ -68,7 +77,7 @@ function PostResultCard({ post, keyword }: { post: Post; keyword: string }) {
           </div>
         )}
         <div className='mt-2 flex items-center gap-3 text-[11px] text-slate-400'>
-          <span>{post.isAnonymous ? '익명' : post.authorNickname}</span>
+          <span>{post.isAnonymous ? '익명' : post.authorNickname || post.authorName}</span>
           <span>·</span>
           <span>{post.createdAt}</span>
           <span>·</span>
@@ -102,11 +111,11 @@ function ProductResultCard({
 
   return (
     <button
-      onClick={() => router.push('/community/market')}
+      onClick={() => router.push(`/community/market/${product.productId}`)}
       className='flex w-full items-start gap-4 rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md'
     >
-      <div className='flex size-[60px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-700 text-2xl shadow-sm'>
-        🛍️
+      <div className='flex size-[60px] shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm'>
+        <PackageOpen className='size-7' />
       </div>
       <div className='min-w-0 flex-1'>
         <div className='mb-1 flex items-center gap-2'>
@@ -129,7 +138,7 @@ function ProductResultCard({
           {formatPrice(product.price)}
         </div>
         <div className='mt-1 flex items-center gap-3 text-[11px] text-slate-400'>
-          <span>{product.sellerNickname}</span>
+          <span>{product.sellerNickname || product.sellerName}</span>
           <span>·</span>
           <span>{product.place}</span>
           <span>·</span>
@@ -184,6 +193,54 @@ export default function CommunitySearch() {
   const [keyword, setKeyword] = useState(initialKeyword);
   const [inputValue, setInputValue] = useState(initialKeyword);
   const [tab, setTab] = useState<TabType>('전체');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const nextKeyword = searchParams.get('q') ?? '';
+    setKeyword(nextKeyword);
+    setInputValue(nextKeyword);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      setPosts([]);
+      setProducts([]);
+      return;
+    }
+
+    let ignore = false;
+    setLoading(true);
+
+    Promise.all([
+      Promise.all(
+        [1, 2, 3].map((boardId) =>
+          getPostList({ boardId, keyword: trimmed, page: 1, size: 8 }),
+        ),
+      ),
+      getProductList({ keyword: trimmed, page: 0, size: 12 }),
+    ])
+      .then(([postResponses, productResponse]) => {
+        if (ignore) return;
+        setPosts(postResponses.flatMap((res) => res.postList ?? []));
+        setProducts(productResponse.list ?? []);
+      })
+      .catch((error) => {
+        if (ignore) return;
+        console.error('통합 검색 실패:', error);
+        setPosts([]);
+        setProducts([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [keyword]);
 
   const handleSearch = () => {
     const trimmed = inputValue.trim();
@@ -198,29 +255,12 @@ export default function CommunitySearch() {
     router.replace('/community/search');
   };
 
-  const allPosts = [
-    ...SAMPLE_POSTS.free,
-    ...SAMPLE_POSTS.secret,
-    ...SAMPLE_POSTS.notice,
-  ];
-
-  const filteredPosts = keyword
-    ? allPosts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(keyword.toLowerCase()) ||
-          p.content?.toLowerCase().includes(keyword.toLowerCase()),
-      )
-    : [];
-
-  const filteredProducts = keyword
-    ? SAMPLE_PRODUCTS.filter(
-        (p) =>
-          p.productName.toLowerCase().includes(keyword.toLowerCase()) ||
-          p.description?.toLowerCase().includes(keyword.toLowerCase()),
-      )
-    : [];
-
-  const totalCount = filteredPosts.length + filteredProducts.length;
+  const filteredPosts = posts;
+  const filteredProducts = products;
+  const totalCount = useMemo(
+    () => filteredPosts.length + filteredProducts.length,
+    [filteredPosts.length, filteredProducts.length],
+  );
   const showPosts = tab === '전체' || tab === '게시글';
   const showProducts = tab === '전체' || tab === '상품';
 
@@ -299,7 +339,18 @@ export default function CommunitySearch() {
               </div>
             </div>
 
-            {totalCount === 0 && (
+            {loading && (
+              <div className='flex flex-col items-center py-20 text-center'>
+                <div className='flex size-16 items-center justify-center rounded-full bg-slate-100'>
+                  <Search className='size-7 animate-pulse text-slate-300' />
+                </div>
+                <p className='mt-4 text-[14px] font-bold text-slate-700'>
+                  검색 중입니다.
+                </p>
+              </div>
+            )}
+
+            {!loading && totalCount === 0 && (
               <div className='flex flex-col items-center py-20 text-center'>
                 <div className='flex size-16 items-center justify-center rounded-full bg-slate-100'>
                   <Search className='size-7 text-slate-300' />
@@ -313,7 +364,7 @@ export default function CommunitySearch() {
               </div>
             )}
 
-            {showPosts && filteredPosts.length > 0 && (
+            {!loading && showPosts && filteredPosts.length > 0 && (
               <div className='mb-6'>
                 <h3 className='mb-3 text-[12px] font-bold text-slate-400 uppercase tracking-wider'>
                   게시글 {filteredPosts.length}건
@@ -330,7 +381,7 @@ export default function CommunitySearch() {
               </div>
             )}
 
-            {showProducts && filteredProducts.length > 0 && (
+            {!loading && showProducts && filteredProducts.length > 0 && (
               <div>
                 <h3 className='mb-3 text-[12px] font-bold text-slate-400 uppercase tracking-wider'>
                   상품 {filteredProducts.length}건

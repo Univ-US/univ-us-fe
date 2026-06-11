@@ -3,12 +3,20 @@ import api from "@/lib/api";
 import type { Post, PostComment, PostImage } from "@/types/community";
 
 // 게시글 목록 조회
+export interface PostListResponse {
+  postList: Post[];
+  totalCount: number;
+  todayCount?: number;
+  totalPage: number;
+  currentPage: number;
+}
+
 export const getPostList = async (params: {
   boardId?: number;
   page?: number;
   size?: number;
   keyword?: string;
-}) => {
+}): Promise<PostListResponse> => {
   const res = await api.get("/api/posts", { params });
   return res.data;
 };

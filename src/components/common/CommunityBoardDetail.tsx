@@ -104,11 +104,11 @@ export default function CommunityBoardDetail({
       <div className='mx-auto max-w-[920px]'>
         <button
           onClick={onBack}
-          className='mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700'
+          className='mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-all duration-200 hover:-translate-y-0.5 hover:text-slate-700 active:translate-y-0'
         >
           <ArrowLeft className='size-4' /> 목록으로
         </button>
-        <div className='flex flex-col items-center rounded-2xl border border-border bg-white p-14 text-center shadow-sm'>
+        <div className='flex flex-col items-center rounded-2xl border border-border bg-white p-14 text-center shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'>
           <span className='flex size-14 items-center justify-center rounded-full bg-red-50'>
             <EyeOff className='size-[26px] text-red-400' />
           </span>
@@ -139,12 +139,12 @@ export default function CommunityBoardDetail({
       <div className='mx-auto max-w-[920px]'>
         <button
           onClick={onBack}
-          className='mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700'
+          className='mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-all duration-200 hover:-translate-y-0.5 hover:text-slate-700 active:translate-y-0'
         >
           <ArrowLeft className='size-4' /> 목록으로
         </button>
 
-        <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
+        <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'>
           <div className='p-6'>
             {/* 카테고리 + HOT + 수정/삭제 */}
             <div className='mb-3 flex items-center justify-between'>
@@ -169,14 +169,14 @@ export default function CommunityBoardDetail({
                   <>
                     <button
                       onClick={handleEdit}
-                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-primary hover:text-primary'
+                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-sm active:translate-y-0'
                     >
                       <Pencil className='size-3.5' />
                       수정
                     </button>
                     <button
                       onClick={handleDelete}
-                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-red-400 hover:text-red-500'
+                      className='flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-red-400 hover:text-red-500 hover:shadow-sm active:translate-y-0'
                     >
                       <Trash2 className='size-3.5' />
                       삭제
@@ -193,7 +193,7 @@ export default function CommunityBoardDetail({
 
             {/* 작성자 */}
             <div className='flex items-center gap-3 border-b border-border pb-4'>
-              <div className='flex size-[30px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm'>
+              <div className='flex size-[30px] items-center justify-center rounded-full bg-primary text-sm font-bold text-white shadow-sm transition-transform duration-200 hover:scale-105'>
                 {isAnon ? '익' : post.authorName.slice(0, 1)}
               </div>
               <div>
@@ -214,12 +214,12 @@ export default function CommunityBoardDetail({
             {post.images && post.images.length > 0 && (
               <div className='mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3'>
                 {post.images.map((image) => (
-                  <div key={image.imageId} className='overflow-hidden rounded-xl border border-border bg-slate-100'>
+                  <div key={image.imageId} className='group/image overflow-hidden rounded-xl border border-border bg-slate-100 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveImageUrl(image.imageUrl)}
                       alt='게시글 첨부 이미지'
-                      className='aspect-square w-full object-cover'
+                      className='aspect-square w-full object-cover transition-transform duration-500 group-hover/image:scale-105'
                     />
                   </div>
                 ))}
@@ -231,18 +231,18 @@ export default function CommunityBoardDetail({
               <button
                 onClick={handleLike}
                 className={cn(
-                  'flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all',
+                  'flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                   liked
                     ? 'border-primary bg-primary/5 text-primary'
                     : 'border-border text-slate-500 hover:border-primary hover:text-primary',
                 )}
               >
-                <Heart className={cn('size-4', liked && 'fill-current')} />
+                <Heart className={cn('size-4 transition-transform duration-200', liked && 'scale-110 fill-current')} />
                 좋아요 {post.likeCount}
               </button>
               <button
                 onClick={handleReportClick}
-                className='flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3.5 py-1.5 text-[12px] font-semibold text-red-400 transition-colors hover:bg-red-100 hover:text-red-500'
+                className='flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3.5 py-1.5 text-[12px] font-semibold text-red-400 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-500 hover:shadow-sm active:translate-y-0'
               >
                 <Flag className='size-3.5' />
                 {alreadyReported ? '신고완료' : '신고'}
@@ -275,7 +275,7 @@ export default function CommunityBoardDetail({
 
       {/* 신고 완료 토스트 */}
       {reportToast && (
-        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 rounded-2xl border border-red-200 bg-white px-5 py-3.5 shadow-lg'>
+        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex animate-in fade-in slide-in-from-bottom-2 items-center gap-2.5 rounded-2xl border border-red-200 bg-white px-5 py-3.5 shadow-lg duration-300'>
           <Flag className='size-4 text-red-400' />
           <p className='text-[13px] font-semibold text-slate-700'>이미 신고한 게시글입니다.</p>
         </div>
