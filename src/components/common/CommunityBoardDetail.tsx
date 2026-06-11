@@ -81,7 +81,10 @@ export default function CommunityBoardDetail({
     }
   };
 
-  const canManagePost = (memberId != null && post.memberId === memberId) || role === 'SUA' || role === 'ADM';
+  const isPostOwner = memberId != null && post.memberId === memberId;
+  const canManagePost = isPostOwner || role === 'SUA' || role === 'ADM';
+  const anonymousPostLabel =
+    isAnon ? `익명 1${memberId != null && post.memberId === memberId ? ' (나)' : ''}` : post.authorName;
 
   const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
 
@@ -117,9 +120,15 @@ export default function CommunityBoardDetail({
             자동으로 가려진 게시글입니다.
             <br /> 열람이 제한됩니다.
           </p>
-          <Button variant='outline' className='mt-6' onClick={onBack}>
-            목록으로 돌아가기
-          </Button>
+          {isPostOwner ? (
+            <Button className='mt-6 bg-red-500 hover:bg-red-600' onClick={handleDelete}>
+              삭제하기
+            </Button>
+          ) : (
+            <Button variant='outline' className='mt-6' onClick={onBack}>
+              목록으로 돌아가기
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -189,7 +198,7 @@ export default function CommunityBoardDetail({
               </div>
               <div>
                 <div className='text-[12px] font-bold text-slate-800'>
-                  {isAnon ? '익명' : post.authorName}
+                  {anonymousPostLabel}
                 </div>
                 <div className='text-xs text-slate-400'>
                   {formatDate(post.createdAt)} · 조회 {post.viewCount ?? 0}
@@ -246,6 +255,8 @@ export default function CommunityBoardDetail({
         <CommunityBoardComment
           postId={post.postId}
           isAnon={isAnon}
+          anonymousAuthorId={post.memberId}
+          currentMemberId={memberId}
           onRefresh={onRefresh}
         />
       </div>
@@ -254,9 +265,10 @@ export default function CommunityBoardDetail({
         <CommunityReportModal
           targetType='post'
           targetId={post.postId}
-          onClose={(reported?: boolean) => {
+          onClose={(reported?: boolean, blind?: boolean) => {
             setReporting(false);
             if (reported) setAlreadyReported(true);
+            if (blind) onBack();
           }}
         />
       )}

@@ -21,7 +21,7 @@ export type ReportTargetType = "post" | "comment" | "product";
 interface CommunityReportModalProps {
   targetType: ReportTargetType;
   targetId: number;
-  onClose: (reported?: boolean) => void;
+  onClose: (reported?: boolean, blind?: boolean) => void;
 }
 
 export default function CommunityReportModal({
@@ -42,7 +42,11 @@ export default function CommunityReportModal({
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await api.post(`/api/posts/${targetId}/report`, {
+      const reportUrl =
+        targetType === "product"
+          ? `/api/market/products/${targetId}/report`
+          : `/api/posts/${targetId}/report`;
+      const res = await api.post(reportUrl, {
         reason: selectedReason,
         detail,
       });
@@ -51,7 +55,7 @@ export default function CommunityReportModal({
         return;
       }
       setSubmitted(true);
-      setTimeout(() => onClose(true), 1500);
+      setTimeout(() => onClose(true, Boolean(res.data.blind)), 1500);
     } catch {
       setErrorMsg("신고 접수 중 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {

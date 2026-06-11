@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import {
   createProduct,
   getProductDetail,
-  replaceProductImages,
   updateProduct,
+  updateProductImages,
   uploadProductImages,
 } from '@/lib/marketApi';
-import type { ProductCategory, TradeStatus } from '@/types/community';
+import { API_BASE_URL } from '@/lib/api';
+import type { ProductCategory, ProductImage, TradeStatus } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
 const CATEGORIES: ProductCategory[] = ['교재', '전자기기', '생활용품', '기타'];
@@ -22,6 +23,9 @@ const PRODUCT_STATUS_LABELS: Record<TradeStatus, string> = {
   RESERVE: '예약중',
   DONE: '거래완료',
 };
+
+const resolveImageUrl = (url: string) =>
+  url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
 
 // ── 칩 버튼 ───────────────────────────────────────────
 function Chip({
@@ -80,9 +84,12 @@ export default function CommunityMarketWrite() {
   const [place, setPlace] = useState('');
   const [description, setDescription] = useState('');
   const [productStatus, setProductStatus] = useState<TradeStatus>('SALE');
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
+  const [initialExistingImageIds, setInitialExistingImageIds] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const totalImageCount = existingImages.length + images.length;
 
   const handleBack = useCallback(() => router.push('/community/market'), [router]);
 
@@ -108,6 +115,8 @@ export default function CommunityMarketWrite() {
         setPlace(product.place ?? '');
         setDescription(product.description ?? '');
         setProductStatus(product.productStatus === 'DONE' ? 'SALE' : product.productStatus);
+        setExistingImages(product.images ?? []);
+        setInitialExistingImageIds((product.images ?? []).map((image) => image.imageId));
       } catch (err) {
         console.error('상품 조회 실패:', err);
         alert('상품 정보를 불러오지 못했습니다.');
@@ -128,12 +137,29 @@ export default function CommunityMarketWrite() {
       alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
-    setImages((prev) => [...prev, ...imageFiles].slice(0, 5));
+    const availableSlots = Math.max(0, 5 - totalImageCount);
+    if (imageFiles.length > availableSlots) {
+      alert('상품 이미지는 기존 이미지와 새 이미지를 합쳐 최대 5장까지 첨부할 수 있습니다.');
+    }
+    setImages((prev) => [...prev, ...imageFiles].slice(0, prev.length + availableSlots));
     event.target.value = '';
   };
 
   const handleRemoveImage = (removeIndex: number) => {
     setImages((prev) => prev.filter((_, index) => index !== removeIndex));
+  };
+
+  const handleRemoveExistingImage = (removeIndex: number) => {
+    setExistingImages((prev) => prev.filter((_, index) => index !== removeIndex));
+  };
+
+  const hasImageChanges = () => {
+    if (images.length > 0) return true;
+    const currentImageIds = existingImages.map((image) => image.imageId);
+    return (
+      currentImageIds.length !== initialExistingImageIds.length ||
+      currentImageIds.some((imageId, index) => imageId !== initialExistingImageIds[index])
+    );
   };
 
   const handleSubmit = async () => {
@@ -170,17 +196,21 @@ export default function CommunityMarketWrite() {
         : await createProduct(payload);
 
       if (res.success) {
-        if (images.length > 0) {
+        if (!isEdit && images.length > 0) {
           const savedProductId = isEdit ? Number(productId) : res.productId;
           if (!savedProductId) {
             throw new Error('상품 이미지 업로드에 필요한 상품 ID가 없습니다.');
           }
 
-          if (isEdit) {
-            await replaceProductImages(savedProductId, images);
-          } else {
-            await uploadProductImages(savedProductId, images);
-          }
+          await uploadProductImages(savedProductId, images);
+        }
+
+        if (isEdit && hasImageChanges()) {
+          await updateProductImages(
+            Number(productId),
+            existingImages.map((image) => image.imageId),
+            images,
+          );
         }
 
         alert(isEdit ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.');
@@ -240,16 +270,44 @@ export default function CommunityMarketWrite() {
                   accept="image/jpeg,image/png,image/webp"
                   multiple
                   className="sr-only"
-                  disabled={images.length >= 5}
+                  disabled={totalImageCount >= 5}
                   onChange={handleImageChange}
                 />
-                {images.length === 0 ? (
+                {totalImageCount === 0 ? (
                   <ImagePlus className="size-[24px]" />
                 ) : (
                   <Camera className="size-[22px]" />
                 )}
-                <span className="text-xs font-semibold">{images.length} / 5</span>
+                <span className="text-xs font-semibold">{totalImageCount} / 5</span>
               </label>
+
+              {existingImages.map((image, i) => (
+                <div
+                  key={image.imageId}
+                  className="group/preview relative size-[108px] overflow-hidden rounded-lg border border-border bg-slate-100 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <img
+                    src={resolveImageUrl(image.imageUrl)}
+                    alt={`기존 상품 이미지 ${i + 1}`}
+                    className="size-full object-cover transition-transform duration-300 group-hover/preview:scale-105"
+                  />
+                  {i === 0 && (
+                    <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      대표
+                    </span>
+                  )}
+                  <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    기존
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExistingImage(i)}
+                    className="absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-md bg-black/60 text-white transition-all duration-200 hover:scale-105 hover:bg-black/75 active:scale-95"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ))}
 
               {previewUrls.map((previewUrl, i) => (
                 <div
@@ -261,7 +319,7 @@ export default function CommunityMarketWrite() {
                     alt={`상품 이미지 미리보기 ${i + 1}`}
                     className="size-full object-cover transition-transform duration-300 group-hover/preview:scale-105"
                   />
-                  {i === 0 && (
+                  {existingImages.length === 0 && i === 0 && (
                     <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
                       대표
                     </span>
