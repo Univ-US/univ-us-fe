@@ -38,7 +38,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "콘텐츠",
     items: [
-      { label: "강의 업로드", icon: "🎬" },
+      { label: "강의 업로드", icon: "🎬", href: "/lms/professor/upload" },
       { label: "과제 관리", icon: "📄" },
       { label: "공지사항", icon: "📢" },
       { label: "출결 확인", icon: "🗓️" },
@@ -91,8 +91,9 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* 사이드바 */}
-      <aside className="flex w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
+      {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
+          높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
+      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
         {/* 브랜드: 학교명(API) + UniVUs */}
         <div className="flex items-center gap-3 px-5 py-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
