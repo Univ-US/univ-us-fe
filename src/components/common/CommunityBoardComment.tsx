@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CornerDownRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCommentList, createComment, deleteComment } from '@/lib/postApi';
@@ -18,10 +18,11 @@ function Avatar({ name, size = 'default' }: { name: string; size?: 'sm' | 'defau
 }
 
 // ── 대댓글 한 개 ───────────────────────────────────────
-function ReplyItem({ reply, isAnon, onDelete }: {
+function ReplyItem({ reply, isAnon, onDelete, getAnonymousName }: {
   reply: PostComment; isAnon: boolean; onDelete: (commentId: number) => void;
+  getAnonymousName: (memberId: number) => string;
 }) {
-  const displayName = isAnon ? '익명' : (reply.authorNickname || reply.authorName);
+  const displayName = isAnon ? getAnonymousName(reply.memberId) : (reply.authorNickname || reply.authorName);
   return (
     <div className='flex items-start gap-2'>
       <CornerDownRight className='mt-2 size-3.5 shrink-0 text-muted-foreground/60' />
@@ -44,15 +45,16 @@ function ReplyItem({ reply, isAnon, onDelete }: {
 }
 
 // ── 댓글 한 개 ─────────────────────────────────────────
-function CommentItem({ comment, isAnon, isLast, onDelete, onReplySubmit }: {
+function CommentItem({ comment, isAnon, isLast, onDelete, onReplySubmit, getAnonymousName }: {
   comment: PostComment; isAnon: boolean; isLast: boolean;
   onDelete: (commentId: number) => void;
   onReplySubmit: (parentId: number, content: string) => Promise<void>;
+  getAnonymousName: (memberId: number) => string;
 }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const displayName = isAnon ? '익명' : (comment.authorNickname || comment.authorName);
+  const displayName = isAnon ? getAnonymousName(comment.memberId) : (comment.authorNickname || comment.authorName);
 
   const handleReplySubmit = async () => {
     if (!draft.trim()) return;
@@ -92,7 +94,13 @@ function CommentItem({ comment, isAnon, isLast, onDelete, onReplySubmit }: {
       {((comment.replies && comment.replies.length > 0) || replying) && (
         <div className='ml-[42px] mt-2.5 flex flex-col gap-3 border-l-2 border-border pl-3.5'>
           {comment.replies?.map((reply) => (
-            <ReplyItem key={reply.commentId} reply={reply} isAnon={isAnon} onDelete={onDelete} />
+            <ReplyItem
+              key={reply.commentId}
+              reply={reply}
+              isAnon={isAnon}
+              onDelete={onDelete}
+              getAnonymousName={getAnonymousName}
+            />
           ))}
           {replying && (
             <div className='flex items-center gap-2 rounded-[10px] bg-slate-50 px-2.5 py-1.5'>
@@ -115,10 +123,18 @@ function CommentItem({ comment, isAnon, isLast, onDelete, onReplySubmit }: {
 interface CommunityBoardCommentProps {
   postId: number;
   isAnon: boolean;
+  anonymousAuthorId?: number;
+  currentMemberId?: number | null;
   onRefresh?: () => void;
 }
 
-export default function CommunityBoardComment({ postId, isAnon, onRefresh }: CommunityBoardCommentProps) {
+export default function CommunityBoardComment({
+  postId,
+  isAnon,
+  anonymousAuthorId,
+  currentMemberId,
+  onRefresh,
+}: CommunityBoardCommentProps) {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
@@ -162,7 +178,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
       await fetchComments();
       onRefresh?.();
     } catch {
-      alert('댓글 등록에 실패했어. 다시 시도해줘.');
+      alert('댓글 등록에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       setSubmitting(false);
     }
@@ -183,11 +199,31 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
       await fetchComments();
       onRefresh?.();
     } catch {
-      alert('삭제에 실패했어. 다시 시도해줘.');
+      alert('삭제에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
   const totalCount = comments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
+  const anonymousNameByMemberId = useMemo(() => {
+    const map = new Map<number, string>();
+    const assign = (memberId?: number) => {
+      if (memberId == null || map.has(memberId)) return;
+      map.set(memberId, `익명 ${map.size + 1}`);
+    };
+
+    assign(anonymousAuthorId);
+    comments.forEach((comment) => {
+      assign(comment.memberId);
+      comment.replies?.forEach((reply) => assign(reply.memberId));
+    });
+
+    return map;
+  }, [anonymousAuthorId, comments]);
+
+  const getAnonymousName = useCallback((commentMemberId: number) => {
+    const label = anonymousNameByMemberId.get(commentMemberId) ?? '익명';
+    return currentMemberId != null && commentMemberId === currentMemberId ? `${label} (나)` : label;
+  }, [anonymousNameByMemberId, currentMemberId]);
 
   return (
     <div className='mt-6'>
@@ -199,7 +235,7 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
           <Avatar size='sm' name='나' />
           <input value={draft} onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !submitting && handleCommentSubmit()}
-            placeholder={isAnon ? '익명으로 댓글을 남겨보세요' : '따뜻한 댓글을 남겨보세요'}
+            placeholder={isAnon ? '익명으로 댓글을 남겨 보세요' : '따뜻한 댓글을 남겨 보세요'}
             className='flex-1 bg-transparent py-1.5 text-sm outline-none' />
           <Button size='sm' onClick={handleCommentSubmit} disabled={submitting}>등록</Button>
         </div>
@@ -210,12 +246,13 @@ export default function CommunityBoardComment({ postId, isAnon, onRefresh }: Com
         {loading ? (
           <p className='py-8 text-center text-sm text-muted-foreground'>불러오는 중...</p>
         ) : comments.length === 0 ? (
-          <p className='py-8 text-center text-sm text-muted-foreground'>첫 번째 댓글을 남겨보세요!</p>
+          <p className='py-8 text-center text-sm text-muted-foreground'>첫 번째 댓글을 남겨 보세요.</p>
         ) : (
           comments.map((comment, i) => (
             <CommentItem key={comment.commentId} comment={comment} isAnon={isAnon}
               isLast={i === comments.length - 1}
-              onDelete={handleDelete} onReplySubmit={handleReplySubmit} />
+              onDelete={handleDelete} onReplySubmit={handleReplySubmit}
+              getAnonymousName={getAnonymousName} />
           ))
         )}
       </div>

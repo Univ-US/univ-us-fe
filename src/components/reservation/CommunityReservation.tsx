@@ -12,6 +12,8 @@ import { BookOpen, Monitor } from 'lucide-react';
 import {
   cancelRoomReservation,
   cancelReadingSeatReservation,
+  checkInReadingSeatReservation,
+  extendReadingSeatReservation,
   getMyReadingSeatReservations,
   getMyRoomReservations,
   getReadingRoomAvailability,
@@ -27,12 +29,21 @@ import {
   type RoomAvailability,
   type RoomReservation,
 } from '@/lib/reservationApi';
+import { getApiErrorMessage, isApiErrorStatus } from '@/lib/apiError';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
+import SeatChatDrawer from './seat/SeatChatDrawer';
+import SeatCancelModal from './seat/SeatCancelModal';
+import SeatReservationModal from './seat/SeatReservationModal';
 import SeatReservationSection from './seat/SeatReservationSection';
-import { useReservationRealtimeStatus } from './useReservationRealtimeStatus';
+import {
+  useReservationRealtimeStatus,
+  type ReadingSeatRealtimeEvent,
+  type RoomReservationRealtimeEvent,
+} from './useReservationRealtimeStatus';
 import {
   DEFAULT_SLOT_INDEX,
   MAX_SELECTED_SLOT_COUNT,
@@ -53,8 +64,28 @@ import {
   toReservationDateTime,
 } from './reservationUtils';
 
+function isOverlappingRealtimeEvent(
+  event: ReadingSeatRealtimeEvent,
+  startTime: string,
+  endTime: string,
+) {
+  return !!event.startTime
+    && !!event.endTime
+    && !!startTime
+    && !!endTime
+    && event.startTime < endTime
+    && event.endTime > startTime;
+}
+
+function isRoomRealtimeEventForDate(
+  event: RoomReservationRealtimeEvent,
+  date: string,
+) {
+  return !!event.startTime && event.startTime.slice(0, 10) === date;
+}
+
 export default function CommunityReservation() {
-  const realtimeStatus = useReservationRealtimeStatus();
+  const currentMemberId = useAuthStore((state) => state.memberId);
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
   const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
@@ -90,9 +121,19 @@ export default function CommunityReservation() {
   const [cancelingRoomReservationId, setCancelingRoomReservationId] = useState<
     number | null
   >(null);
+  const [checkingInReservationId, setCheckingInReservationId] = useState<number | null>(null);
+  const [extendingReservationId, setExtendingReservationId] = useState<number | null>(null);
   const [roomReservationModalOpen, setRoomReservationModalOpen] = useState(false);
   const [roomReservationPurpose, setRoomReservationPurpose] = useState('');
   const [roomReservationError, setRoomReservationError] = useState('');
+  const [seatReservationModalOpen, setSeatReservationModalOpen] = useState(false);
+  const [seatReservationError, setSeatReservationError] = useState('');
+  const [cancelReservationTarget, setCancelReservationTarget] =
+    useState<ReadingSeatReservation | null>(null);
+  const [cancelReservationError, setCancelReservationError] = useState('');
+  const [seatChatOpen, setSeatChatOpen] = useState(false);
+  const [seatChatTargetSeat, setSeatChatTargetSeat] =
+    useState<ReadingSeatAvailability | null>(null);
   const [cancelRoomReservationTarget, setCancelRoomReservationTarget] =
     useState<RoomReservation | null>(null);
   const [cancelRoomReservationError, setCancelRoomReservationError] = useState('');
@@ -130,7 +171,6 @@ export default function CommunityReservation() {
   const availableRoomCount = roomAvailabilities.filter((room) =>
     room.slots.some((slot) => slot.available)
   ).length;
-  const isRealtimeConnected = realtimeStatus === 'connected';
   const currentRoom = rooms.find((room) => room.readingRoomId === selRoomId);
   const selectedDateLabel = selectedDay?.today
     ? '오늘'
@@ -210,6 +250,58 @@ export default function CommunityReservation() {
     const data = await getRoomAvailability(selectedDay.date);
     setRoomAvailabilities(data);
   }, [selectedDay]);
+
+  const handleSeatRealtimeEvent = useCallback((event: ReadingSeatRealtimeEvent) => {
+    if (!isOverlappingRealtimeEvent(event, startTime, endTime)) {
+      return;
+    }
+
+    void Promise.allSettled([
+      refreshSelectedSeatAvailability().then(() => {
+        if (selSeat?.seatId === event.seatId) {
+          setSelSeat(null);
+        }
+      }),
+      event.memberId === currentMemberId
+        ? loadMyReservations()
+        : Promise.resolve(),
+    ]);
+  }, [
+    currentMemberId,
+    endTime,
+    loadMyReservations,
+    refreshSelectedSeatAvailability,
+    selSeat?.seatId,
+    startTime,
+  ]);
+
+  const handleRoomRealtimeEvent = useCallback((event: RoomReservationRealtimeEvent) => {
+    if (!selectedDay || !isRoomRealtimeEventForDate(event, selectedDay.date)) {
+      return;
+    }
+
+    void Promise.allSettled([
+      refreshRoomAvailability().then(() => {
+        setSelSlot((current) =>
+          current?.room.roomId === event.roomId ? null : current,
+        );
+      }),
+      event.memberId === currentMemberId
+        ? loadMyRoomReservations()
+        : Promise.resolve(),
+    ]);
+  }, [
+    currentMemberId,
+    loadMyRoomReservations,
+    refreshRoomAvailability,
+    selectedDay,
+  ]);
+
+  const realtimeStatus = useReservationRealtimeStatus({
+    onSeatEvent: handleSeatRealtimeEvent,
+    onRoomEvent: handleRoomRealtimeEvent,
+  });
+  const isRealtimeConnected = realtimeStatus === 'connected';
 
   useEffect(() => {
     let mounted = true;
@@ -497,10 +589,25 @@ export default function CommunityReservation() {
     setSelSeat(null);
   }
 
+  function handleOpenSeatReservationModal() {
+    if (!selSeat) {
+      return;
+    }
+
+    setSeatReservationError('');
+    setSeatReservationModalOpen(true);
+  }
+
+  function handleOpenSeatChat(seat: ReadingSeatAvailability | null) {
+    setSeatChatTargetSeat(seat);
+    setSeatChatOpen(true);
+  }
+
   async function handleReserveSeat() {
     if (!selSeat) return;
 
     setReservationLoading(true);
+    setSeatReservationError('');
 
     try {
       await reserveReadingSeat({
@@ -515,34 +622,105 @@ export default function CommunityReservation() {
         loadMyReservations(),
       ]);
 
-      window.alert('좌석 예약이 완료되었습니다.');
+      setSeatReservationModalOpen(false);
+      setSeatReservationError('');
     } catch (error) {
       console.error(error);
-      window.alert('예약 요청에 실패했습니다. 로그인 상태와 좌석 상태를 확인해주세요.');
+      const message = getApiErrorMessage(
+        error,
+        '예약 요청에 실패했습니다. 로그인 상태와 좌석 상태를 확인해주세요.',
+      );
+
+      if (isApiErrorStatus(error, 409)) {
+        await Promise.allSettled([
+          refreshSelectedSeatAvailability(),
+          loadMyReservations(),
+        ]);
+      }
+
+      setSeatReservationError(message);
     } finally {
       setReservationLoading(false);
     }
   }
 
-  async function handleCancelReservation(reservationId: number) {
-    if (!window.confirm('예약을 취소할까요?')) {
+  function handleOpenCancelReservationModal(reservationId: number) {
+    const reservation = myReservations.find(
+      (item) => item.reservationId === reservationId,
+    );
+
+    if (!reservation) {
       return;
     }
 
-    setCancelingReservationId(reservationId);
+    setCancelReservationTarget(reservation);
+    setCancelReservationError('');
+  }
+
+  async function handleCancelReservation() {
+    if (!cancelReservationTarget) return;
+
+    setCancelingReservationId(cancelReservationTarget.reservationId);
+    setCancelReservationError('');
 
     try {
-      const result = await cancelReadingSeatReservation(reservationId);
+      await cancelReadingSeatReservation(cancelReservationTarget.reservationId);
       await Promise.all([
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
       ]);
-      window.alert(result.message || '예약이 취소되었습니다.');
+      setCancelReservationTarget(null);
+      setCancelReservationError('');
     } catch (error) {
       console.error(error);
-      window.alert('예약 취소에 실패했습니다. 예약 상태를 확인해주세요.');
+      const message = getApiErrorMessage(
+        error,
+        '예약 취소에 실패했습니다. 예약 상태를 확인해주세요.',
+      );
+
+      await Promise.allSettled([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability(),
+      ]);
+
+      setCancelReservationError(message);
     } finally {
       setCancelingReservationId(null);
+    }
+  }
+
+  async function handleCheckInReservation(reservationId: number) {
+    setCheckingInReservationId(reservationId);
+    try {
+      await checkInReadingSeatReservation(reservationId);
+      await Promise.all([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability().catch(console.error),
+      ]);
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(error, '입실 처리에 실패했습니다.');
+      alert(message);
+    } finally {
+      setCheckingInReservationId(null);
+    }
+  }
+
+  async function handleExtendReservation(reservationId: number) {
+    setExtendingReservationId(reservationId);
+    try {
+      const res = await extendReadingSeatReservation(reservationId);
+      await Promise.all([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability().catch(console.error),
+      ]);
+      alert(res.message || '예약이 연장되었습니다.');
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(error, '연장 처리에 실패했습니다.');
+      alert(message);
+    } finally {
+      setExtendingReservationId(null);
     }
   }
 
@@ -682,7 +860,7 @@ export default function CommunityReservation() {
           </div>
           <div className='flex items-center gap-2'>
             <span
-              className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold'
+              className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm'
               style={{
                 background: isRealtimeConnected
                   ? 'var(--brand-soft)'
@@ -704,7 +882,7 @@ export default function CommunityReservation() {
               />
               {isRealtimeConnected ? '실시간' : '네트워크 연결안됨'}
             </span>
-            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600'>
+            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm'>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
               공간 <b className='text-slate-900'>{availableRoomCount}</b>곳
             </span>
@@ -715,10 +893,10 @@ export default function CommunityReservation() {
           <button
             onClick={() => setTab('seat')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all',
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
               tab === 'seat'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:text-slate-700',
+                ? 'scale-[1.03] bg-white text-primary shadow-sm'
+                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
             )}
           >
             <BookOpen className='size-3.5' />
@@ -727,10 +905,10 @@ export default function CommunityReservation() {
           <button
             onClick={() => setTab('room')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all',
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
               tab === 'room'
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:text-slate-700',
+                ? 'scale-[1.03] bg-white text-primary shadow-sm'
+                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
             )}
           >
             <Monitor className='size-3.5' />
@@ -748,9 +926,9 @@ export default function CommunityReservation() {
                 key={day.key}
                 onClick={() => handleDaySelect(day, index)}
                 className={cn(
-                  'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all',
+                  'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
                   selDay === index
-                    ? 'border-primary bg-primary text-white shadow-md'
+                    ? 'scale-[1.04] border-primary bg-primary text-white shadow-md'
                     : day.sat
                       ? 'border-border bg-white text-blue-500'
                       : day.sun
@@ -791,7 +969,11 @@ export default function CommunityReservation() {
             reservationsLoading={myReservationsLoading}
             reservationError={myReservationError}
             cancelingReservationId={cancelingReservationId}
-            onCancelReservation={handleCancelReservation}
+            checkingInReservationId={checkingInReservationId}
+            extendingReservationId={extendingReservationId}
+            onCancelReservation={handleOpenCancelReservationModal}
+            onCheckInReservation={handleCheckInReservation}
+            onExtendReservation={handleExtendReservation}
             onRefreshReservations={loadMyReservations}
             rooms={rooms}
             currentRoom={currentRoom}
@@ -800,11 +982,13 @@ export default function CommunityReservation() {
             seats={seats}
             selectedSeat={selSeat}
             onSelectSeat={setSelSeat}
+            currentMemberId={currentMemberId}
+            onOpenSeatChat={handleOpenSeatChat}
             seatError={seatError}
             seatLoading={seatLoading}
             reservationLoading={reservationLoading}
             selectedTimeLabel={selectedTimeLabel}
-            onReserveSeat={handleReserveSeat}
+            onReserveSeat={handleOpenSeatReservationModal}
           />
         )}
 
@@ -831,6 +1015,50 @@ export default function CommunityReservation() {
             onReserveRoom={handleOpenRoomReservationModal}
           />
         )}
+
+        {seatReservationModalOpen && selSeat && (
+          <SeatReservationModal
+            seat={selSeat}
+            roomName={currentRoom?.roomName}
+            startTime={startTime}
+            endTime={endTime}
+            durationHours={selectedDurationHours}
+            error={seatReservationError}
+            loading={reservationLoading}
+            onClose={() => {
+              if (reservationLoading) return;
+              setSeatReservationModalOpen(false);
+              setSeatReservationError('');
+            }}
+            onSubmit={handleReserveSeat}
+          />
+        )}
+
+        {cancelReservationTarget && (
+          <SeatCancelModal
+            reservation={cancelReservationTarget}
+            error={cancelReservationError}
+            loading={
+              cancelingReservationId
+                === cancelReservationTarget.reservationId
+            }
+            onClose={() => {
+              if (cancelingReservationId) return;
+              setCancelReservationTarget(null);
+              setCancelReservationError('');
+            }}
+            onSubmit={handleCancelReservation}
+          />
+        )}
+
+        <SeatChatDrawer
+          open={seatChatOpen}
+          targetSeat={seatChatTargetSeat}
+          onClose={() => {
+            setSeatChatOpen(false);
+            setSeatChatTargetSeat(null);
+          }}
+        />
 
         {roomReservationModalOpen && selSlot && (
           <RoomReservationModal

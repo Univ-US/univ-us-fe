@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import RoleGuard from "@/components/auth/RoleGuard";
 import Link from "next/link";
 import {
     Bell,
+    BookOpen,
     Building2,
     ChartNoAxesColumn,
     ChevronRight,
@@ -20,6 +22,7 @@ import {
     UsersRound,
     CircleDollarSign,
 } from "lucide-react";
+import LectureCodesView from "../school-admin/_views/LectureCodesView";
 
 const schools = [
     ["동명사이버대학교", "프로", "1,840명", "₩1,490,000", "정상"],
@@ -38,12 +41,15 @@ const members = [
     ["배하린", "harin.bae@univus.kr", "관리자", "라온에듀센터", "운영팀", "활성"],
 ];
 
-const navItems = [
-    { label: "대시보드", icon: LayoutDashboard, active: true },
+type SuaView = "dashboard" | "lectureCodes";
+
+const navItems: { label: string; icon: React.ComponentType<{ className?: string }>; view?: SuaView }[] = [
+    { label: "대시보드", icon: LayoutDashboard, view: "dashboard" },
     { label: "학교 관리", icon: School },
     { label: "회원 관리", icon: UsersRound },
     { label: "결제 관리", icon: CircleDollarSign },
     { label: "구독플랜 설정", icon: Settings },
+    { label: "강의코드 관리", icon: BookOpen, view: "lectureCodes" },
     { label: "공지 관리", icon: Bell },
     { label: "채팅 문의", icon: MessageSquareText },
     { label: "운영 로그", icon: ListChecks },
@@ -94,6 +100,7 @@ function Initial({ name }: { name: string }) {
 export default function ServiceAdminDashboardPage() {
     const router = useRouter();
     const logoutAction = useAuthStore((state) => state.logoutAction);
+    const [view, setView] = useState<SuaView>("dashboard");
 
     const handleLogout = async () => {
         await logoutAction();
@@ -131,12 +138,14 @@ export default function ServiceAdminDashboardPage() {
                     <nav className="mt-3 space-y-1">
                         {navItems.map((item) => {
                             const Icon = item.icon;
+                            const isActive = item.view ? view === item.view : false;
 
                             return (
                                 <button
                                     key={item.label}
+                                    onClick={() => item.view && setView(item.view)}
                                     className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition ${
-                                        item.active ? "bg-white/18 text-white" : "text-emerald-50/85 hover:bg-white/10"
+                                        isActive ? "bg-white/18 text-white" : "text-emerald-50/85 hover:bg-white/10"
                                     }`}
                                 >
                                     <Icon className="size-4" />
@@ -185,6 +194,8 @@ export default function ServiceAdminDashboardPage() {
                     </header>
 
                     <section className="px-6 py-8 lg:px-8">
+                        {view === "lectureCodes" && <LectureCodesView />}
+                        {view === "dashboard" && <>
                         <div className="mb-6">
                             <h1 className="text-3xl font-black tracking-tight">어드민 대시보드</h1>
                             <p className="mt-2 text-sm text-slate-500">
@@ -380,6 +391,7 @@ export default function ServiceAdminDashboardPage() {
                                 </section>
                             </aside>
                         </div>
+                        </>}
                     </section>
                 </div>
             </main>

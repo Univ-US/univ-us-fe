@@ -8,7 +8,6 @@ import {
   Bell,
   UserRound,
   GraduationCap,
-  ExternalLink,
   ChevronDown,
   LogOut,
 } from 'lucide-react';
@@ -24,8 +23,6 @@ const NAV_ITEMS = [
   { href: '/community/reservation', label: '시설 이용' },
 ];
 
-const LMS_URL = process.env.NEXT_PUBLIC_LMS_URL ?? '#';
-
 export default function CommunityHeader() {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,6 +30,7 @@ export default function CommunityHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const univName = useAuthStore((s) => s.univName);
   const { memberName, communityNickname, logoutAction } = useAuthStore();
+  const displayName = communityNickname || memberName || '사용자';
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -80,20 +78,23 @@ export default function CommunityHeader() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-[13.5px] font-semibold transition-colors',
+                  'group/nav relative flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-[13.5px] font-semibold transition-all duration-200 hover:-translate-y-0.5',
                   active
-                    ? 'text-primary'
+                    ? 'bg-primary/5 text-primary'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                 )}
               >
                 {item.label}
                 {item.count ? (
-                  <span className='rounded-full bg-primary/10 px-[7px] py-px text-[11px] font-bold text-primary'>
+                  <span className='rounded-full bg-primary/10 px-[7px] py-px text-[11px] font-bold text-primary transition-transform duration-200 group-hover/nav:scale-105'>
                     {item.count}
                   </span>
                 ) : null}
                 {active && (
-                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] rounded-full bg-primary' />
+                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] origin-center animate-in fade-in zoom-in-75 rounded-full bg-primary duration-300' />
+                )}
+                {!active && (
+                  <span className='absolute inset-x-2 -bottom-[17px] h-[2.5px] origin-center scale-x-0 rounded-full bg-primary/40 transition-transform duration-200 group-hover/nav:scale-x-100' />
                 )}
               </Link>
             );
@@ -104,16 +105,13 @@ export default function CommunityHeader() {
         <div className='ml-auto flex shrink-0 items-center gap-3'>
           {/* LMS 바로가기 버튼 */}
 
-          <a
-            href={LMS_URL}
-            target='_blank'
-            rel='noopener noreferrer'
+          <Link
+            href='/home'
             className='inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-full border border-[#A1EBE0] bg-[#ECFBF8] px-[15px] py-[7px] text-[13px] font-bold text-[#0E6F64] transition-all hover:bg-[#CFF5EE] hover:shadow-sm active:scale-[0.97]'
           >
             <GraduationCap className='h-[17px] w-[17px]' />
             <span>LMS</span>
-            <ExternalLink className='h-[13px] w-[13px] text-[#0FA896]' />
-          </a>
+          </Link>
           <span className='h-6 w-px shrink-0 bg-slate-200' />
 
           {/* 검색창 */}
@@ -154,7 +152,7 @@ export default function CommunityHeader() {
               )}
             >
               <div className='flex size-[28px] items-center justify-center rounded-full bg-primary text-[12px] font-bold text-white'>
-                {(communityNickname ?? memberName ?? '?').slice(0, 1)}
+                {displayName.slice(0, 1)}
               </div>
               <span
                 className={cn(
@@ -162,7 +160,7 @@ export default function CommunityHeader() {
                   dropdownOpen ? 'text-primary' : 'text-slate-700',
                 )}
               >
-                {communityNickname ?? memberName ?? '사용자'}
+                {displayName}
               </span>
               <ChevronDown
                 className={cn(
@@ -178,7 +176,7 @@ export default function CommunityHeader() {
                 {/* 프로필 정보 */}
                 <div className='border-b border-border px-4 py-3'>
                   <div className='text-[13px] font-bold text-slate-800'>
-                    {communityNickname ?? memberName ?? '사용자'}
+                    {displayName}
                   </div>
                   <div className='text-[11px] text-slate-400'>
                     {memberName}
@@ -199,8 +197,10 @@ export default function CommunityHeader() {
                   <button
                     onClick={async () => {
                       setDropdownOpen(false);
+                      sessionStorage.setItem('communityLogout', 'true');
                       await logoutAction();
-                      router.push('/login');
+                      alert('로그아웃되었습니다.');
+                      router.push('/home/login');
                     }}
                     className='flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50'
                   >

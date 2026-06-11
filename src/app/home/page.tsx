@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -21,7 +21,8 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities } from "@/lib/homeApi";
+import { getUniversities, getNotices, Notice, sendChatMessage } from "@/lib/homeApi";
+import api from "@/lib/api";
 
 const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-blue-500" },
@@ -39,18 +40,6 @@ const EXTRA_SHORTCUTS = [
     { label: "취업정보", icon: Briefcase, bg: "bg-orange-500", href: "https://www.jobkorea.co.kr" },
 ];
 
-const NOTICE_TABS = ["전체", "LMS", "커뮤니티"] as const;
-type NoticeTab = (typeof NOTICE_TABS)[number];
-
-// TODO(HOM-005): 관리자 공지 API 연동으로 교체
-const MOCK_NOTICES = [
-    { tag: "학사", title: "[교고] 2025학년도 후기(2026년 8월) 졸업예정자 학위...", date: "05.18", type: "LMS" },
-    { tag: "취업", title: "[취업] 2026년 2월(2025년 전기) 졸업예정자 학위수여...", date: "05.13", type: "LMS" },
-    { tag: "학사", title: "2026-1학기 국가장학금 2차 신청 마감D-3 안내", date: "05.09", type: "LMS" },
-    { tag: "카뉴", title: "[고교마켓] 자료구조 재시험 이수 수칙 변경", date: "05.07", type: "커뮤니티" },
-    { tag: "학사", title: "[수입] 2026-1학기 기말고사 강의실 배정 및 유의사항", date: "05.02", type: "LMS" },
-    { tag: "D-3", title: "2026 봄 대동제 '유니버스 페스티벌' 버스 운행 신청", date: "04.26", type: "커뮤니티" },
-];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -111,25 +100,9 @@ function useWeather() {
         if (!navigator.geolocation) return;
         navigator.geolocation.getCurrentPosition(async ({ coords }) => {
             try {
-                const key = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
                 const { latitude: lat, longitude: lon } = coords;
-
-                const [weatherRes, geoRes] = await Promise.all([
-                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&units=metric&lang=kr`),
-                    fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${key}`),
-                ]);
-
-                if (!weatherRes.ok) return;
-                const data = await weatherRes.json();
-                const geoData = geoRes.ok ? await geoRes.json() : [];
-                const cityKo = geoData[0]?.local_names?.ko ?? geoData[0]?.name ?? data.name;
-
-                setWeather({
-                    temp: Math.round(data.main.temp),
-                    description: data.weather[0].description,
-                    city: cityKo,
-                    icon: data.weather[0].icon,
-                });
+                const res = await api.get<WeatherData>(`/api/weather`, { params: { lat, lon } });
+                setWeather(res.data);
             } catch {}
         });
     }, []);
@@ -140,6 +113,7 @@ function useWeather() {
 export default function CampusHomePage() {
     const router = useRouter();
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+    const role = useAuthStore((s) => s.role);
     const memberName = useAuthStore((s) => s.memberName);
     const univId = useAuthStore((s) => s.univId);
     const univName = useAuthStore((s) => s.univName);
@@ -148,16 +122,26 @@ export default function CampusHomePage() {
     const now = useNow();
     const weather = useWeather();
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
-    const [activeTab, setActiveTab] = useState<NoticeTab>("전체");
+    const [notices, setNotices] = useState<Notice[]>([]);
+    const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
     const [chatInput, setChatInput] = useState("");
+    const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+    const [chatLoading, setChatLoading] = useState(false);
+    const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
+
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        getNotices().then(setNotices).catch(() => {});
+    }, [isLoggedIn]);
+
+    // LMS 바로가기: role에 따라 교수(PLM)/학생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
+    const lmsHref =
+        role === "PROF" ? "/lms/professor/profile" : role === "STU" ? "/lms/student/profile" : undefined;
 
     const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
     const dayStr = `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})`;
-
-    const filteredNotices =
-        activeTab === "전체" ? MOCK_NOTICES : MOCK_NOTICES.filter((n) => n.type === activeTab);
 
     const handleLogout = async () => {
         await logoutAction();
@@ -171,6 +155,26 @@ export default function CampusHomePage() {
             router.push("/home/login");
         }
     };
+
+    const handleChatSend = async () => {
+        const msg = chatInput.trim();
+        if (!msg || chatLoading) return;
+        setChatMessages((prev) => [...prev, { role: "user", text: msg }]);
+        setChatInput("");
+        setChatLoading(true);
+        try {
+            const answer = await sendChatMessage(msg);
+            setChatMessages((prev) => [...prev, { role: "ai", text: answer }]);
+        } catch {
+            setChatMessages((prev) => [...prev, { role: "ai", text: "죄송해요, 답변을 가져오지 못했어요." }]);
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatMessages, chatLoading]);
 
     return (
         <div className="min-h-screen bg-[#f4f6f8]">
@@ -258,7 +262,10 @@ export default function CampusHomePage() {
                                 );
                                 const labelEl = <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>;
 
-                                const resolvedHref = s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined) : s.href;
+                                const resolvedHref =
+                                    s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
+                                    : s.label === "LMS" ? lmsHref
+                                    : s.href;
                                 if (resolvedHref && isLoggedIn) {
                                     const isExternal = resolvedHref.startsWith("http");
                                     return (
@@ -277,40 +284,75 @@ export default function CampusHomePage() {
                     </section>
 
                     {/* AI 챗봇 */}
-                    {/* TODO(HOM-003): LLM API + RAG 벡터DB 연동 */}
                     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">AI 챗봇</h2>
                             <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
-                                RAG 연동
+                                Groq · llama-3.1
                             </span>
                         </div>
-                        <div className="bg-slate-50 rounded-lg p-3 mb-3 text-sm text-slate-600 leading-relaxed">
-                            안녕하세요! 유니버스 AI 도우미에요. 학교 도서관 직원 등 궁금한 걸 물어보세요 🤔
-                        </div>
-                        <div className="flex gap-2 mb-3 flex-wrap">
-                            {["도서관 운영시간", "오늘 학식 메뉴", "스터디룸 예약 방법"].map((q) => (
-                                <button
-                                    key={q}
-                                    onClick={(e) => { requireLogin(e); if (isLoggedIn) setChatInput(q); }}
-                                    className="text-xs border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600 transition-colors"
+
+                        {/* 메시지 영역 */}
+                        <div className="flex flex-col gap-2 mb-3 max-h-64 overflow-y-auto">
+                            {chatMessages.length === 0 && (
+                                <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 leading-relaxed">
+                                    안녕하세요! 유니버스 AI 도우미에요. 궁금한 걸 물어보세요 🤔
+                                </div>
+                            )}
+                            {chatMessages.map((m, i) => (
+                                <div
+                                    key={i}
+                                    className={`rounded-lg px-3 py-2 text-sm leading-relaxed max-w-[85%] ${
+                                        m.role === "user"
+                                            ? "bg-primary text-white self-end"
+                                            : "bg-slate-50 text-slate-700 self-start"
+                                    }`}
                                 >
-                                    {q}
-                                </button>
+                                    {m.text}
+                                </div>
                             ))}
+                            {chatLoading && (
+                                <div className="bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400 self-start animate-pulse">
+                                    답변 생성 중...
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
                         </div>
+
+                        {/* 추천 질문 */}
+                        {chatMessages.length === 0 && (
+                            <div className="flex gap-2 mb-3 flex-wrap">
+                                {["도서관 운영시간", "오늘 학식 메뉴", "스터디룸 예약 방법"].map((q) => (
+                                    <button
+                                        key={q}
+                                        onClick={(e) => {
+                                            if (!isLoggedIn) { requireLogin(e); return; }
+                                            setChatInput(q);
+                                        }}
+                                        className="text-xs border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 text-slate-600 transition-colors"
+                                    >
+                                        {q}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 입력창 */}
                         <div className="flex gap-2">
                             <input
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (isLoggedIn) handleChatSend(); } }}
                                 onFocus={(e) => { if (!isLoggedIn) { e.target.blur(); router.push("/home/login"); } }}
                                 placeholder={isLoggedIn ? "무엇이 궁금하신가요?" : "로그인 후 이용할 수 있어요"}
                                 readOnly={!isLoggedIn}
-                                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 transition cursor-pointer"
+                                disabled={chatLoading}
+                                className="flex-1 text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary/30 transition disabled:opacity-50"
                             />
                             <button
-                                onClick={requireLogin}
-                                className="bg-primary text-white rounded-lg px-3 py-2 hover:opacity-90 transition"
+                                onClick={() => { if (isLoggedIn) handleChatSend(); else router.push("/home/login"); }}
+                                disabled={chatLoading || !chatInput.trim()}
+                                className="bg-primary text-white rounded-lg px-3 py-2 hover:opacity-90 transition disabled:opacity-40"
                             >
                                 <Send className="w-4 h-4" />
                             </button>
@@ -385,43 +427,38 @@ export default function CampusHomePage() {
                     )}
 
                     {/* 최근 공지 */}
-                    {/* TODO(HOM-005): 관리자 공지 API 연동 */}
                     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
-                            <button
-                                onClick={requireLogin}
-                                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                더보기
-                            </button>
+                            {isLoggedIn && (
+                                <Link href="/home/notices" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                                    더보기
+                                </Link>
+                            )}
                         </div>
-                        <div className="flex gap-1 mb-3">
-                            {NOTICE_TABS.map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${
-                                        activeTab === tab
-                                            ? "bg-primary text-white"
-                                            : "text-slate-500 hover:bg-slate-100"
-                                    }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                        </div>
-                        <ul className="divide-y divide-slate-100">
-                            {filteredNotices.map((n, i) => (
-                                <li key={i} className="flex items-center gap-2 py-2 text-xs">
-                                    <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
-                                        {n.tag}
-                                    </span>
-                                    <span className="flex-1 text-slate-700 truncate">{n.title}</span>
-                                    <span className="shrink-0 text-slate-400">{n.date}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        {!isLoggedIn ? (
+                            <p className="text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>
+                        ) : notices.length === 0 ? (
+                            <p className="text-sm text-slate-400">등록된 공지가 없어요.</p>
+                        ) : (
+                            <ul className="divide-y divide-slate-100">
+                                {notices.slice(0, 6).map((n) => (
+                                    <li
+                                        key={n.noticeId}
+                                        onClick={() => setSelectedNotice(n)}
+                                        className="flex items-center gap-2 py-2 text-xs cursor-pointer hover:bg-slate-50 rounded transition-colors"
+                                    >
+                                        <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
+                                            공지
+                                        </span>
+                                        <span className="flex-1 text-slate-700 truncate">{n.title}</span>
+                                        <span className="shrink-0 text-slate-400">
+                                            {(() => { const d = new Date(n.postedAt); return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </section>
 
                     {/* 오늘의 학식 */}
@@ -453,6 +490,30 @@ export default function CampusHomePage() {
                 </div>
             </div>
 
+
+            {/* 공지 상세 모달 */}
+            {selectedNotice && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    onClick={() => setSelectedNotice(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 flex flex-col gap-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-extrabold text-slate-800 text-base leading-snug">{selectedNotice.title}</h3>
+                            <button onClick={() => setSelectedNotice(null)} className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors text-lg leading-none">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                            {selectedNotice.memberName} · {(() => { const d = new Date(selectedNotice.postedAt); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                        </p>
+                        <div className="border-t border-slate-100 pt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {selectedNotice.content}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 푸터 */}
             {schoolInfo?.address && (

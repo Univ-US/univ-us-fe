@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useState, useEffect, useId, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -84,7 +84,7 @@ export default function CommunityBoardWrite({
   const [content, setContent] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputId = useId();
 
   const isAnon = board === 'secret';
   const isNotice = board === 'notice';
@@ -99,7 +99,7 @@ export default function CommunityBoardWrite({
         setContent(post.content ?? '');
         if (post.category) setCategory(post.category);
       } catch {
-        alert('게시글을 불러오는 데 실패했어.');
+        alert('게시글을 불러오는 데 실패했습니다.');
         router.back();
       }
     };
@@ -121,20 +121,20 @@ export default function CommunityBoardWrite({
     );
 
     if (validImages.length !== selectedFiles.length) {
-      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있어.');
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
     setImages((prev) => [...prev, ...validImages].slice(0, 10));
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    event.target.value = '';
   };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert('제목을 입력해주세요.');
+      alert('제목을 입력해 주세요.');
       return;
     }
     if (!content.trim()) {
-      alert('내용을 입력해주세요.');
+      alert('내용을 입력해 주세요.');
       return;
     }
 
@@ -176,7 +176,7 @@ export default function CommunityBoardWrite({
       handleBack();
     } catch (err) {
       console.error('writePost error:', err);
-      alert(isEdit ? '수정에 실패했어. 다시 시도해줘.' : '게시글 등록에 실패했어. 다시 시도해줘.');
+      alert(isEdit ? '수정에 실패했습니다. 다시 시도해 주세요.' : '게시글 등록에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
@@ -199,15 +199,15 @@ export default function CommunityBoardWrite({
         {/* 익명 안내 */}
         {isAnon && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700'>
-            익명으로 작성돼요. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
-            부탁드려요.
+            익명으로 작성됩니다. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
+            부탁드립니다.
           </div>
         )}
 
         {/* 공지사항 안내 */}
         {isNotice && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700'>
-            공지사항은 운영 권한이 있는 계정만 게시할 수 있어요.
+            공지사항은 운영 권한이 있는 계정만 게시할 수 있습니다.
           </div>
         )}
 
@@ -243,7 +243,7 @@ export default function CommunityBoardWrite({
           hint={
             isAnon
               ? '개인정보가 드러나지 않도록 주의해 주세요.'
-              : '이미지는 아래 버튼으로 추가할 수 있어요.'
+              : '이미지는 아래 버튼으로 추가할 수 있습니다.'
           }
         >
           <textarea
@@ -255,7 +255,7 @@ export default function CommunityBoardWrite({
                 ? '익명으로 편하게 이야기를 들려주세요.'
                 : isNotice
                   ? '공지 내용을 입력하세요. 일정·대상·문의처를 함께 적어주세요.'
-                  : '자유롭게 이야기를 적어보세요.'
+                  : '자유롭게 이야기를 적어 보세요.'
             }
             className='flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />
@@ -265,21 +265,20 @@ export default function CommunityBoardWrite({
         {!isAnon && (
           <Field label='사진 첨부'>
             <div className='flex gap-3'>
-              <button
-                type='button'
-                onClick={() => fileInputRef.current?.click()}
+              <label
+                htmlFor={fileInputId}
                 className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'
               >
                 <ImagePlus className='size-[22px]' />
                 <span className='text-xs font-semibold'>사진 추가</span>
-              </button>
+              </label>
               <input
-                ref={fileInputRef}
+                id={fileInputId}
                 type='file'
                 accept='image/jpeg,image/png,image/webp'
                 multiple
                 onChange={handleImageChange}
-                className='hidden'
+                className='sr-only'
               />
               {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
               {imagePreviews.map((img, i) => (
@@ -292,7 +291,7 @@ export default function CommunityBoardWrite({
                   <button
                     type='button'
                     onClick={() =>
-                      setImages(images.filter((_, idx) => idx !== i))
+                      setImages((prev) => prev.filter((_, idx) => idx !== i))
                     }
                     className='absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-black/60 text-white'
                   >

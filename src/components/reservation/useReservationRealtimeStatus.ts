@@ -1,18 +1,52 @@
 import { Client, type IStompSocket } from '@stomp/stompjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 
 import { getWebSocketEndpointUrl } from '@/lib/realtime';
 
 export type ReservationRealtimeStatus = 'connected' | 'disconnected';
 
+export type ReadingSeatRealtimeEvent = {
+  action: 'RESERVED' | 'CANCELLED' | string;
+  reservationId: number;
+  memberId: number;
+  seatId: number;
+  readingRoomId: number;
+  startTime: string;
+  endTime: string;
+};
+
+export type RoomReservationRealtimeEvent = {
+  action: 'RESERVED' | 'CANCELLED' | string;
+  reservationId: number;
+  memberId: number;
+  roomId: number;
+  startTime: string;
+  endTime: string;
+};
+
+type ReservationRealtimeOptions = {
+  onSeatEvent?: (event: ReadingSeatRealtimeEvent) => void;
+  onRoomEvent?: (event: RoomReservationRealtimeEvent) => void;
+};
+
 function isBrowserOnline() {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
-export function useReservationRealtimeStatus() {
+export function useReservationRealtimeStatus(options?: ReservationRealtimeOptions) {
   const [status, setStatus] =
     useState<ReservationRealtimeStatus>('disconnected');
+  const onSeatEventRef = useRef(options?.onSeatEvent);
+  const onRoomEventRef = useRef(options?.onRoomEvent);
+
+  useEffect(() => {
+    onSeatEventRef.current = options?.onSeatEvent;
+  }, [options?.onSeatEvent]);
+
+  useEffect(() => {
+    onRoomEventRef.current = options?.onRoomEvent;
+  }, [options?.onRoomEvent]);
 
   useEffect(() => {
     let client: Client | null = null;
@@ -46,6 +80,32 @@ export function useReservationRealtimeStatus() {
           if (isBrowserOnline()) {
             setStatus('connected');
           }
+
+          nextClient.subscribe('/sub/reservations/seats', (message) => {
+            if (!message.body) {
+              return;
+            }
+
+            try {
+              const event = JSON.parse(message.body) as ReadingSeatRealtimeEvent;
+              onSeatEventRef.current?.(event);
+            } catch {
+              // Ignore malformed realtime messages without breaking the socket.
+            }
+          });
+
+          nextClient.subscribe('/sub/reservations/rooms', (message) => {
+            if (!message.body) {
+              return;
+            }
+
+            try {
+              const event = JSON.parse(message.body) as RoomReservationRealtimeEvent;
+              onRoomEventRef.current?.(event);
+            } catch {
+              // Ignore malformed realtime messages without breaking the socket.
+            }
+          });
         },
         onDisconnect: () => setStatus('disconnected'),
         onStompError: () => setStatus('disconnected'),

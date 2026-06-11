@@ -211,7 +211,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('댓글 등록 실패:', err);
-      alert('댓글 등록에 실패했어.');
+      alert('댓글 등록에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +224,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('댓글 삭제 실패:', err);
-      alert('댓글 삭제에 실패했어.');
+      alert('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -234,7 +234,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('답글 등록 실패:', err);
-      alert('답글 등록에 실패했어.');
+      alert('답글 등록에 실패했습니다.');
     }
   };
 
@@ -272,7 +272,7 @@ export default function CommunityMarketComment({
           </p>
         ) : comments.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            첫 번째 문의를 남겨보세요!
+            첫 번째 문의를 남겨 보세요.
           </p>
         ) : (
           comments.map((comment, i) => (
