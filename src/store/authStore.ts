@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { login, logout } from "@/lib/authApi";
+import type { SubscriptionPaymentVerifyResponse } from "@/types/subscription";
 
 interface AuthState {
     accessToken: string | null;
@@ -18,6 +19,11 @@ interface AuthState {
     loginAction: (loginId: string, password: string) => Promise<string>;
     logoutAction: () => Promise<void>;
     loadFromStorage: () => void;
+
+    applySubscriptionVerification: (
+        verification: SubscriptionPaymentVerifyResponse,
+        univName: string,
+    ) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -85,6 +91,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
 
         return data.role;
+    },
+
+    applySubscriptionVerification: (verification, univName) => {
+        localStorage.setItem("accessToken", verification.accessToken);
+        localStorage.setItem("memberId", String(verification.memberId));
+        localStorage.setItem("role", verification.role);
+        localStorage.setItem("univId", String(verification.univId));
+        localStorage.setItem("univName", univName);
+
+        set({
+            accessToken: verification.accessToken,
+            memberId: verification.memberId,
+            role: verification.role,
+            univId: verification.univId,
+            univName,
+            isLoggedIn: true,
+            isInitialized: true,
+        });
     },
 
     logoutAction: async () => {
