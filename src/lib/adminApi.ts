@@ -196,3 +196,153 @@ export const deleteLectureCode = async (lecCodeId: number) => {
 export const updateLectureCodeStatus = async (lecCodeId: number, valStatus: string) => {
     await api.patch(`/api/admin/lecture-codes/${lecCodeId}/status`, { valStatus });
 };
+
+export interface ApiSemester {
+    semId: number;
+    semYear: number;
+    semTerm: string; // SM1/SMR/SM2/WNT
+    semStrDate: string; // YYYY-MM-DD (총 수업횟수 자동 계산용)
+    semEndDate: string; // YYYY-MM-DD
+}
+
+export interface ApiProfessor {
+    memberId: number;
+    memberName: string;
+    deptName: string | null;
+}
+
+export interface ApiLectureAssign {
+    lecId: number;
+    lecCodeId: number;
+    lecCode: string;
+    lecCodName: string;
+    deptId: number;
+    deptName: string;
+    univId: number;
+    univName: string;
+    professorMemberId: number;
+    professorName: string;
+    semId: number;
+    semYear: number;
+    semTerm: string;
+    lecSection: number;
+    lecCredit: number | null;
+    lecTotClasses: number | null;
+    lecValStatus: string; // OPEN/PROG/CLSD/CNCL
+    dayCodes: string | null; // "TUE,THU"
+    startTime: string | null; // "10:30"
+    endTime: string | null; // "12:00"
+}
+
+export interface ApiLecture {
+    lecCodeId: number;
+    deptId: number;
+    deptName: string;
+    univId: number;
+    univName: string;
+    lecCode: string;
+    lecCodName: string;
+    valStatus: string;
+    assignCount: number; // 이 강의(코드)로 배정된 강의 수
+}
+
+export const SEM_TERM_LABEL: Record<string, string> = {
+    SM1: "1학기",
+    SMR: "여름학기",
+    SM2: "2학기",
+    WNT: "겨울학기",
+};
+
+export const DAY_LABEL: Record<string, string> = {
+    MON: "월",
+    TUE: "화",
+    WED: "수",
+    THU: "목",
+    FRI: "금",
+    SAT: "토",
+    SUN: "일",
+};
+
+export const LEC_STATUS_LABEL: Record<string, string> = {
+    OPEN: "수강신청중",
+    PROG: "진행중",
+    CLSD: "종료",
+    CNCL: "폐강",
+};
+
+// 강의 목록 조회 (강의 관리 — 배정 강의 수 포함, 삭제(DEL) 상태도 포함 전체)
+export const getAdminLectures = async (univId?: number) => {
+    const res = await api.get<ApiLecture[]>("/api/admin/lectures", { params: { univId } });
+    return res.data;
+};
+
+// 강의 등록 (강의 관리)
+export const createAdminLecture = async (data: { deptId: number; lecCode: string; lecCodName: string }) => {
+    await api.post("/api/admin/lectures", data);
+};
+
+// 강의 수정 (강의 관리)
+export const updateAdminLecture = async (
+    lectureId: number,
+    data: { deptId: number; lecCode: string; lecCodName: string }
+) => {
+    await api.put(`/api/admin/lectures/${lectureId}`, data);
+};
+
+// 강의 상태 변경 (강의 관리)
+export const updateAdminLectureStatus = async (lectureId: number, valStatus: string) => {
+    await api.patch(`/api/admin/lectures/${lectureId}/status`, { valStatus });
+};
+
+// 강의 삭제 (강의 관리 — 소프트 삭제, 배정 강의 존재 시 409)
+export const deleteAdminLecture = async (lectureId: number) => {
+    await api.delete(`/api/admin/lectures/${lectureId}`);
+};
+
+// 배정 강의 목록 조회 (강의 배정)
+export const getLectureAssigns = async (params?: { univId?: number; semId?: number }) => {
+    const res = await api.get<ApiLectureAssign[]>("/api/admin/lectures/assigns", { params });
+    return res.data;
+};
+
+// 강의 배정 등록 (분반 자동 채번 — 생성된 배정 강의 반환)
+export const createLectureAssign = async (data: {
+    lecCodeId: number;
+    semId: number;
+    professorMemberId: number;
+    lecCredit?: number | null;
+    lecTotClasses?: number | null;
+    times?: { dayCode: string; startTime: string; endTime: string }[];
+}) => {
+    const res = await api.post<ApiLectureAssign>("/api/admin/lectures/assigns", data);
+    return res.data;
+};
+
+// 강의 배정 수정 (수강신청중 OPEN 상태만 — 수정된 배정 강의 반환)
+export const updateLectureAssign = async (
+    lecId: number,
+    data: {
+        lecCodeId: number;
+        semId: number;
+        professorMemberId: number;
+        lecCredit?: number | null;
+        lecTotClasses?: number | null;
+        times?: { dayCode: string; startTime: string; endTime: string }[];
+    }
+) => {
+    const res = await api.put<ApiLectureAssign>(`/api/admin/lectures/assigns/${lecId}`, data);
+    return res.data;
+};
+
+// 학기 목록 조회
+export const getAdminSemesters = async () => {
+    const res = await api.get<ApiSemester[]>("/api/admin/lectures/semesters");
+    return res.data;
+};
+
+// 교수 목록 조회 (ADM: 본인 대학)
+export const getAdminProfessors = async (univId?: number) => {
+    const res = await api.get<ApiProfessor[]>("/api/admin/lectures/professors", { params: { univId } });
+    return res.data;
+};
+
