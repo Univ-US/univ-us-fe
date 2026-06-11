@@ -15,14 +15,15 @@ import { Button } from "@/components/ui/button";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
   cancelSubscriptionPayment,
+  completeSubscriptionBillingPayment,
   getSubscriptionPaymentConfig,
   getSubscriptionPlans,
   prepareSubscription,
-  verifySubscriptionPayment,
 } from "@/lib/subscriptionApi";
 import { loadPortOneSdk } from "@/lib/portone";
 import { useAuthStore } from "@/store/authStore";
 import type {
+  SubscriptionPaymentMethod,
   SubscriptionPaymentVerifyResponse,
   SubscriptionPlan,
   SubscriptionPrepareRequest,
@@ -89,6 +90,8 @@ export default function SubscribePage() {
 
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] =
+    useState<SubscriptionPaymentMethod>("CARD");
   const [form, setForm] = useState(initialForm);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -188,7 +191,7 @@ export default function SubscribePage() {
     setError(null);
 
     let merchantUid: string | null = null;
-    let verificationStarted = false;
+    let billingPaymentStarted = false;
 
     try {
       const prepareResponse = await prepareSubscription({
@@ -201,53 +204,65 @@ export default function SubscribePage() {
       });
       merchantUid = prepareResponse.merchantUid;
 
-      const { storeId, channelKey } =
-        await getSubscriptionPaymentConfig();
+      const paymentConfig = await getSubscriptionPaymentConfig();
+      const channelKey =
+        paymentMethod === "CARD"
+          ? paymentConfig.cardBillingChannelKey
+          : paymentConfig.kakaoBillingChannelKey;
 
-      if (!storeId || !channelKey) {
-        throw new Error("구독 결제 설정이 누락되었습니다.");
+      if (!paymentConfig.storeId || !channelKey) {
+        throw new Error(
+          paymentMethod === "CARD"
+            ? "카드 정기결제 설정이 누락되었습니다."
+            : "카카오페이 정기결제 설정이 누락되었습니다.",
+        );
       }
 
       const portOne = await loadPortOneSdk();
-      const payment = await portOne.requestPayment({
-        storeId,
+      const billingKeyResponse = await portOne.requestIssueBillingKey({
+        storeId: paymentConfig.storeId,
         channelKey,
-        paymentId: prepareResponse.merchantUid,
-        orderName: `UnivUs ${prepareResponse.planName} 구독`,
-        totalAmount: prepareResponse.amount,
+        billingKeyMethod:
+          paymentMethod === "CARD" ? "CARD" : "EASY_PAY",
+        issueId: `billing_${prepareResponse.merchantUid}`,
+        issueName: `UnivUs ${prepareResponse.planName} 구독`,
+        displayAmount: prepareResponse.amount,
         currency: "CURRENCY_KRW",
-        payMethod: "EASY_PAY",
         customer: {
           fullName: memberName ?? undefined,
         },
       });
 
-      if (payment.code) {
-        const reason = payment.message || payment.code;
+      if (billingKeyResponse?.code) {
+        const reason =
+          billingKeyResponse.message || billingKeyResponse.code;
         await closePreparedPayment(prepareResponse.merchantUid, reason);
-        setError(payment.message || "결제가 취소되었습니다.");
+        setError(
+          billingKeyResponse.message || "빌링키 발급이 취소되었습니다.",
+        );
         return;
       }
 
-      if (!payment.paymentId) {
+      if (!billingKeyResponse?.billingKey) {
         await closePreparedPayment(
           prepareResponse.merchantUid,
-          "PORTONE_PAYMENT_ID_MISSING",
+          "PORTONE_BILLING_KEY_MISSING",
         );
-        setError("PortOne 결제 ID를 확인할 수 없습니다.");
+        setError("PortOne 빌링키를 확인할 수 없습니다.");
         return;
       }
 
-      verificationStarted = true;
-      const verification = await verifySubscriptionPayment({
+      billingPaymentStarted = true;
+      const verification = await completeSubscriptionBillingPayment({
         merchantUid: prepareResponse.merchantUid,
-        portonePaymentId: payment.paymentId,
+        billingKey: billingKeyResponse.billingKey,
+        paymentMethod,
       });
 
       applySubscriptionVerification(verification, form.univName.trim());
       router.replace("/dashboard/school-admin");
     } catch (requestError) {
-      if (merchantUid && !verificationStarted) {
+      if (merchantUid && !billingPaymentStarted) {
         await closePreparedPayment(
           merchantUid,
           getErrorMessage(requestError, "PAYMENT_REQUEST_FAILED"),
@@ -257,8 +272,8 @@ export default function SubscribePage() {
       setError(
         getErrorMessage(
           requestError,
-          verificationStarted
-            ? "결제 검증에 실패했습니다."
+          billingPaymentStarted
+            ? "정기결제 처리에 실패했습니다."
             : "구독 결제를 시작하지 못했습니다.",
         ),
       );
@@ -370,6 +385,60 @@ export default function SubscribePage() {
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2">
+                <CreditCard className="size-4 text-primary" />
+                <h2 className="font-black">결제수단</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                최초 결제 후 선택한 수단으로 정기결제가 진행됩니다.
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    {
+                      value: "CARD",
+                      label: "신용·체크카드",
+                      description: "토스페이먼츠 정기결제",
+                    },
+                    {
+                      value: "KAKAO_PAY",
+                      label: "카카오페이",
+                      description: "카카오페이 정기결제",
+                    },
+                  ] as const
+                ).map((method) => {
+                  const selected = paymentMethod === method.value;
+
+                  return (
+                    <button
+                      key={method.value}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.value)}
+                      className={`flex items-center justify-between rounded-xl border p-4 text-left transition ${
+                        selected
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-slate-200 hover:border-primary/40"
+                      }`}
+                    >
+                      <span>
+                        <span className="block font-black">{method.label}</span>
+                        <span className="mt-1 block text-xs text-slate-500">
+                          {method.description}
+                        </span>
+                      </span>
+                      {selected && (
+                        <span className="flex size-6 items-center justify-center rounded-full bg-primary text-white">
+                          <Check className="size-4" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2">
                 <Building2 className="size-4 text-primary" />
                 <h2 className="font-black">학교 정보</h2>
               </div>
@@ -462,6 +531,14 @@ export default function SubscribePage() {
                     {formatBillingCycle(selectedPlan.billingCycle)}
                   </span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">결제수단</span>
+                  <span className="font-black">
+                    {paymentMethod === "CARD"
+                      ? "신용·체크카드"
+                      : "카카오페이"}
+                  </span>
+                </div>
                 <div className="border-t border-slate-200 pt-4">
                   <div className="flex items-end justify-between">
                     <span className="text-sm font-bold">총 결제 금액</span>
@@ -483,8 +560,8 @@ export default function SubscribePage() {
                 안전한 결제
               </div>
               <p className="mt-2">
-                결제 정보는 PortOne 결제창에서 처리되며, 결제 검증이 완료된
-                뒤에만 학교와 관리자 권한이 생성됩니다.
+                결제 정보는 PortOne 결제창에서 처리되며, 빌링키 검증과 최초
+                결제가 완료된 뒤에만 학교와 관리자 권한이 생성됩니다.
               </p>
             </div>
 

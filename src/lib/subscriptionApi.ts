@@ -1,5 +1,6 @@
 import api from "@/lib/api";
 import type {
+  SubscriptionBillingPaymentRequest,
   SubscriptionPaymentCancelRequest,
   SubscriptionPaymentConfig,
   SubscriptionPaymentVerifyRequest,
@@ -34,6 +35,16 @@ export async function verifySubscriptionPayment(
 ) {
   const response = await api.post<SubscriptionPaymentVerifyResponse>(
     "/api/subscriptions/payments/verify",
+    payload,
+  );
+  return response.data;
+}
+
+export async function completeSubscriptionBillingPayment(
+  payload: SubscriptionBillingPaymentRequest,
+) {
+  const response = await api.post<SubscriptionPaymentVerifyResponse>(
+    "/api/subscriptions/payments/billing",
     payload,
   );
   return response.data;

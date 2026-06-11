@@ -19,10 +19,35 @@ export interface PortOnePaymentResponse {
   paymentId?: string;
 }
 
+export interface PortOneBillingKeyRequest {
+  storeId: string;
+  channelKey: string;
+  billingKeyMethod: "CARD" | "EASY_PAY";
+  issueId: string;
+  issueName: string;
+  displayAmount: number;
+  currency: "CURRENCY_KRW";
+  customer?: {
+    fullName?: string;
+  };
+}
+
+export interface PortOneBillingKeyResponse {
+  transactionType?: "ISSUE_BILLING_KEY";
+  billingKey?: string;
+  code?: string;
+  message?: string;
+  pgCode?: string;
+  pgMessage?: string;
+}
+
 interface PortOneSdk {
   requestPayment(
     paymentRequest: PortOnePaymentRequest,
   ): Promise<PortOnePaymentResponse>;
+  requestIssueBillingKey(
+    billingKeyRequest: PortOneBillingKeyRequest,
+  ): Promise<PortOneBillingKeyResponse | undefined>;
 }
 
 type PortOneWindow = Window & {

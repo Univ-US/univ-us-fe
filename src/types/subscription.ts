@@ -10,7 +10,11 @@ export interface SubscriptionPlan {
 export interface SubscriptionPaymentConfig {
   storeId: string;
   channelKey: string;
+  cardBillingChannelKey: string;
+  kakaoBillingChannelKey: string;
 }
+
+export type SubscriptionPaymentMethod = "CARD" | "KAKAO_PAY";
 
 export interface SubscriptionPrepareRequest {
   planId: number;
@@ -33,6 +37,12 @@ export interface SubscriptionPrepareResponse {
 export interface SubscriptionPaymentVerifyRequest {
   merchantUid: string;
   portonePaymentId: string;
+}
+
+export interface SubscriptionBillingPaymentRequest {
+  merchantUid: string;
+  billingKey: string;
+  paymentMethod: SubscriptionPaymentMethod;
 }
 
 export interface SubscriptionPaymentVerifyResponse {
