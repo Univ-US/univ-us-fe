@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
     Bell,
+    BookOpen,
     Building2,
     CreditCard,
     Home,
@@ -23,12 +24,14 @@ import NoticesView from "./_views/NoticesView";
 import BillingView from "./_views/BillingView";
 import SettingsView from "./_views/SettingsView";
 import InquiriesView from "./_views/InquiriesView";
+import LectureCodesView from "./_views/LectureCodesView";
 
 const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ className?: string }> }[] = [
     { label: "대시보드", view: "dashboard", icon: LayoutDashboard },
     { label: "회원 관리", view: "members", icon: Users },
     { label: "공지 관리", view: "notices", icon: Megaphone },
     { label: "문의사항", view: "inquiries", icon: MessageSquareText },
+    { label: "강의코드 관리", view: "lectureCodes", icon: BookOpen },
     { label: "구독·결제", view: "billing", icon: CreditCard },
     { label: "학교 설정", view: "settings", icon: Settings },
 ];
@@ -38,6 +41,7 @@ const SECTION_LABEL: Record<View, string> = {
     members: "회원 관리",
     notices: "공지 관리",
     inquiries: "문의사항",
+    lectureCodes: "강의코드 관리",
     billing: "구독·결제",
     settings: "학교 설정",
 };
@@ -78,7 +82,7 @@ export default function SchoolAdminDashboardPage() {
 
                     <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">운영</p>
                     <nav className="mt-2 flex-1 space-y-0.5">
-                        {NAV_ITEMS.slice(0, 4).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(0, 5).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -90,7 +94,7 @@ export default function SchoolAdminDashboardPage() {
                         ))}
 
                         <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">시스템</p>
-                        {NAV_ITEMS.slice(4).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(5).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -141,6 +145,7 @@ export default function SchoolAdminDashboardPage() {
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}
                         {view === "inquiries" && <InquiriesView />}
+                        {view === "lectureCodes" && <LectureCodesView />}
                         {view === "billing" && <BillingView />}
                         {view === "settings" && <SettingsView />}
                     </section>
