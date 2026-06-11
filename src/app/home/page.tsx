@@ -112,7 +112,6 @@ function useWeather() {
 
 export default function CampusHomePage() {
     const router = useRouter();
-    const isInitialized = useAuthStore((s) => s.isInitialized);
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
     const role = useAuthStore((s) => s.role);
     const memberName = useAuthStore((s) => s.memberName);
@@ -130,13 +129,6 @@ export default function CampusHomePage() {
     const [chatLoading, setChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
-
-    // 어드민은 대시보드로
-    useEffect(() => {
-        if (!isInitialized) return;
-        if (role === "ADM") { router.replace("/dashboard/school-admin"); return; }
-        if (role === "SUA") { router.replace("/dashboard/service-admin"); return; }
-    }, [isInitialized, role, router]);
 
     useEffect(() => {
         if (!isLoggedIn) return;

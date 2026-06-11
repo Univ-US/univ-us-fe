@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
@@ -60,10 +61,15 @@ export default function SchoolAdminDashboardPage() {
         <RoleGuard allowedRoles={["ADM"]}>
             <main className="min-h-screen bg-[#f4faf7] text-slate-950">
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
-                    <div className="flex items-center gap-3 px-2">
-                        <div className="flex size-8 items-center justify-center rounded-lg bg-primary font-black">U</div>
-                        <span className="text-lg font-black">Univ us</span>
-                        <span className="ml-auto rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-bold text-emerald-100">
+                    <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-2">
+                            <Image src="/univusicon.png" alt="Univ us" width={28} height={28} className="rounded-lg" />
+                            <span className="text-lg font-black tracking-wide">
+                                <span className="text-white">Univ</span>
+                                <span className="text-white"> · </span><span className="text-teal-300">us</span>
+                            </span>
+                        </div>
+                        <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-bold text-emerald-100">
                             관리자
                         </span>
                     </div>
@@ -129,19 +135,14 @@ export default function SchoolAdminDashboardPage() {
                                 <Building2 className="size-4" />
                                 <span className="text-slate-900">{SECTION_LABEL[view]}</span>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button className="flex size-9 items-center justify-center rounded-full border border-border bg-white shadow-sm">
-                                    <Bell className="size-4 text-slate-500" />
-                                </button>
-                                <div className="flex size-9 items-center justify-center rounded-full bg-emerald-700 font-black text-white">
-                                    {memberName?.slice(0, 1) ?? "관"}
-                                </div>
-                            </div>
+                            <button className="flex size-9 items-center justify-center rounded-full border border-border bg-white shadow-sm">
+                                <Bell className="size-4 text-slate-500" />
+                            </button>
                         </div>
                     </header>
 
                     <section className="px-6 py-8 lg:px-8">
-                        {view === "dashboard" && <DashboardView />}
+                        {view === "dashboard" && <DashboardView onNavigate={(v) => setView(v as View)} />}
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}
                         {view === "inquiries" && <InquiriesView />}
