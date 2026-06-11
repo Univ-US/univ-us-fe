@@ -24,7 +24,11 @@ type SeatReservationSectionProps = {
   reservationsLoading: boolean;
   reservationError: string;
   cancelingReservationId: number | null;
+  checkingInReservationId?: number | null;
+  extendingReservationId?: number | null;
   onCancelReservation: (reservationId: number) => void;
+  onCheckInReservation?: (reservationId: number) => void;
+  onExtendReservation?: (reservationId: number) => void;
   onRefreshReservations: () => void;
   rooms: ReadingRoomAvailability[];
   currentRoom: ReadingRoomAvailability | undefined;
@@ -54,7 +58,11 @@ export default function SeatReservationSection({
   reservationsLoading,
   reservationError,
   cancelingReservationId,
+  checkingInReservationId = null,
+  extendingReservationId = null,
   onCancelReservation,
+  onCheckInReservation,
+  onExtendReservation,
   onRefreshReservations,
   rooms,
   currentRoom,
@@ -88,7 +96,11 @@ export default function SeatReservationSection({
         loading={reservationsLoading}
         error={reservationError}
         cancelingReservationId={cancelingReservationId}
+        checkingInReservationId={checkingInReservationId}
+        extendingReservationId={extendingReservationId}
         onCancel={onCancelReservation}
+        onCheckIn={onCheckInReservation}
+        onExtend={onExtendReservation}
         onRefresh={onRefreshReservations}
       />
 

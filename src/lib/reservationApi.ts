@@ -216,6 +216,24 @@ export async function cancelReadingSeatReservation(reservationId: number) {
   return res.data;
 }
 
+export async function checkInReadingSeatReservation(reservationId: number) {
+  const res = await api.post<ReservationMutationResponse>(
+    `/api/reservations/seats/${reservationId}/checkin`,
+  );
+
+  return res.data;
+}
+
+export async function extendReadingSeatReservation(reservationId: number) {
+  const res = await api.post<{
+    success: boolean;
+    message: string;
+    data: ReadingSeatReservation;
+  }>(`/api/reservations/seats/${reservationId}/extend`);
+
+  return res.data;
+}
+
 export async function getRoomAvailability(date: string) {
   const res = await api.get<RoomAvailability[]>(
     '/api/reservations/rooms/availability',
