@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
@@ -63,7 +62,7 @@ export default function SchoolAdminDashboardPage() {
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
-                            <Image src="/univusicon.png" alt="Univ us" width={28} height={28} className="rounded-lg" />
+                            <img src="/univusicon.png" alt="Univ us" className="w-7 h-7 rounded-lg" />
                             <span className="text-lg font-black tracking-wide">
                                 <span className="text-white">Univ</span>
                                 <span className="text-white"> · </span><span className="text-teal-300">us</span>
