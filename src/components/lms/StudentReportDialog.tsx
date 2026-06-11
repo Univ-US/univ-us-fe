@@ -7,6 +7,7 @@
 // - 데이터(report)는 부모(페이지)가 주입 — 컴포넌트는 표시만 담당(프레젠테이셔널)
 // ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 import { resolveImageUrl, type StudentReport } from "@/lib/lmsProfessorStudentsApi";
 
 interface StudentReportDialogProps {
@@ -26,6 +27,8 @@ export default function StudentReportDialog({
   onClose,
   onSendMessage,
 }: StudentReportDialogProps) {
+  useEscapeClose(open, onClose); // ESC = ✕ 버튼과 동일
+
   if (!open) return null;
 
   return (
