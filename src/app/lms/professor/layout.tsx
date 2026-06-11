@@ -4,11 +4,16 @@
 // - 사이드바 상단: 학교명(API) + UniVUs 브랜드 + 사용자(이름/소속/아바타, API)
 // - 네비: '프로필'만 활성(PLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 LMS 페이지(현재는 /lms/professor/profile)
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
+import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
+import LmsGuard from "@/components/auth/LmsGuard";
+
+// PLM(교수 LMS) 접근 허용 역할: 서비스/학교 관리자 + 교수
+const PROFESSOR_LMS_ROLES = ["SUA", "ADM", "PROF"];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
@@ -25,8 +30,9 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "강의 관리",
     items: [
       { label: "강의 내역", icon: "📖" },
-      { label: "수강생 현황", icon: "👥" },
-      { label: "채점 현황", icon: "✅", badge: 5 },
+      { label: "수강생 현황", icon: "👥", href: "/lms/professor/Enrollee" },
+      // '채점 현황' 배지는 하드코딩 X — 실제 미채점 건수(overview.totalUngraded)를 스토어에서 주입(아래 렌더)
+      { label: "채점 현황", icon: "✅", href: "/lms/professor/grading" },
     ],
   },
   {
@@ -47,17 +53,28 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-export default function LmsProfessorLayout({ children }: { children: ReactNode }) {
+function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const logoutAction = useAuthStore((s) => s.logoutAction);
+  const role = useAuthStore((s) => s.role);
   // 사이드바 헤더(학교/이름/소속/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useProfessorProfileStore((s) => s.profile);
   const loadProfile = useProfessorProfileStore((s) => s.load);
+  const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
+
+  // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
+  const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
+  const loadUngradedCount = useLmsGradingStore((s) => s.loadUngradedCount);
 
   useEffect(() => {
-    loadProfile().catch(() => {});
+    loadProfile().catch(() => setLoadFailed(true));
   }, [loadProfile]);
+
+  // 미채점 건수는 PROF 본인 강의 한정(SUA/ADM은 403 → 조회 생략, 배지 없음)
+  useEffect(() => {
+    if (role === "PROF") loadUngradedCount();
+  }, [role, loadUngradedCount]);
 
   const handleLogout = async () => {
     try {
@@ -78,9 +95,8 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
       <aside className="flex w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
         {/* 브랜드: 학교명(API) + UniVUs */}
         <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-lg font-bold text-white">
-            U
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
           <div className="min-w-0">
             <p className="truncate text-[11px] text-slate-400">
               {/* 학교명: BE 제공(계정 미설정이면 null) */}
@@ -108,10 +124,21 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
               {profile?.lmsProfessorProfileName ?? "교수"} {profile?.lmsProfessorProfileRole || "교수"}
             </p>
             <p className="truncate text-xs text-slate-400">
+              {/* 학과 · 사번 (학생 사이드바의 학과·학번과 동일 패턴) */}
               {profile?.lmsProfessorProfileDepartment ?? "—"}
+              {profile?.lmsProfessorProfileEmployeeNo
+                ? ` · ${profile.lmsProfessorProfileEmployeeNo}`
+                : ""}
             </p>
           </div>
         </div>
+
+        {/* 프로필 로드 실패 시 (가짜 정보로 가리지 않고 표기) */}
+        {loadFailed && !profile && (
+          <p className="mx-3 -mt-2 mb-3 text-[11px] text-amber-400">
+            ⚠ 프로필 정보를 불러오지 못했습니다 (서버 확인)
+          </p>
+        )}
 
         {/* 네비게이션 */}
         <nav className="flex-1 overflow-y-auto px-3">
@@ -123,13 +150,16 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
               {section.items.map((item) => {
                 const active =
                   item.href && stripSlash(pathname) === stripSlash(item.href);
+                // '채점 현황'은 실제 미채점 건수 주입, 나머지는 정적 badge. 0/미로딩이면 숨김.
+                const badge =
+                  item.href === "/lms/professor/grading" ? ungradedCount : item.badge;
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
                     <span className="flex-1">{item.label}</span>
-                    {item.badge != null && (
+                    {badge != null && badge > 0 && (
                       <span className="rounded-full bg-emerald-500/90 px-1.5 text-[11px] font-semibold text-white">
-                        {item.badge}
+                        {badge}
                       </span>
                     )}
                   </>
@@ -175,5 +205,14 @@ export default function LmsProfessorLayout({ children }: { children: ReactNode }
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-x-hidden">{children}</div>
     </div>
+  );
+}
+
+// 접근 가드로 감싼다. 권한 없는 사용자는 내부 레이아웃(프로필 로드 등)이 아예 마운트되지 않는다.
+export default function LmsProfessorLayout({ children }: { children: ReactNode }) {
+  return (
+    <LmsGuard allowedRoles={PROFESSOR_LMS_ROLES}>
+      <LmsProfessorLayoutInner>{children}</LmsProfessorLayoutInner>
+    </LmsGuard>
   );
 }

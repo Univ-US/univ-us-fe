@@ -25,3 +25,22 @@ export const getUniversities = async (): Promise<University[]> => {
     const res = await api.get<University[]>("/api/admin/universities");
     return res.data;
 };
+
+export const sendChatMessage = async (message: string): Promise<string> => {
+    const res = await api.post<{ response: string }>("/api/ai", { message });
+    return res.data.response;
+};
+
+export interface Notice {
+    noticeId: number;
+    title: string;
+    content: string;
+    memberName: string;
+    target: "ALL" | "STU" | "PROF";
+    postedAt: string;
+}
+
+export const getNotices = async (): Promise<Notice[]> => {
+    const res = await api.get<Notice[]>("/api/admin/notices");
+    return res.data;
+};

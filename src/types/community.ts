@@ -87,6 +87,8 @@ export interface Product {
   // COUNT JOIN
   likeCount: number;         // PRODUCT_LIKE COUNT
   chatCount: number;         // TRADE_CHAT_ROOM COUNT
+  reportCount?: number;      // PRODUCT_REPORT COUNT
+  isBlind?: number;          // reportCount >= 5
 
   // PRODUCT_IMAGE JOIN
   images?: ProductImage[];
@@ -143,12 +145,18 @@ export interface TradeChatRoom {
   productId: number;         // PRODUCT_ID
   sellerId: number;          // SELLER_ID
   buyerId: number;           // BUYER_ID
+  negotiatedPrice: number;   // NEGOTIATED_PRICE
+  status: string;            // STATUS
   createdAt: string;         // CREATED_AT
 
   // JOIN + 화면 전용
   productName?: string;
+  productStatus?: TradeStatus;
+  sellerName?: string;
+  buyerName?: string;
   otherUserName?: string;
   lastMessage?: string;
+  lastMessageAt?: string;
   unreadCount?: number;
 }
 
@@ -160,6 +168,7 @@ export interface TradeChatMessage {
   content: string;           // CONTENT
   isRead: number;            // IS_READ (0|1)
   sendAt: string;            // SEND_AT
+  senderName?: string;
 
   // 화면 전용
   isMine?: boolean;

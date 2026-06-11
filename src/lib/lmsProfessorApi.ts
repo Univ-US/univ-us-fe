@@ -5,10 +5,11 @@ import api from "@/lib/api";
 /** PLM-001 교수 프로필 조회 응답 (BE: LmsProfessorProfileResponseDto) */
 export interface LmsProfessorProfile {
   lmsProfessorProfileName: string; // 이름 (읽기전용 · 관리자 변경)
-  lmsProfessorProfileDepartment: string; // 소속 학과 (읽기전용 · 관리자 변경)
+  lmsProfessorProfileEmployeeNo: string; // 사번 (읽기전용 · = MEMBER.LOGIN_ID, 학생 학번과 동일 컬럼)
+  lmsProfessorProfileDepartment: string | null; // 소속 학과 (읽기전용 · 미설정 시 null)
   lmsProfessorProfilePhoneNumber: string; // 핸드폰 번호 (읽기전용 · 관리자 변경)
-  lmsProfessorProfileEmail: string; // 이메일 (수정 가능)
-  lmsProfessorProfileIntroduction: string; // 소개 (수정 가능)
+  lmsProfessorProfileEmail: string | null; // 이메일 (수정 가능)
+  lmsProfessorProfileIntroduction: string | null; // 소개 (수정 가능)
   lmsProfessorProfileImageUrl: string | null; // 프로필 이미지 URL (예: /uploads/lms/professor/image/xxx)
   // 학교명: BE 응답에 포함됨(계정에 미설정이면 null). 사이드바 브랜드에 표시.
   lmsProfessorProfileUniversityName?: string | null;

@@ -1,4 +1,4 @@
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, MessageCircle } from 'lucide-react';
 
 import type {
   ReadingRoomAvailability,
@@ -24,7 +24,11 @@ type SeatReservationSectionProps = {
   reservationsLoading: boolean;
   reservationError: string;
   cancelingReservationId: number | null;
+  checkingInReservationId?: number | null;
+  extendingReservationId?: number | null;
   onCancelReservation: (reservationId: number) => void;
+  onCheckInReservation?: (reservationId: number) => void;
+  onExtendReservation?: (reservationId: number) => void;
   onRefreshReservations: () => void;
   rooms: ReadingRoomAvailability[];
   currentRoom: ReadingRoomAvailability | undefined;
@@ -33,6 +37,8 @@ type SeatReservationSectionProps = {
   seats: ReadingSeatAvailability[];
   selectedSeat: ReadingSeatAvailability | null;
   onSelectSeat: (seat: ReadingSeatAvailability) => void;
+  currentMemberId?: number | null;
+  onOpenSeatChat: (seat: ReadingSeatAvailability | null) => void;
   seatError: string;
   seatLoading: boolean;
   reservationLoading: boolean;
@@ -52,7 +58,11 @@ export default function SeatReservationSection({
   reservationsLoading,
   reservationError,
   cancelingReservationId,
+  checkingInReservationId = null,
+  extendingReservationId = null,
   onCancelReservation,
+  onCheckInReservation,
+  onExtendReservation,
   onRefreshReservations,
   rooms,
   currentRoom,
@@ -61,6 +71,8 @@ export default function SeatReservationSection({
   seats,
   selectedSeat,
   onSelectSeat,
+  currentMemberId,
+  onOpenSeatChat,
   seatError,
   seatLoading,
   reservationLoading,
@@ -84,7 +96,11 @@ export default function SeatReservationSection({
         loading={reservationsLoading}
         error={reservationError}
         cancelingReservationId={cancelingReservationId}
+        checkingInReservationId={checkingInReservationId}
+        extendingReservationId={extendingReservationId}
         onCancel={onCancelReservation}
+        onCheckIn={onCheckInReservation}
+        onExtend={onExtendReservation}
         onRefresh={onRefreshReservations}
       />
 
@@ -94,9 +110,9 @@ export default function SeatReservationSection({
             key={room.readingRoomId}
             onClick={() => onSelectRoom(room.readingRoomId)}
             className={cn(
-              'flex items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all',
+              'flex items-center gap-4 rounded-2xl border p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md active:translate-y-0',
               selectedRoomId === room.readingRoomId
-                ? 'border-primary bg-primary/5 shadow-md'
+                ? 'scale-[1.02] border-primary bg-primary/5 shadow-md'
                 : 'border-border bg-white hover:border-primary',
             )}
           >
@@ -120,8 +136,7 @@ export default function SeatReservationSection({
                     : 'text-primary',
                 )}
               >
-                {room.availableSeatCount <= 5 ? '마감 임박' : '여유 있음'} ·
-                전체 {room.totalSeatCount}석
+                빈좌석 {room.availableSeatCount}석 / 전체 {room.totalSeatCount}석
               </div>
             </div>
           </button>
@@ -129,8 +144,18 @@ export default function SeatReservationSection({
       </div>
 
       <div className='overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
-        <div className='mb-1 text-[14px] font-bold text-slate-900'>
-          {currentRoom?.roomName ?? '독서실'} 좌석 배치도
+        <div className='mb-3 flex flex-wrap items-center justify-between gap-3'>
+          <div className='text-[14px] font-bold text-slate-900'>
+            {currentRoom?.roomName ?? '독서실'} 좌석 배치도
+          </div>
+          <button
+            type='button'
+            onClick={() => onOpenSeatChat(null)}
+            className='flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10 hover:shadow-sm active:translate-y-0'
+          >
+            <MessageCircle className='size-3.5' />
+            좌석 채팅
+          </button>
         </div>
         {seatError ? (
           <div className='mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-8 text-center text-[13px] font-semibold text-red-500'>
@@ -149,6 +174,8 @@ export default function SeatReservationSection({
             seats={seats}
             selectedSeat={selectedSeat}
             onSelect={onSelectSeat}
+            onOpenChat={onOpenSeatChat}
+            currentMemberId={currentMemberId}
             readingRoomId={currentRoom?.readingRoomId}
             roomName={currentRoom?.roomName}
           />
@@ -156,7 +183,7 @@ export default function SeatReservationSection({
       </div>
 
       {selectedSeat && (
-        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm'>
+        <div className='mt-4 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/5 px-6 py-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md'>
           <div>
             <div className='text-[11px] font-semibold text-primary'>
               선택한 좌석
@@ -172,7 +199,7 @@ export default function SeatReservationSection({
           <button
             disabled={reservationLoading}
             onClick={onReserveSeat}
-            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-colors'
+            className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
             style={{ background: '#0FA896' }}
             onMouseEnter={(event) =>
               (event.currentTarget.style.background = 'var(--brand-hover)')

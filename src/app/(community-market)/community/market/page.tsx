@@ -17,7 +17,7 @@ export default function MarketPage() {
       setProducts(data.list ?? []);
     } catch (err) {
       console.error('MarketPage fetch error:', err);
-      setError('상품 목록을 불러오는 데 실패했어. 백엔드가 켜져 있는지 확인해줘.');
+      setError('상품 목록을 불러오는 데 실패했습니다. 백엔드가 켜져 있는지 확인바랍니다.');
     } finally {
       setLoading(false);
     }

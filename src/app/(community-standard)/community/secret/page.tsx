@@ -18,7 +18,7 @@ export default function SecretBoardPage() {
       setPosts(data.postList ?? []);
     } catch (err) {
       console.error('SecretBoardPage fetch error:', err);
-      setError('게시글을 불러오는 데 실패했어. 백엔드가 켜져 있는지 확인해줘.');
+      setError('게시글을 불러오는 데 실패했습니다. 백엔드가 켜져 있는지 확인해 주세요.');
     } finally {
       setLoading(false);
     }

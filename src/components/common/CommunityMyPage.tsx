@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authStore';
 
 interface MyPost {
   postId: number;
@@ -62,16 +63,6 @@ interface UserProfile {
   likeCount: number;
 }
 
-const SAMPLE_PROFILE: UserProfile = {
-  name: '정성룡',
-  nickname: '성룡스터디',
-  department: '컴퓨터공학 21학번',
-  joinedAt: '2024.03',
-  postCount: 28,
-  commentCount: 142,
-  likeCount: 96,
-};
-
 const SAMPLE_MY_POSTS: MyPost[] = [
   {
     postId: 1,
@@ -91,7 +82,7 @@ const SAMPLE_MY_POSTS: MyPost[] = [
   },
   {
     postId: 3,
-    title: '이번 학기 꿀교양 추천 좀 해주세요',
+    title: '이번 학기 꿀교양을 추천해 주세요',
     board: '익명',
     createdAt: '3시간 전',
     likeCount: 31,
@@ -511,7 +502,7 @@ function MyWishlist({ wishlist }: { wishlist: MyWishlist[] }) {
 function MyProfile({ profile }: { profile: UserProfile }) {
   const [nickname, setNickname] = useState(profile.nickname);
   const [bio, setBio] = useState(
-    '자료구조 스터디 운영 중이에요. 같이 공부해요!',
+    '자료구조 스터디를 운영 중입니다. 함께 공부하고 있습니다.',
   );
 
   return (
@@ -586,7 +577,7 @@ function MyAccount() {
               계정 상태
             </div>
             <div className='mt-1 text-[13px] text-slate-400'>
-              정상 이용 중인 계정이에요.
+              정상 이용 중인 계정입니다.
             </div>
           </div>
           <span className='flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-[12px] font-bold text-emerald-700'>
@@ -603,7 +594,7 @@ function MyAccount() {
               회원 탈퇴
             </div>
             <div className='mt-1.5 text-[13px] leading-relaxed text-slate-500'>
-              탈퇴 시 작성한 글·댓글·거래 내역이 모두 삭제되며 복구할 수 없어요.
+              탈퇴 시 작성한 글·댓글·거래 내역이 모두 삭제되며 복구할 수 없습니다.
             </div>
           </div>
           <button className='shrink-0 rounded-xl bg-red-500 px-4 py-2 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-red-600'>
@@ -617,6 +608,19 @@ function MyAccount() {
 
 export default function CommunityMyPage() {
   const [section, setSection] = useState<SectionKey>('posts');
+  const memberName = useAuthStore((s) => s.memberName);
+  const communityNickname = useAuthStore((s) => s.communityNickname);
+  const univName = useAuthStore((s) => s.univName);
+
+  const profile: UserProfile = {
+    name: memberName ?? '사용자',
+    nickname: communityNickname || memberName || '사용자',
+    department: univName ?? '소속 학교',
+    joinedAt: '-',
+    postCount: SAMPLE_MY_POSTS.length,
+    commentCount: SAMPLE_MY_COMMENTS.length,
+    likeCount: SAMPLE_MY_POSTS.length,
+  };
 
   const blocks: Record<SectionKey, React.ReactNode> = {
     posts: <MyPosts posts={SAMPLE_MY_POSTS} />,
@@ -624,7 +628,7 @@ export default function CommunityMyPage() {
     liked: <LikedPosts posts={SAMPLE_MY_POSTS} />,
     trades: <MyTrades trades={SAMPLE_TRADES} />,
     wishlist: <MyWishlist wishlist={SAMPLE_WISHLIST} />,
-    profile: <MyProfile profile={SAMPLE_PROFILE} />,
+    profile: <MyProfile profile={profile} />,
     account: <MyAccount />,
   };
 
@@ -634,27 +638,27 @@ export default function CommunityMyPage() {
         <div className='mb-5 overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm'>
           <div className='flex items-center gap-5'>
             <div className='flex size-[56px] items-center justify-center rounded-full bg-primary text-xl font-bold text-white shadow-sm'>
-              {SAMPLE_PROFILE.name.slice(0, 1)}
+              {profile.name.slice(0, 1)}
             </div>
             <div className='min-w-0 flex-1'>
               <div className='flex items-baseline gap-3'>
                 <span className='text-[18px] font-extrabold tracking-tight text-slate-900'>
-                  {SAMPLE_PROFILE.nickname}
+                  {profile.nickname}
                 </span>
                 <span className='text-[13px] text-slate-400'>
-                  {SAMPLE_PROFILE.department}
+                  {profile.department}
                 </span>
               </div>
               <div className='mt-1 text-[12px] text-slate-400'>
-                가입 {SAMPLE_PROFILE.joinedAt} · {SAMPLE_PROFILE.name}
+                가입 {profile.joinedAt} · {profile.name}
               </div>
             </div>
             <div className='flex shrink-0 items-center divide-x divide-border'>
               {(
                 [
-                  ['작성글', SAMPLE_PROFILE.postCount],
-                  ['댓글', SAMPLE_PROFILE.commentCount],
-                  ['좋아요', SAMPLE_PROFILE.likeCount],
+                  ['작성글', profile.postCount],
+                  ['댓글', profile.commentCount],
+                  ['좋아요', profile.likeCount],
                 ] as const
               ).map(([label, count]) => (
                 <div key={label} className='px-5 text-center'>

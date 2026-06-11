@@ -16,7 +16,7 @@ export default function MarketDetailClient({ id }: { id: string }) {
     const fetchDetail = async () => {
       const numericId = Number(id);
       if (!id || isNaN(numericId) || numericId <= 0) {
-        setError('올바르지 않은 상품 ID야.');
+        setError('올바르지 않은 상품 ID입니다.');
         setLoading(false);
         return;
       }
@@ -25,7 +25,7 @@ export default function MarketDetailClient({ id }: { id: string }) {
         setProduct(data);
       } catch (err) {
         console.error('MarketDetailClient fetch error:', err);
-        setError('상품을 찾을 수 없어.');
+        setError('상품을 찾을 수 없습니다.');
       } finally {
         setLoading(false);
       }
@@ -43,7 +43,7 @@ export default function MarketDetailClient({ id }: { id: string }) {
   if (error || !product)
     return (
       <div className="flex min-h-screen items-center justify-center text-red-400 text-[14px]">
-        {error ?? '상품을 찾을 수 없어.'}
+        {error ?? '상품을 찾을 수 없습니다.'}
       </div>
     );
 

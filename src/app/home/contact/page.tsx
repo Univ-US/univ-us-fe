@@ -32,7 +32,7 @@ export default function ContactPage() {
     };
 
     useEffect(() => {
-        getUniversities().then(setUniversities).catch(() => {});
+        getUniversities().then(setUniversities).catch(console.error);
     }, []);
 
     const selectedSchool = universities.find((u) => String(u.univId) === univId);

@@ -58,7 +58,7 @@ export default function UserLoginPage() {
     }, []);
 
     useEffect(() => {
-        getUniversities().then(setUniversities).catch(() => {});
+        getUniversities().then(setUniversities).catch(console.error);
     }, []);
 
     const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -82,13 +82,22 @@ export default function UserLoginPage() {
 
             localStorage.setItem("accessToken", data.accessToken);
             localStorage.setItem("refreshToken", data.refreshToken);
+            localStorage.setItem("memberId", String(data.memberId));
             localStorage.setItem("memberName", data.memberName);
             localStorage.setItem("role", data.role);
             if (data.univId != null) localStorage.setItem("univId", String(data.univId));
             if (data.univName) localStorage.setItem("univName", data.univName);
+            localStorage.setItem("communityNickname", data.communityNickname ?? "");
             loadFromStorage();
 
-            router.push(getRedirectPathByRole(data.role));
+            const redirectPath = new URLSearchParams(window.location.search).get("redirect");
+            const communityAllowedRoles = ["SUA", "ADM", "STU", "ALU"];
+            const canRedirectToCommunity =
+                !!redirectPath &&
+                redirectPath.startsWith("/community") &&
+                communityAllowedRoles.includes(data.role);
+
+            router.push(canRedirectToCommunity ? redirectPath : getRedirectPathByRole(data.role));
         } catch {
             setError("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
         } finally {

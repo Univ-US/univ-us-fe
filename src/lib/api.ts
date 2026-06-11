@@ -91,6 +91,10 @@ api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("accessToken");
 
+        if (config.data instanceof FormData) {
+            delete config.headers["Content-Type"];
+        }
+
         // 일반 API 요청마다 현재 accessToken을 Authorization 헤더에 붙입니다.
         // BE의 JwtAuthenticationFilter는 이 Bearer token을 읽어서 인증을 처리합니다.
         if (token) {
