@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import CommunityMarketChatDrawer from '@/components/common/CommunityMarketChatDrawer';
 import { API_BASE_URL } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { getMyLikeList, toggleProductLike } from '@/lib/marketApi';
@@ -182,6 +183,7 @@ export default function CommunityMarketList({
 
   const [category, setCategory] = useState<'전체' | ProductCategory>('전체');
   const [onlyLiked, setOnlyLiked] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   // 낙관적 업데이트용 로컬 찜 상태 (Set: productId)
   const [likedSet, setLikedSet] = useState<Set<number>>(new Set());
   const [likeCountById, setLikeCountById] = useState<Map<number, number>>(new Map());
@@ -280,9 +282,19 @@ export default function CommunityMarketList({
   );
   if (onlyLiked) filtered = filtered.filter((p) => likedSet.has(p.productId));
 
+  const handleOpenChatList = () => {
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    setChatOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 px-[30px] py-7">
-      <div className="mx-auto max-w-[1140px]">
+    <>
+      <div className="min-h-screen bg-slate-50 px-[30px] py-7">
+        <div className="mx-auto max-w-[1140px]">
         <div className="mb-5 flex items-end justify-between border-b border-border pb-4">
           <div>
             <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-primary">
@@ -320,6 +332,13 @@ export default function CommunityMarketList({
           </div>
 
           <div className="flex gap-2">
+            <button
+              onClick={handleOpenChatList}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0"
+            >
+              <MessageCircle className="size-3.5" />
+              채팅방
+            </button>
             <button
               onClick={() => setOnlyLiked(!onlyLiked)}
               className={cn(
@@ -382,6 +401,15 @@ export default function CommunityMarketList({
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      <CommunityMarketChatDrawer
+        open={chatOpen}
+        targetProduct={null}
+        onClose={() => setChatOpen(false)}
+        onRoomsChanged={onRefresh}
+        onTradeCompleted={onRefresh}
+      />
+    </>
   );
 }

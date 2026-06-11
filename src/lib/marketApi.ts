@@ -1,6 +1,12 @@
 // src/lib/marketApi.ts
 import api from '@/lib/api';
-import type { Product, ProductComment, ProductImage } from '@/types/community';
+import type {
+  Product,
+  ProductComment,
+  ProductImage,
+  TradeChatMessage,
+  TradeChatRoom,
+} from '@/types/community';
 
 // ── 상품 목록 조회 ────────────────────────────────────────────────────────
 export interface ProductSearchParams {
@@ -89,6 +95,19 @@ export const replaceProductImages = async (
   return res.data;
 };
 
+export const updateProductImages = async (
+  productId: number,
+  keepImageIds: number[],
+  images: File[],
+): Promise<{ message: string; images: ProductImage[] }> => {
+  const formData = new FormData();
+  keepImageIds.forEach((imageId) => formData.append('keepImageIds', String(imageId)));
+  images.forEach((image) => formData.append('images', image));
+
+  const res = await api.put(`/api/market/products/${productId}/images`, formData);
+  return res.data;
+};
+
 // ── 상품 삭제 ─────────────────────────────────────────────────────────────
 export const deleteProduct = async (
   productId: number,
@@ -156,6 +175,13 @@ export const getProductLikeStatus = async (
   return res.data;
 };
 
+export const getProductReportStatus = async (
+  productId: number,
+): Promise<{ reported: boolean }> => {
+  const res = await api.get(`/api/market/products/${productId}/report`);
+  return res.data;
+};
+
 // ── 내 찜 목록 ────────────────────────────────────────────────────────────
 export const getMyLikeList = async (memberId: number): Promise<Product[]> => {
   const res = await api.get('/api/market/likes', { params: { memberId } });
@@ -192,5 +218,70 @@ export const completePayment = async (
   payload: PaymentCompletePayload,
 ): Promise<PaymentCompleteResponse> => {
   const res = await api.post('/api/market/payments/complete', payload);
+  return res.data;
+};
+
+export const getTradeChatRooms = async (): Promise<TradeChatRoom[]> => {
+  const res = await api.get('/api/market/chats');
+  return res.data;
+};
+
+export const createOrGetTradeChatRoom = async (
+  productId: number,
+): Promise<TradeChatRoom> => {
+  const res = await api.post('/api/market/chats', { productId });
+  return res.data;
+};
+
+export const getTradeChatMessages = async (
+  roomId: number,
+): Promise<TradeChatMessage[]> => {
+  const res = await api.get(`/api/market/chats/${roomId}/messages`);
+  return res.data;
+};
+
+export const sendTradeChatMessage = async (
+  roomId: number,
+  content: string,
+): Promise<TradeChatMessage> => {
+  const res = await api.post(`/api/market/chats/${roomId}/messages`, {
+    content,
+  });
+  return res.data;
+};
+
+export const updateTradeChatNegotiatedPrice = async (
+  roomId: number,
+  negotiatedPrice: number,
+): Promise<TradeChatRoom> => {
+  const res = await api.patch(`/api/market/chats/${roomId}/price`, {
+    negotiatedPrice,
+  });
+  return res.data;
+};
+
+export const closeTradeChatRoom = async (
+  roomId: number,
+): Promise<TradeChatRoom> => {
+  const res = await api.patch(`/api/market/chats/${roomId}/close`);
+  return res.data;
+};
+
+export const deleteTradeChatRoom = async (
+  roomId: number,
+): Promise<{ success: boolean; message: string; productId: number }> => {
+  const res = await api.delete(`/api/market/chats/${roomId}`);
+  return res.data;
+};
+
+export interface ChatPaymentCompletePayload {
+  roomId: number;
+  paymentId: string;
+}
+
+export const completeTradeChatPayment = async (
+  payload: ChatPaymentCompletePayload,
+): Promise<PaymentCompleteResponse> => {
+  const res = await api.post('/api/market/chats/payments/complete', payload);
   return res.data;
 };

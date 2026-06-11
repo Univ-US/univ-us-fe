@@ -15,10 +15,13 @@ import {
   Landmark,
   Wallet,
   PackageOpen,
+  EyeOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CommunityMarketComment from '@/components/common/CommunityMarketComment';
+import CommunityMarketChatDrawer from '@/components/common/CommunityMarketChatDrawer';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
+import { Button } from '@/components/ui/button';
 import { AxiosError } from 'axios';
 import { API_BASE_URL } from '@/lib/api';
 import {
@@ -27,6 +30,7 @@ import {
   deleteProduct,
   getPaymentConfig,
   completePayment,
+  getProductReportStatus,
 } from '@/lib/marketApi';
 import { useAuthStore } from '@/store/authStore';
 import type { Product } from '@/types/community';
@@ -219,18 +223,56 @@ export default function CommunityMarketDetail({
   const [likeCount, setLikeCount] = useState(product.likeCount);
   const [likeLoading, setLikeLoading] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [alreadyReported, setAlreadyReported] = useState(false);
+  const [reportToast, setReportToast] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const sold = product.productStatus === 'DONE' || paymentDone;
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTargetProduct, setChatTargetProduct] = useState<Product | null>(null);
+  const [productStatus, setProductStatus] =
+    useState<Product['productStatus']>(product.productStatus);
+  const effectiveProductStatus: Product['productStatus'] = paymentDone
+    ? 'DONE'
+    : productStatus;
+  const sold = effectiveProductStatus === 'DONE';
+  const purchasable = effectiveProductStatus === 'SALE' && !paymentDone;
   const productImages = product.images ?? [];
   const selectedImage = productImages[selectedImageIndex] ?? productImages[0];
 
   const isOwner = memberId === product.memberId;
   const canManageProduct = isOwner || role === 'SUA' || role === 'ADM';
 
+  const handleReportClick = () => {
+    if (alreadyReported) {
+      setReportToast(true);
+      setTimeout(() => setReportToast(false), 3000);
+      return;
+    }
+    setReporting(true);
+  };
+
+  const handleOpenChat = () => {
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    if (isOwner) {
+      setChatTargetProduct(null);
+      setChatOpen(true);
+      return;
+    }
+    if (sold) {
+      return;
+    }
+
+    setChatTargetProduct(product);
+    setChatOpen(true);
+  };
+
   useEffect(() => {
+    setProductStatus(product.productStatus);
     setLikeCount(product.likeCount);
 
     if (!memberId) {
@@ -249,10 +291,19 @@ export default function CommunityMarketDetail({
         console.error('찜 상태 조회 실패:', err);
       });
 
+    getProductReportStatus(product.productId)
+      .then((res) => {
+        if (ignore) return;
+        setAlreadyReported(res.reported);
+      })
+      .catch((err) => {
+        console.error('상품 신고 상태 조회 실패:', err);
+      });
+
     return () => {
       ignore = true;
     };
-  }, [memberId, product.likeCount, product.productId]);
+  }, [memberId, product.likeCount, product.productId, product.productStatus]);
 
   const handleDelete = async () => {
     if (!confirm('상품을 삭제할까요?')) return;
@@ -265,6 +316,43 @@ export default function CommunityMarketDetail({
       alert('상품 삭제에 실패했습니다.');
     }
   };
+
+  if (product.isBlind) {
+    return (
+      <div className="min-h-screen bg-slate-50 px-[30px] py-7">
+        <div className="mx-auto max-w-[920px]">
+          <button
+            onClick={onBack}
+            className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:text-slate-700"
+          >
+            <ArrowLeft className="size-4" /> 목록으로
+          </button>
+          <div className="flex flex-col items-center rounded-2xl border border-border bg-white p-14 text-center shadow-sm">
+            <span className="flex size-14 items-center justify-center rounded-full bg-red-50">
+              <EyeOff className="size-[26px] text-red-400" />
+            </span>
+            <h2 className="mb-2 mt-4 text-[16px] font-extrabold text-slate-800">
+              블라인드 처리된 상품입니다.
+            </h2>
+            <p className="mx-auto max-w-[360px] text-[13px] leading-relaxed text-slate-400">
+              신고가 <b className="text-red-500">{product.reportCount ?? 5}회</b> 누적되어
+              자동으로 가려진 상품입니다.
+              <br /> 이용이 제한됩니다.
+            </p>
+            {isOwner ? (
+              <Button className="mt-6 bg-red-500 hover:bg-red-600" onClick={handleDelete}>
+                삭제하기
+              </Button>
+            ) : (
+              <Button variant="outline" className="mt-6" onClick={onBack}>
+                목록으로 돌아가기
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleLike = async () => {
     if (!memberId) {
@@ -297,6 +385,10 @@ export default function CommunityMarketDetail({
     }
     if (isOwner) {
       alert('본인 상품은 결제할 수 없습니다.');
+      return;
+    }
+    if (effectiveProductStatus !== 'SALE') {
+      alert('판매중인 상품만 결제할 수 있습니다.');
       return;
     }
     if (sold || paymentLoading) return;
@@ -418,7 +510,7 @@ export default function CommunityMarketDetail({
               <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
                 <div className="p-6">
                   <div className="mb-3 flex items-center justify-between">
-                    <StatusBadge status={product.productStatus} />
+                    <StatusBadge status={effectiveProductStatus} />
                     <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500">
                       {product.category}
                     </span>
@@ -494,11 +586,11 @@ export default function CommunityMarketDetail({
                       <div />
                     )}
                     <button
-                      onClick={() => setReporting(true)}
+                      onClick={handleReportClick}
                       className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700 active:translate-y-0"
                     >
                       <Flag className="size-3.5" />
-                      신고하기
+                      {alreadyReported ? '신고완료' : '신고하기'}
                     </button>
                   </div>
 
@@ -520,16 +612,24 @@ export default function CommunityMarketDetail({
                     </button>
 
                     <button
-                      disabled={sold}
-                      onClick={() => alert('채팅 기능은 추후 연결 예정입니다.')}
+                      disabled={sold && !isOwner}
+                      onClick={handleOpenChat}
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary py-2 text-[13px] font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-sm active:translate-y-0 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
-                      채팅으로 거래하기
+                      {isOwner ? '내 채팅방 보기' : '채팅으로 거래하기'}
                     </button>
                   </div>
 
-                  {!canManageProduct && !sold && (
+                  {!canManageProduct && !purchasable && (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-semibold text-amber-700">
+                      {effectiveProductStatus === 'RESERVE'
+                        ? '예약중인 상품은 결제할 수 없습니다.'
+                        : '거래가 완료된 상품입니다.'}
+                    </div>
+                  )}
+
+                  {!canManageProduct && purchasable && (
                     <div className="mt-3 rounded-lg border border-border bg-slate-50 p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[12px] font-bold text-slate-700">
@@ -585,8 +685,34 @@ export default function CommunityMarketDetail({
         <CommunityReportModal
           targetType="product"
           targetId={product.productId}
-          onClose={() => setReporting(false)}
+          onClose={(reported?: boolean, blind?: boolean) => {
+            setReporting(false);
+            if (reported) setAlreadyReported(true);
+            if (blind) onBack();
+          }}
         />
+      )}
+
+      <CommunityMarketChatDrawer
+        open={chatOpen}
+        targetProduct={chatTargetProduct}
+        onClose={() => setChatOpen(false)}
+        onRoomCreated={(room) =>
+          setProductStatus(room.productStatus ?? 'RESERVE')
+        }
+        onRoomUpdated={(room) => {
+          if (room.productStatus) {
+            setProductStatus(room.productStatus);
+          }
+        }}
+        onTradeCompleted={onBack}
+      />
+
+      {reportToast && (
+        <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex items-center gap-2.5 rounded-2xl border border-red-200 bg-white px-5 py-3.5 shadow-lg">
+          <Flag className="size-4 text-red-400" />
+          <p className="text-[13px] font-semibold text-slate-700">이미 신고한 상품입니다.</p>
+        </div>
       )}
     </>
   );
