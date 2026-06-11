@@ -1,43 +1,70 @@
+// src/lib/lmsProfessorUploadApi.ts
+// PLM-005 / PLM-005-01 교수 "강의 업로드" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// PLM-005 / PLM-005-01 강의 업로드 — 타입 + mock 데이터 (⚠️ BE 명세 전)
-// - mock-first: BE API 명세가 오면 이 파일의 mock을 제거하고 axios 실연결로 교체
-// - 설계서 기준 업로드 저장소는 S3 — 실제 업로드 흐름(presigned URL 등)은 BE 명세 확정 후 반영
+// BE 공식 연동(2026-06-11) — mock 제거. 전부 본인 강의 한정(타 강의/자료 403).
+//  · GET    /api/lms/professor/uploads/lectures        (등록 폼 과목 드롭다운 — 담당 강의)
+//  · GET    /api/lms/professor/uploads                 (자료 목록, 최신순 — 페이지네이션은 FE 슬라이싱)
+//  · POST   /api/lms/professor/uploads                 (multipart: lecId·title 필수, content·files[다중] 선택 — 텍스트만 등록 가능)
+//  · PUT    /api/lms/professor/uploads/{uploadId}      (multipart: files=추가 첨부, removeAttachmentIds=기존 첨부 개별 제거)
+//  · DELETE /api/lms/professor/uploads/{uploadId}
+// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
+// ⚠️ content = Tiptap 에디터 HTML 문자열(CLOB). 목록 요약 표시는 htmlToPlainText(lmsSanitize) 사용.
 // ─────────────────────────────────────────────────────────────
+import api from "@/lib/api";
 
-export interface CourseOption {
-  courseId: number;
-  courseName: string;
+// ── 타입 (BE 응답 형태) ────────────────────────────────────
+/** 과목(강의) 드롭다운 1행 — 교수 담당 강의. 라벨은 FE가 SEM_TERM 공통코드로 매핑 */
+export interface Lecture {
+  lecId: number;
+  courseName: string;        // LECTURE_CODE.LEC_COD_NAME
+  lecSection: number | null; // 분반
+  year: number;              // SEMESTERS.SEM_YEAR
+  termCode: string;          // SM1/SM2/SMR/WNT (공통코드 SEM_TERM)
+  lecValStatus: string;      // OPEN/PROG/CLSD/CNCL (공통코드 LEC_VAL_STATUS)
 }
 
-export interface LectureMaterial {
-  materialId: number;
-  courseId: number;
-  courseName: string;
-  title: string;
-  description: string;
+/** 첨부 1건 — attachmentId는 수정 시 개별 제거 식별자 */
+export interface Attachment {
+  attachmentId: number;
   fileName: string;
-  fileExt: string; // 확장자 — BE가 내려주는 값 그대로 표기(EXT_TYPE, 예: "mp4"·"avi"·"pdf"·"hwp")
-  fileSize: number; // bytes
-  uploadedAt: string; // "YYYY-MM-DD" (년-월-일까지만 표기)
+  fileExt: string | null; // 소문자 확장자 문자열 ("mp4"/"pdf" — MIME 아님)
+  fileSize: number | null; // bytes
 }
 
-// 업로드 허용 확장자 — 실제 대학 LMS(코스모스/유비온 계열 등) 강의자료 허용 형식 기준 잠정.
-// 영상(mp4 권장)·음성·문서(hwp 포함)·이미지·압축. ⚠️ BE 정본 확정 시 이 목록을 동기화할 것.
+/** 강의 자료 1건 — 첨부는 유효(ACT) 전체 배열(다중 첨부, 없으면 빈 배열) */
+export interface Material {
+  uploadId: number;
+  lecId: number;
+  courseName: string;
+  year: number;     // 강의 학기 연도 (SEMESTERS.SEM_YEAR) — 목록 년도/학기 필터용 (2026-06-11 추가)
+  termCode: string; // SM1/SMR/SM2/WNT (공통코드 SEM_TERM — 라벨은 termMap 매핑)
+  title: string;
+  content: string | null; // 에디터 HTML
+  uploadedAt: string;     // "YYYY-MM-DD"
+  attachments: Attachment[];
+}
+
+/** 등록/수정 공통 입력 — 첨부 다중(2026-06-11 정책: 교체 없음, 추가/개별 제거)
+ *  · files: 등록=전체 첨부 / 수정=추가할 새 파일들(기존 유지에 더해짐)
+ *  · removeAttachmentIds: 수정 전용 — 제거할 기존 첨부 ID들 */
+export interface MaterialSaveInput {
+  title: string;
+  content: string; // 빈 문서는 "" 로 정규화해서 전달 (BE가 null 저장)
+  files: File[];
+  removeAttachmentIds?: number[];
+}
+
+// ── 업로드 제약 (BE LmsProfessorUploadServiceImpl과 동일 기준 — 변경 시 양쪽 동시 수정) ──
 export const UPLOAD_ALLOWED_EXTS = [
-  // 영상
   "mp4", "avi", "mov", "wmv",
-  // 음성
   "mp3", "m4a", "wav",
-  // 문서
   "pdf", "hwp", "hwpx", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt",
-  // 이미지
   "jpg", "jpeg", "png", "gif",
-  // 압축
   "zip",
 ];
 export const UPLOAD_MAX_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
-// 원본 파일명 한도 = DB LECTURE_UPLOADING_ATTACHMENT.LEC_UPL_ATT_ORG_FIL_NAME VARCHAR2(255 CHAR)
-export const UPLOAD_MAX_FILENAME = 255;
+export const UPLOAD_MAX_FILENAME = 255; // LEC_UPL_ATT_ORG_FIL_NAME VARCHAR2(255 CHAR)
+export const UPLOAD_MAX_TITLE = 500; // LEC_UPL_TITLE VARCHAR2(500 CHAR) — BE @Size(500)와 동일
 export const UPLOAD_ACCEPT = UPLOAD_ALLOWED_EXTS.map((e) => `.${e}`).join(",");
 
 export const fileExtOf = (name: string): string => {
@@ -45,8 +72,7 @@ export const fileExtOf = (name: string): string => {
   return i < 0 ? "" : name.slice(i + 1).toLowerCase();
 };
 
-const VIDEO_EXTS = ["mp4", "avi", "mov", "wmv"];
-export const isVideoExt = (ext: string) => VIDEO_EXTS.includes(ext);
+export const isVideoExt = (ext: string) => ["mp4", "avi", "mov", "wmv"].includes(ext);
 
 export function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "-";
@@ -62,73 +88,64 @@ export function formatFileSize(bytes: number): string {
   return `${bytes}B`;
 }
 
-// mock 업로드 시뮬레이션 — 진행률 콜백 후 완료. BE 연동 시 실제 업로드로 교체.
-export function simulateUpload(onProgress: (pct: number) => void): Promise<void> {
-  return new Promise((resolve) => {
-    let pct = 0;
-    const timer = setInterval(() => {
-      pct = Math.min(100, pct + Math.ceil(Math.random() * 18) + 6);
-      onProgress(pct);
-      if (pct >= 100) {
-        clearInterval(timer);
-        setTimeout(resolve, 250);
-      }
-    }, 180);
-  });
-}
+// ── API 호출 ───────────────────────────────────────────────
+/** GET 등록 폼 과목(강의) 드롭다운 */
+export const getUploadLectures = async (): Promise<Lecture[]> => {
+  const res = await api.get<Lecture[]>("/api/lms/professor/uploads/lectures");
+  return res.data;
+};
 
-// ── 샘플 데이터 (BE 연동 전 — 화면 개발/미리보기용) ──────────────
+/** GET 자료 목록 (담당 강의 전체, 최신순) */
+export const getUploads = async (): Promise<Material[]> => {
+  const res = await api.get<Material[]>("/api/lms/professor/uploads");
+  return res.data;
+};
 
-export const MOCK_COURSES: CourseOption[] = [
-  { courseId: 1, courseName: "데이터구조 및 알고리즘" },
-  { courseId: 2, courseName: "소프트웨어공학" },
-  { courseId: 3, courseName: "자바프로그래밍" },
-  { courseId: 4, courseName: "웹프로그래밍" },
-];
+/* multipart 진행률(0~100) 콜백 — total을 모르는 환경이면 호출 생략 */
+const progressConfig = (onProgress?: (pct: number) => void) => ({
+  headers: { "Content-Type": "multipart/form-data" },
+  onUploadProgress: (e: { loaded: number; total?: number }) => {
+    if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+  },
+});
 
-export const MOCK_MATERIALS: LectureMaterial[] = [
-  {
-    materialId: 4,
-    courseId: 1,
-    courseName: "데이터구조 및 알고리즘",
-    title: "Week 7 — 퀵소트 알고리즘",
-    description: "퀵소트 동작 원리·시간복잡도 분석",
-    fileName: "week7_quicksort.mp4",
-    fileExt: "mp4",
-    fileSize: 851_443_712, // 812MB
-    uploadedAt: "2026-05-20",
-  },
-  {
-    materialId: 3,
-    courseId: 1,
-    courseName: "데이터구조 및 알고리즘",
-    title: "Week 7 슬라이드",
-    description: "핵심 개념 요약 포함",
-    fileName: "week7_slides.pdf",
-    fileExt: "pdf",
-    fileSize: 4_404_019, // 4.2MB
-    uploadedAt: "2026-05-20",
-  },
-  {
-    materialId: 2,
-    courseId: 1,
-    courseName: "데이터구조 및 알고리즘",
-    title: "Week 6 — 합병정렬",
-    description: "분할 정복 기반 구현·성능 비교",
-    fileName: "week6_mergesort.mp4",
-    fileExt: "mp4",
-    fileSize: 792_723_456, // 756MB
-    uploadedAt: "2026-05-13",
-  },
-  {
-    materialId: 1,
-    courseId: 2,
-    courseName: "소프트웨어공학",
-    title: "UML 다이어그램 작성법",
-    description: "클래스·시퀀스 다이어그램 표기법",
-    fileName: "uml_guide.pdf",
-    fileExt: "pdf",
-    fileSize: 3_984_589, // 3.8MB
-    uploadedAt: "2026-05-06",
-  },
-];
+/** POST 자료 등록 (files 선택·다중 — 없으면 텍스트만 등록) → 생성된 자료 반환 */
+export const createUpload = async (
+  lecId: number,
+  input: MaterialSaveInput,
+  onProgress?: (pct: number) => void
+): Promise<Material> => {
+  const formData = new FormData();
+  formData.append("lecId", String(lecId));
+  formData.append("title", input.title);
+  formData.append("content", input.content);
+  input.files.forEach((f) => formData.append("files", f));
+  const res = await api.post<Material>("/api/lms/professor/uploads", formData, progressConfig(onProgress));
+  return res.data;
+};
+
+/** PUT 자료 수정 — files=추가 첨부(기존 유지+추가) / removeAttachmentIds=기존 첨부 개별 제거 */
+export const updateUpload = async (
+  uploadId: number,
+  input: MaterialSaveInput,
+  onProgress?: (pct: number) => void
+): Promise<Material> => {
+  const formData = new FormData();
+  formData.append("title", input.title);
+  formData.append("content", input.content);
+  input.files.forEach((f) => formData.append("files", f));
+  (input.removeAttachmentIds ?? []).forEach((id) =>
+    formData.append("removeAttachmentIds", String(id))
+  );
+  const res = await api.put<Material>(
+    `/api/lms/professor/uploads/${uploadId}`,
+    formData,
+    progressConfig(onProgress)
+  );
+  return res.data;
+};
+
+/** DELETE 자료 삭제 (첨부 포함) */
+export const deleteUpload = async (uploadId: number): Promise<void> => {
+  await api.delete(`/api/lms/professor/uploads/${uploadId}`);
+};

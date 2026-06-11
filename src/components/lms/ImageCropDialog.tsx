@@ -10,6 +10,7 @@
 import { useCallback, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 
 interface ImageCropDialogProps {
   open: boolean;
@@ -36,6 +37,9 @@ export default function ImageCropDialog({
   const onCropComplete = useCallback((_area: Area, areaPx: Area) => {
     setAreaPixels(areaPx);
   }, []);
+
+  // ESC = '취소' 버튼과 동일 (적용 중엔 취소 버튼처럼 비활성)
+  useEscapeClose(open && !!imageSrc && !processing, onCancel);
 
   const handleApply = async () => {
     if (!imageSrc || !areaPixels) return;

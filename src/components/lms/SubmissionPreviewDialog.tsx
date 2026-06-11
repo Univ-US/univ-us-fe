@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
   downloadSubmissionFile,
   formatFileSize,
@@ -35,6 +36,8 @@ export default function SubmissionPreviewDialog({
   useEffect(() => {
     setDownloadError(null);
   }, [submission, open]);
+
+  useEscapeClose(open && !!submission, onClose); // ESC = ✕ 버튼과 동일
 
   if (!open || !submission) return null;
   const file = submission.file;

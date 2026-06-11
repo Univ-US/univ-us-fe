@@ -108,7 +108,11 @@ export default function LmsRichTextEditor({
     editor?.setEditable(!disabled);
   }, [disabled, editor]);
 
-  const showPlaceholder = !disabled && (state?.isEmpty ?? true);
+  // ⚠️ 플레이스홀더/카운터는 useEditorState 스냅샷을 쓰지 않는다 — 수정 모드처럼 내용이 채워진 채
+  // 생성되면 첫 트랜잭션 전까지 스냅샷이 빈 문서(isEmpty/0자)로 남아 겹침 버그가 남(2026-06-11 발견).
+  // 플레이스홀더 = value prop(항상 현재 HTML) 기준, 카운터 = 에디터 직접 읽기(리렌더는 구독이 보장).
+  const showPlaceholder = !disabled && (!value || value === "<p></p>");
+  const characters = editor?.storage.characterCount.characters() ?? 0;
 
   const btnClass = (active: boolean) =>
     `flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -215,10 +219,10 @@ export default function LmsRichTextEditor({
         <div className="flex justify-end px-3 pb-1.5">
           <span
             className={`text-[11px] ${
-              (state?.characters ?? 0) >= maxLength ? "font-semibold text-red-500" : "text-slate-400"
+              characters >= maxLength ? "font-semibold text-red-500" : "text-slate-400"
             }`}
           >
-            {state?.characters ?? 0}/{maxLength}
+            {characters}/{maxLength}
           </span>
         </div>
       )}

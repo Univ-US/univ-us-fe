@@ -2,31 +2,34 @@
 
 // ─────────────────────────────────────────────────────────────
 // [모달] PLM-005-01 강의 자료 등록 모달 (+ 같은 모달로 수정 모드 지원)
-// - '새 자료 업로드' 버튼 클릭 시 표시. 딤(바깥) 또는 X 클릭 시 닫힘(설계서 동작)
-// - 본문 폼은 PLM-005 인라인 카드와 동일한 MaterialUploadForm 공유
+// - '새 자료 업로드' 버튼 클릭 시 표시. 딤(바깥)·X 클릭·ESC 키 시 닫힘(설계서 동작 + ESC=X 동일 처리)
+// - 본문 폼(MaterialUploadForm)이 BE 호출까지 수행 — 성공 시 onSubmit(저장된 자료)로 페이지에 통지
 // - 사이드바(w-60) 제외 본문 영역 기준 중앙 (기존 LMS 모달 컨벤션)
 // ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
-import MaterialUploadForm, {
-  type MaterialFormResult,
-} from "@/components/lms/MaterialUploadForm";
-import type { CourseOption, LectureMaterial } from "@/lib/lmsProfessorUploadApi";
+import MaterialUploadForm from "@/components/lms/MaterialUploadForm";
+import useEscapeClose from "@/components/lms/useEscapeClose";
+import type { Lecture, Material } from "@/lib/lmsProfessorUploadApi";
 
 interface MaterialUploadDialogProps {
   open: boolean;
-  courses: CourseOption[];
-  edit?: LectureMaterial | null; // 있으면 수정 모드(폼 초기값 주입)
+  lectures: Lecture[];
+  termMap: Record<string, string>; // SEM_TERM 공통코드 라벨 맵
+  edit?: Material | null; // 있으면 수정 모드(폼 초기값 주입)
   onClose: () => void;
-  onSubmit: (result: MaterialFormResult) => void;
+  onSubmit: (saved: Material) => void; // BE 저장 성공 시 (페이지가 목록 재조회)
 }
 
 export default function MaterialUploadDialog({
   open,
-  courses,
+  lectures,
+  termMap,
   edit,
   onClose,
   onSubmit,
 }: MaterialUploadDialogProps) {
+  useEscapeClose(open, onClose); // ESC = ✕ 버튼과 동일
+
   if (!open) return null;
 
   return (
@@ -57,21 +60,23 @@ export default function MaterialUploadDialog({
           </Button>
         </div>
 
-        {/* 본문 — 공용 폼 (취소 = 모달 닫기) */}
+        {/* 본문 — 폼이 BE 호출 수행 (취소 = 모달 닫기) */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <MaterialUploadForm
-            courses={courses}
+            lectures={lectures}
+            termMap={termMap}
             mode={edit ? "edit" : "create"}
             initial={
               edit
                 ? {
-                    courseId: edit.courseId,
+                    lecId: edit.lecId,
                     title: edit.title,
-                    description: edit.description,
+                    content: edit.content ?? "",
                   }
                 : undefined
             }
-            initialFileName={edit?.fileName}
+            initialAttachments={edit?.attachments ?? []}
+            editUploadId={edit?.uploadId}
             onSubmit={onSubmit}
             onCancel={onClose}
           />

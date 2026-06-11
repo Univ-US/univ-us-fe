@@ -74,10 +74,15 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* 사이드바 */}
-      <aside className="flex w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80">
-        {/* 브랜드: 학교명(API) + UniVUs */}
-        <div className="flex items-center gap-3 px-5 py-5">
+      {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
+          높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
+      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80">
+        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 홈(/home)으로 이동 */}
+        <Link
+          href="/home"
+          title="홈으로"
+          className="flex items-center gap-3 px-5 py-5 transition-colors hover:bg-emerald-800/50"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
           <div className="min-w-0">
@@ -90,7 +95,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
             {profile?.lmsStudentProfileRole || "학생"}
           </span>
-        </div>
+        </Link>
 
         {/* 사용자 카드 */}
         <div className="mx-3 mb-4 flex items-center gap-3 rounded-xl bg-emerald-800/40 px-3 py-3">
@@ -172,14 +177,22 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        {/* 로그아웃 */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center gap-2.5 px-5 py-4 text-sm text-emerald-100/80 hover:text-white"
-        >
-          <span className="text-base">↩</span> 로그아웃
-        </button>
+        {/* 하단 액션: 홈으로(/home) + 로그아웃 */}
+        <div className="py-2">
+          <Link
+            href="/home"
+            className="flex items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white"
+          >
+            <span className="text-base">🏠</span> 홈으로
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white"
+          >
+            <span className="text-base">↩</span> 로그아웃
+          </button>
+        </div>
       </aside>
 
       {/* 콘텐츠 */}
