@@ -139,9 +139,7 @@ function useWeather() {
 
 export default function CampusHomePage() {
     const router = useRouter();
-    const isInitialized = useAuthStore((s) => s.isInitialized);
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
-    const role = useAuthStore((s) => s.role);
     const memberName = useAuthStore((s) => s.memberName);
     const univId = useAuthStore((s) => s.univId);
     const univName = useAuthStore((s) => s.univName);
@@ -154,12 +152,6 @@ export default function CampusHomePage() {
     const [chatInput, setChatInput] = useState("");
     const [showExtra, setShowExtra] = useState(false);
 
-    // 어드민은 대시보드로
-    useEffect(() => {
-        if (!isInitialized) return;
-        if (role === "ADM") { router.replace("/dashboard/school-admin"); return; }
-        if (role === "SUA") { router.replace("/dashboard/service-admin"); return; }
-    }, [isInitialized, role, router]);
 
     const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
