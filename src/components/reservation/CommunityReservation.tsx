@@ -12,6 +12,8 @@ import { BookOpen, Monitor } from 'lucide-react';
 import {
   cancelRoomReservation,
   cancelReadingSeatReservation,
+  checkInReadingSeatReservation,
+  extendReadingSeatReservation,
   getMyReadingSeatReservations,
   getMyRoomReservations,
   getReadingRoomAvailability,
@@ -119,6 +121,8 @@ export default function CommunityReservation() {
   const [cancelingRoomReservationId, setCancelingRoomReservationId] = useState<
     number | null
   >(null);
+  const [checkingInReservationId, setCheckingInReservationId] = useState<number | null>(null);
+  const [extendingReservationId, setExtendingReservationId] = useState<number | null>(null);
   const [roomReservationModalOpen, setRoomReservationModalOpen] = useState(false);
   const [roomReservationPurpose, setRoomReservationPurpose] = useState('');
   const [roomReservationError, setRoomReservationError] = useState('');
@@ -685,6 +689,41 @@ export default function CommunityReservation() {
     }
   }
 
+  async function handleCheckInReservation(reservationId: number) {
+    setCheckingInReservationId(reservationId);
+    try {
+      await checkInReadingSeatReservation(reservationId);
+      await Promise.all([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability().catch(console.error),
+      ]);
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(error, '입실 처리에 실패했습니다.');
+      alert(message);
+    } finally {
+      setCheckingInReservationId(null);
+    }
+  }
+
+  async function handleExtendReservation(reservationId: number) {
+    setExtendingReservationId(reservationId);
+    try {
+      const res = await extendReadingSeatReservation(reservationId);
+      await Promise.all([
+        loadMyReservations(),
+        refreshSelectedSeatAvailability().catch(console.error),
+      ]);
+      alert(res.message || '예약이 연장되었습니다.');
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(error, '연장 처리에 실패했습니다.');
+      alert(message);
+    } finally {
+      setExtendingReservationId(null);
+    }
+  }
+
   function updateRoomSlotSelection(
     room: RoomAvailability,
     anchorIndex: number,
@@ -930,7 +969,11 @@ export default function CommunityReservation() {
             reservationsLoading={myReservationsLoading}
             reservationError={myReservationError}
             cancelingReservationId={cancelingReservationId}
+            checkingInReservationId={checkingInReservationId}
+            extendingReservationId={extendingReservationId}
             onCancelReservation={handleOpenCancelReservationModal}
+            onCheckInReservation={handleCheckInReservation}
+            onExtendReservation={handleExtendReservation}
             onRefreshReservations={loadMyReservations}
             rooms={rooms}
             currentRoom={currentRoom}
