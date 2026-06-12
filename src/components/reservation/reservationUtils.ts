@@ -134,6 +134,15 @@ export function formatReservationDateRangeLabel(days: ReservationDateOption[]) {
 }
 
 export function toReservationDateTime(day: ReservationDateOption, hour: number) {
+  if (hour >= 24) {
+    const [y, m, d] = day.date.split('-').map(Number);
+    const nextDate = new Date(y, m - 1, d + 1);
+    const nextY = nextDate.getFullYear();
+    const nextM = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const nextD = String(nextDate.getDate()).padStart(2, '0');
+    return `${nextY}-${nextM}-${nextD}T00:00:00`;
+  }
+
   return `${day.date}T${String(hour).padStart(2, '0')}:00:00`;
 }
 

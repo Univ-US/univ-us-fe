@@ -86,3 +86,34 @@ jobs:
           helm upgrade --install univ-us-fe ./charts/univ-us-fe \
             --set image.tag=${{ github.sha }} \
             -n univus --wait --timeout 3m
+
+  # ===================================================================
+  # 잡 3) notify — 배포 결과(성공/실패)를 Discord 로 알림
+  #   [무엇] build·deploy 두 잡이 끝난 뒤, 그 결과를 Discord 웹훅으로 통지.
+  #   [왜]   '배포가 됐는지/실패했는지'를 채널에서 바로 알기 위함(조용한 실패 방지).
+  #   [핵심] needs:[build,deploy] + if:always() → 앞 잡이 실패/취소/스킵돼도 항상 실행.
+  #          (build 실패 시 deploy 는 skipped 되는데 그 경우도 '실패'로 알려야 하므로,
+  #           deploy 잡 안에 if:failure() 만 두면 빌드 실패를 놓침 → 별도 잡으로 분리)
+  #   [러너] curl 한 번이라 GitHub-hosted(ubuntu-latest)에서 실행 → VM 러너 부담 X.
+  #   [시크릿] secrets.DISCORD_SERVER_WEBHOOK (org-level, #server 채널 전용 — CI의 repo-level DISCORD_WEBHOOK[#Git-fe]과 분리)
+  # ===================================================================
+  notify:
+    needs: [build, deploy]
+    if: always()                # 성공/실패/취소 무관하게 항상 실행
+    runs-on: ubuntu-latest
+    steps:
+      # --- 성공: build·deploy 둘 다 success 일 때만 ---
+      - name: Notify deploy success (Discord)
+        if: needs.build.result == 'success' && needs.deploy.result == 'success'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"✅ [FE 배포] 배포 완료 — helm 롤아웃 성공 (univ-us-fe, ns univus).\n커밋: `${{ github.sha }}` / 트리거: ${{ github.event_name }} (${{ github.ref_name }})"}' \
+            "${{ secrets.DISCORD_SERVER_WEBHOOK }}"
+
+      # --- 실패: build·deploy 중 하나라도 success 가 아닐 때(실패/취소/스킵 포함) ---
+      - name: Notify deploy failure (Discord)
+        if: needs.build.result != 'success' || needs.deploy.result != 'success'
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d '{"content":"❌ [FE 배포] 배포 실패 — build=${{ needs.build.result }}, deploy=${{ needs.deploy.result }}.\n커밋: `${{ github.sha }}` / 로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+            "${{ secrets.DISCORD_SERVER_WEBHOOK }}"

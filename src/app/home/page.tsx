@@ -17,22 +17,31 @@ import {
     Monitor,
     Send,
     Smartphone,
+    Play,
     Sun,
+    Users,
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities, streamChatMessage } from "@/lib/homeApi";
+import { getUniversities, streamChatMessage, getNotices, getHomeConfig, Notice, sendChatMessage, type HomeWidgetConfig } from "@/lib/homeApi";
 import api from "@/lib/api";
+import { ROLE } from "@/lib/rolecode";
+
+const DEFAULT_CONFIG: HomeWidgetConfig = {
+    weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
+};
 
 const BASE_SHORTCUTS = [
-    { label: "도서관", icon: BookOpen, bg: "bg-blue-500" },
-    { label: "증명서발급", icon: FileText, bg: "bg-emerald-500", href: "https://www.certpia.com" },
-    { label: "학교홈", icon: GraduationCap, bg: "bg-violet-500" },
+    { label: "도서관", icon: BookOpen, bg: "bg-primary" },
+    { label: "증명서발급", icon: FileText, bg: "bg-teal-600", href: "https://www.certpia.com" },
+    { label: "학교홈", icon: GraduationCap, bg: "bg-slate-700" },
     { label: "화면예약", icon: Monitor, bg: "bg-teal-500" },
     { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
     { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
-    { label: "학교 SNS", icon: Hash, bg: "bg-pink-500" },
-    { label: "커뮤니티", icon: MessageSquare, bg: "bg-sky-500", href: "/community" },
+    { label: "학교 SNS", icon: Hash, bg: "bg-teal-500" },
+    { label: "YouTube", icon: Play, bg: "bg-red-600" },
+    { label: "동아리", icon: Users, bg: "bg-amber-500" },
+    { label: "커뮤니티", icon: MessageSquare, bg: "bg-primary", href: "/community" },
     { label: "LMS", icon: LayoutDashboard, bg: "bg-indigo-500", href: "#" },
 ];
 
@@ -40,18 +49,6 @@ const EXTRA_SHORTCUTS = [
     { label: "취업정보", icon: Briefcase, bg: "bg-orange-500", href: "https://www.jobkorea.co.kr" },
 ];
 
-const NOTICE_TABS = ["전체", "LMS", "커뮤니티"] as const;
-type NoticeTab = (typeof NOTICE_TABS)[number];
-
-// TODO(HOM-005): 관리자 공지 API 연동으로 교체
-const MOCK_NOTICES = [
-    { tag: "학사", title: "[교고] 2025학년도 후기(2026년 8월) 졸업예정자 학위...", date: "05.18", type: "LMS" },
-    { tag: "취업", title: "[취업] 2026년 2월(2025년 전기) 졸업예정자 학위수여...", date: "05.13", type: "LMS" },
-    { tag: "학사", title: "2026-1학기 국가장학금 2차 신청 마감D-3 안내", date: "05.09", type: "LMS" },
-    { tag: "카뉴", title: "[고교마켓] 자료구조 재시험 이수 수칙 변경", date: "05.07", type: "커뮤니티" },
-    { tag: "학사", title: "[수입] 2026-1학기 기말고사 강의실 배정 및 유의사항", date: "05.02", type: "LMS" },
-    { tag: "D-3", title: "2026 봄 대동제 '유니버스 페스티벌' 버스 운행 신청", date: "04.26", type: "커뮤니티" },
-];
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -63,8 +60,9 @@ const MOCK_MEALS = [
 ];
 
 function useNow() {
-    const [now, setNow] = useState(new Date());
+    const [now, setNow] = useState<Date | null>(null);
     useEffect(() => {
+        setNow(new Date());
         const id = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(id);
     }, []);
@@ -83,6 +81,9 @@ interface SchoolInfo {
     schoolPhone: string;
     homepage: string | null;
     address: string | null;
+    youtubeUrl: string | null;
+    clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
@@ -96,7 +97,15 @@ function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
                 if (univ) {
                     const hp = univ.homepage;
                     const homepage = hp ? (hp.startsWith("http") ? hp : `https://${hp}`) : null;
-                    setInfo({ schoolName: univ.univName, schoolPhone: univ.schoolPhone, homepage, address: univ.address ?? null });
+                    setInfo({
+                        schoolName: univ.univName,
+                        schoolPhone: univ.schoolPhone,
+                        homepage,
+                        address: univ.address ?? null,
+                        youtubeUrl: univ.youtubeUrl ?? null,
+                        clubUrl: univ.clubUrl ?? null,
+                        snsUrl: univ.snsUrl ?? null,
+                    });
                 }
             })
             .catch(() => {});
@@ -135,26 +144,29 @@ export default function CampusHomePage() {
     const now = useNow();
     const weather = useWeather();
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
-    const [activeTab, setActiveTab] = useState<NoticeTab>("전체");
+    const [homeConfig, setHomeConfig] = useState<HomeWidgetConfig>(DEFAULT_CONFIG);
+    const [notices, setNotices] = useState<Notice[]>([]);
+    const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
-
-    // 어드민은 대시보드로
     useEffect(() => {
-        if (!isInitialized) return;
-        if (role === "ADM") { router.replace("/dashboard/school-admin"); return; }
-        if (role === "SUA") { router.replace("/dashboard/service-admin"); return; }
-    }, [isInitialized, role, router]);
+        if (!isLoggedIn) return;
+        getNotices().then(setNotices).catch(() => {});
+        getHomeConfig().then(setHomeConfig).catch(() => {});
+    }, [isLoggedIn]);
 
-    const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
-    const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
-    const dayStr = `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})`;
+    // LMS 바로가기: role에 따라 교수(PLM)/학생·졸업생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
+    const lmsHref =
+        role === ROLE.PROF ? "/lms/professor/profile"
+        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/profile"
+        : undefined;
 
-    const filteredNotices =
-        activeTab === "전체" ? MOCK_NOTICES : MOCK_NOTICES.filter((n) => n.type === activeTab);
+    const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+    const dateStr = now ? `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}` : "";
+    const dayStr = now ? `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})` : "";
 
     const handleLogout = async () => {
         await logoutAction();
@@ -199,9 +211,9 @@ export default function CampusHomePage() {
     }, [chatMessages, chatLoading]);
 
     return (
-        <div className="min-h-screen bg-[#f4f6f8]">
+        <div className="min-h-screen bg-slate-50">
             {/* 헤더 */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <header className="sticky top-0 z-40 border-b border-border bg-white/95 shadow-sm backdrop-blur">
                 <div className="mx-auto max-w-[1180px] flex items-center justify-between h-14 px-5">
                     <div className="flex items-center gap-2">
                         <Link href="/home" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="font-extrabold text-slate-900 tracking-tight hover:opacity-75 transition-opacity">
@@ -209,7 +221,7 @@ export default function CampusHomePage() {
                         </Link>
                     </div>
 
-                    {isLoggedIn && (
+                    {isInitialized && isLoggedIn && (
                         <div className="flex items-center gap-4 text-sm">
                             <span className="text-slate-500 hidden sm:inline">{memberName}님</span>
                             <button
@@ -225,46 +237,46 @@ export default function CampusHomePage() {
             </header>
 
             {/* 히어로 배너 */}
-            <div className="bg-[#11302a] text-white">
-                <div className="mx-auto max-w-[1180px] px-5 py-8 flex items-center justify-between gap-4">
+            <div className="bg-slate-50 px-5 pt-5">
+                <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-teal-50 to-blue-50 px-5 py-7 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
                     <div>
-                        <p className="text-xs text-white/50 mb-1.5">{univName ?? 'Univ·us'} 통합 포털</p>
+                        <p className="mb-1.5 text-xs font-bold text-primary/80">{univName ?? 'Univ·us'} 통합 포털</p>
                         <h1 className="text-xl sm:text-2xl font-extrabold leading-tight">
                             오늘도 캠퍼스의 모든 것을 한 곳에서 👋
                         </h1>
                     </div>
                     <div className="text-right hidden md:block shrink-0">
-                        {weather ? (
-                            <div className="flex items-center gap-2 justify-end text-white/70 text-sm mb-1">
+                        {homeConfig.weather && (weather ? (
+                            <div className="mb-1 flex items-center justify-end gap-2 text-sm text-slate-500">
                                 <img
                                     src={`https://openweathermap.org/img/wn/${weather.icon}.png`}
                                     alt={weather.description}
                                     className="w-6 h-6"
                                 />
-                                <span className="font-bold text-white">{weather.temp}°</span>
-                                <span className="text-white/40">|</span>
+                                <span className="font-bold text-primary">{weather.temp}°</span>
+                                <span className="text-slate-300">|</span>
                                 <span>{weather.description} · {weather.city}</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 justify-end text-white/70 text-sm mb-1">
-                                <Sun className="w-4 h-4 text-yellow-300" />
-                                <span className="text-white/40">날씨 불러오는 중...</span>
+                            <div className="mb-1 flex items-center justify-end gap-2 text-sm text-slate-500">
+                                <Sun className="w-4 h-4 text-amber-400" />
+                                <span>날씨 불러오는 중...</span>
                             </div>
-                        )}
+                        ))}
                         <p className="text-2xl font-black tracking-tight">{timeStr}</p>
-                        <p className="text-white/40 text-xs mt-0.5">{dateStr}</p>
+                        <p className="mt-0.5 text-xs text-slate-400">{dateStr}</p>
                     </div>
                 </div>
             </div>
 
             {/* 메인 컨텐츠 */}
-            <div className="mx-auto max-w-[1180px] px-5 py-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-5 px-5 py-5 lg:grid-cols-3">
 
                 {/* 왼쪽 컬럼 */}
                 <div className="lg:col-span-2 flex flex-col gap-5">
 
                     {/* 바로가기 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.shortcut && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="font-extrabold text-slate-800 text-sm">바로가기</h2>
                             <button
@@ -284,26 +296,38 @@ export default function CampusHomePage() {
                                 );
                                 const labelEl = <span className="text-[10px] text-slate-600 text-center leading-tight">{s.label}</span>;
 
-                                const resolvedHref = s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined) : s.href;
-                                if (resolvedHref && isLoggedIn) {
-                                    const isExternal = resolvedHref.startsWith("http");
-                                    return (
-                                        <a key={s.label} href={resolvedHref} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined} className="flex flex-col items-center gap-2 group">
-                                            {iconEl}{labelEl}
-                                        </a>
-                                    );
-                                }
+                                const resolvedHref =
+                                    s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
+                                    : s.label === "LMS" ? lmsHref
+                                    : s.label === "학교 SNS" ? (schoolInfo?.snsUrl ?? undefined)
+                                    : s.label === "YouTube" ? (schoolInfo?.youtubeUrl ?? undefined)
+                                    : s.label === "동아리" ? (schoolInfo?.clubUrl ?? undefined)
+                                    : s.href;
+                                const handleClick = () => {
+                                    if (!isLoggedIn) { router.push("/home/login"); return; }
+                                    // LMS는 역할 없으면(교수·학생·졸업생 외) 가드와 동일 문구로 안내 — 무반응 방지
+                                    if (s.label === "LMS" && !resolvedHref) {
+                                        window.alert("LMS 접근 권한이 없습니다.");
+                                        return;
+                                    }
+                                    if (!resolvedHref) return;
+                                    if (resolvedHref.startsWith("http")) {
+                                        window.open(resolvedHref, "_blank", "noopener,noreferrer");
+                                    } else {
+                                        router.push(resolvedHref);
+                                    }
+                                };
                                 return (
-                                    <button key={s.label} onClick={() => { if (!isLoggedIn) router.push("/home/login"); }} className="flex flex-col items-center gap-2 group">
+                                    <button key={s.label} onClick={handleClick} className="flex flex-col items-center gap-2 group">
                                         {iconEl}{labelEl}
                                     </button>
                                 );
                             })}
                         </div>
-                    </section>
+                    </section>}
 
                     {/* AI 챗봇 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.aiChat && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">AI 챗봇</h2>
                             <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
@@ -376,10 +400,10 @@ export default function CampusHomePage() {
                                 <Send className="w-4 h-4" />
                             </button>
                         </div>
-                    </section>
+                    </section>}
 
                     {/* 교내 전화번호 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.tel && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                         <h2 className="font-extrabold text-slate-800 text-sm mb-4">교내 전화번호</h2>
                         {schoolInfo ? (
                             <a
@@ -397,14 +421,16 @@ export default function CampusHomePage() {
                             </div>
                         )}
                         <p className="text-[11px] text-slate-400 mt-3">※ 세부 전화번호는 학교 홈페이지를 확인하세요.</p>
-                    </section>
+                    </section>}
 
                     {/* 학교 유튜브 · 동아리 */}
                     <div className="grid grid-cols-2 gap-3">
                         <a
-                            href="#"
-                            onClick={requireLogin}
-                            className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
+                            href={isLoggedIn && schoolInfo?.youtubeUrl ? schoolInfo.youtubeUrl : undefined}
+                            onClick={!isLoggedIn ? requireLogin : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                         >
                             <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-white">
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
@@ -413,9 +439,11 @@ export default function CampusHomePage() {
                             <span className="text-[11px] font-semibold text-primary">바로가기 →</span>
                         </a>
                         <a
-                            href="#"
-                            onClick={requireLogin}
-                            className="group bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2"
+                            href={isLoggedIn && schoolInfo?.clubUrl ? schoolInfo.clubUrl : undefined}
+                            onClick={!isLoggedIn ? requireLogin : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                         >
                             <div className="w-9 h-9 rounded-xl bg-violet-500 flex items-center justify-center text-white">
                                 <GraduationCap className="w-4 h-4" />
@@ -430,14 +458,14 @@ export default function CampusHomePage() {
                 <div className="flex flex-col gap-5">
 
                     {/* 로그인 카드 */}
-                    {!isLoggedIn && (
-                        <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {isInitialized && !isLoggedIn && (
+                        <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                             <p className="text-xs text-slate-500 mb-4">
                                 로그인하면 캠퍼스의 모든 서비스를 이용할 수 있어요.
                             </p>
                             <Link
                                 href="/home/login"
-                                className="flex items-center justify-center gap-2 w-full bg-[#11302a] text-white text-sm font-bold py-2.5 rounded-lg hover:opacity-90 transition"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-white transition hover:opacity-90"
                             >
                                 <LogIn className="w-4 h-4" />
                                 로그인 / 회원가입
@@ -445,49 +473,67 @@ export default function CampusHomePage() {
                         </section>
                     )}
 
+                    {/* 관리자 대시보드 바로가기 */}
+                    {isInitialized && isLoggedIn && role === "ADM" && (
+                        <Link
+                            href="/dashboard/school-admin"
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-teal-700 px-5 py-3.5 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                        >
+                            <div className="absolute -right-5 -top-5 size-28 rounded-full bg-white/5" />
+                            <div className="absolute -right-3 -bottom-8 size-36 rounded-full bg-white/5" />
+                            <div className="relative">
+                                <div className="flex items-center justify-between mb-2.5">
+                                    <span className="text-[10px] font-black tracking-widest text-emerald-300/60 uppercase">School Admin</span>
+                                    <div className="flex size-7 items-center justify-center rounded-lg bg-white/10">
+                                        <LayoutDashboard className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                </div>
+                                <p className="text-white font-black text-base leading-snug">관리자<br />대시보드</p>
+                                <p className="mt-2 flex items-center gap-1 text-emerald-300 text-xs font-bold">
+                                    이동하기
+                                    <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+                                </p>
+                            </div>
+                        </Link>
+                    )}
+
                     {/* 최근 공지 */}
-                    {/* TODO(HOM-005): 관리자 공지 API 연동 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.notice && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
-                            <button
-                                onClick={requireLogin}
-                                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                더보기
-                            </button>
+                            {isLoggedIn && (
+                                <Link href="/home/notices" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                                    더보기
+                                </Link>
+                            )}
                         </div>
-                        <div className="flex gap-1 mb-3">
-                            {NOTICE_TABS.map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${
-                                        activeTab === tab
-                                            ? "bg-primary text-white"
-                                            : "text-slate-500 hover:bg-slate-100"
-                                    }`}
-                                >
-                                    {tab}
-                                </button>
-                            ))}
-                        </div>
-                        <ul className="divide-y divide-slate-100">
-                            {filteredNotices.map((n, i) => (
-                                <li key={i} className="flex items-center gap-2 py-2 text-xs">
-                                    <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
-                                        {n.tag}
-                                    </span>
-                                    <span className="flex-1 text-slate-700 truncate">{n.title}</span>
-                                    <span className="shrink-0 text-slate-400">{n.date}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
+                        {!isLoggedIn ? (
+                            <p className="text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>
+                        ) : notices.length === 0 ? (
+                            <p className="text-sm text-slate-400">등록된 공지가 없어요.</p>
+                        ) : (
+                            <ul className="divide-y divide-slate-100">
+                                {notices.slice(0, 6).map((n) => (
+                                    <li
+                                        key={n.noticeId}
+                                        onClick={() => setSelectedNotice(n)}
+                                        className="flex items-center gap-2 py-2 text-xs cursor-pointer hover:bg-slate-50 rounded transition-colors"
+                                    >
+                                        <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
+                                            공지
+                                        </span>
+                                        <span className="flex-1 text-slate-700 truncate">{n.title}</span>
+                                        <span className="shrink-0 text-slate-400">
+                                            {(() => { const d = new Date(n.postedAt); return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>}
 
                     {/* 오늘의 학식 */}
-                    {/* TODO(HOM-011): 학식 API 연동 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.meal && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
                                 <Utensils className="w-4 h-4 text-primary" />
@@ -510,10 +556,34 @@ export default function CampusHomePage() {
                                 </div>
                             ))}
                         </div>
-                    </section>
+                    </section>}
                 </div>
             </div>
 
+
+            {/* 공지 상세 모달 */}
+            {selectedNotice && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                    onClick={() => setSelectedNotice(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 flex flex-col gap-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 className="font-extrabold text-slate-800 text-base leading-snug">{selectedNotice.title}</h3>
+                            <button onClick={() => setSelectedNotice(null)} className="shrink-0 text-slate-400 hover:text-slate-700 transition-colors text-lg leading-none">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                            {selectedNotice.memberName} · {(() => { const d = new Date(selectedNotice.postedAt); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`; })()}
+                        </p>
+                        <div className="border-t border-slate-100 pt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {selectedNotice.content}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 푸터 */}
             {schoolInfo?.address && (

@@ -9,6 +9,8 @@ const FREE_BOARD_ID = 1;
 
 export default function FreeBoardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,9 +18,11 @@ export default function FreeBoardPage() {
     try {
       const data = await getPostList({ boardId: FREE_BOARD_ID, page: 1, size: 50 });
       setPosts(data.postList ?? []);
+      setTotalCount(data.totalCount ?? 0);
+      setTodayCount(data.todayCount ?? 0);
     } catch (err) {
       console.error('FreeBoardPage fetch error:', err);
-      setError('게시글을 불러오는 데 실패했어. 백엔드가 켜져 있는지 확인해줘.');
+      setError('게시글을 불러오는 데 실패했습니다. 백엔드가 켜져 있는지 확인해 주세요.');
     } finally {
       setLoading(false);
     }
@@ -33,5 +37,13 @@ export default function FreeBoardPage() {
   if (loading) return <div className="flex min-h-screen items-center justify-center text-slate-400 text-[14px]">게시글 불러오는 중...</div>;
   if (error) return <div className="flex min-h-screen items-center justify-center text-red-400 text-[14px]">{error}</div>;
 
-  return <CommunityBoardView board="free" posts={posts} onRefresh={fetchPosts} />;
+  return (
+    <CommunityBoardView
+      board="free"
+      posts={posts}
+      totalCount={totalCount}
+      todayCount={todayCount}
+      onRefresh={fetchPosts}
+    />
+  );
 }

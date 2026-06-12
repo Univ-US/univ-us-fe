@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Building2, Cloud, Database, Grid2x2, Link2, Megaphone, Settings, Upload } from "lucide-react";
+import { Bot, Building2, Check, Cloud, Database, Grid2x2, Link2, Megaphone, Play, Save, Settings } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getAdminUniversity, type ApiUniversity } from "@/lib/adminApi";
+import {
+    getAdminUniversity, updateAdminUniversityLinks, type ApiUniversity,
+    getHomeWidgetConfig, updateHomeWidgetConfig, DEFAULT_WIDGET_CONFIG, type HomeWidgetConfig,
+    getNoticeConfig, updateNoticeConfig, DEFAULT_NOTICE_CONFIG, type NoticeConfig,
+} from "@/lib/adminApi";
 import { Toggle } from "../_components";
 
 export default function SettingsView() {
@@ -12,22 +16,55 @@ export default function SettingsView() {
     const [university, setUniversity] = useState<ApiUniversity | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const [widgets, setWidgets] = useState({
-        weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
-    });
-    const [noticeDefaults, setNoticeDefaults] = useState({
-        target: "전체" as "전체" | "학생" | "교수",
-        showTop: true,
-        pushAlert: false,
-    });
+    const [links, setLinks] = useState({ youtubeUrl: "", clubUrl: "", snsUrl: "" });
+    const [linksSaving, setLinksSaving] = useState(false);
+    const [linksSaved, setLinksSaved] = useState(false);
+
+    const [widgets, setWidgets] = useState<HomeWidgetConfig>(DEFAULT_WIDGET_CONFIG);
+    const [widgetsSaving, setWidgetsSaving] = useState(false);
+    const [widgetsSaved, setWidgetsSaved] = useState(false);
+    const [noticeConfig, setNoticeConfig] = useState<NoticeConfig>(DEFAULT_NOTICE_CONFIG);
+    const [noticeSaving, setNoticeSaving] = useState(false);
+    const [noticeSaved, setNoticeSaved] = useState(false);
+
+    useEffect(() => {
+        if (!univId) return;
+        getHomeWidgetConfig(univId).then(setWidgets).catch(() => {});
+        getNoticeConfig(univId).then(setNoticeConfig).catch(() => {});
+    }, [univId]);
 
     useEffect(() => {
         if (!univId) return;
         getAdminUniversity(univId)
-            .then(setUniversity)
+            .then((u) => {
+                setUniversity(u);
+                setLinks({
+                    youtubeUrl: u.youtubeUrl ?? "",
+                    clubUrl: u.clubUrl ?? "",
+                    snsUrl: u.snsUrl ?? "",
+                });
+            })
             .catch(console.error)
             .finally(() => setLoading(false));
     }, [univId]);
+
+    const handleSaveLinks = async () => {
+        if (!univId) return;
+        setLinksSaving(true);
+        try {
+            await updateAdminUniversityLinks(univId, {
+                youtubeUrl: links.youtubeUrl || null,
+                clubUrl: links.clubUrl || null,
+                snsUrl: links.snsUrl || null,
+            });
+            setLinksSaved(true);
+            setTimeout(() => setLinksSaved(false), 2000);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLinksSaving(false);
+        }
+    };
 
     const apis = [
         { name: "OpenWeatherMap", desc: "날씨 위젯 API", connected: true, icon: Cloud },
@@ -61,52 +98,71 @@ export default function SettingsView() {
 
             {tab === "info" && (
                 <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
-                        <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
-                            <Building2 className="size-4" /> 기본 정보
-                        </div>
-                        <p className="mt-1 text-xs text-slate-400">홈-로그인 화면에 노출되는 학교 정보입니다.</p>
+                    <div className="space-y-5">
+                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
+                                <Building2 className="size-4" /> 기본 정보
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">홈-로그인 화면에 노출되는 학교 정보입니다.</p>
 
-                        {loading ? (
-                            <p className="mt-6 text-sm text-slate-400">불러오는 중...</p>
-                        ) : (
+                            {loading ? (
+                                <p className="mt-6 text-sm text-slate-400">불러오는 중...</p>
+                            ) : (
+                                <div className="mt-5 space-y-4">
+                                    {[
+                                        { label: "학교명", value: university?.univName ?? "—" },
+                                        { label: "대표 전화", value: university?.schoolPhone ?? "—" },
+                                        { label: "홈페이지", value: university?.homepage ?? "—" },
+                                        { label: "주소", value: university?.address ?? "—" },
+                                    ].map(({ label, value }) => (
+                                        <div key={label}>
+                                            <p className="text-xs font-black text-slate-500">{label}</p>
+                                            <p className="mt-1 rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <p className="mt-4 text-xs text-slate-400">
+                                학교 기본 정보 변경은 서비스 관리자에게 문의해 주세요.
+                            </p>
+                        </section>
+
+                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
+                                <Play className="size-4" /> 링크·바로가기
+                            </div>
+                            <p className="mt-1 text-xs text-slate-400">학생 홈 화면 바로가기 타일에 연결됩니다.</p>
                             <div className="mt-5 space-y-4">
-                                {[
-                                    { label: "학교명", value: university?.univName ?? "—" },
-                                    { label: "대표 전화", value: university?.schoolPhone ?? "—" },
-                                    { label: "홈페이지", value: university?.homepage ?? "—" },
-                                    { label: "주소", value: university?.address ?? "—" },
-                                ].map(({ label, value }) => (
-                                    <div key={label}>
+                                {([
+                                    { key: "youtubeUrl", label: "YouTube 채널", placeholder: "https://youtube.com/@..." },
+                                    { key: "clubUrl", label: "동아리 사이트", placeholder: "https://..." },
+                                    { key: "snsUrl", label: "학교 SNS", placeholder: "https://instagram.com/..." },
+                                ] as const).map(({ key, label, placeholder }) => (
+                                    <div key={key}>
                                         <p className="text-xs font-black text-slate-500">{label}</p>
-                                        <p className="mt-1 rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
+                                        <input
+                                            type="url"
+                                            value={links[key]}
+                                            onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
+                                            placeholder={placeholder}
+                                            className="mt-1 w-full rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-emerald-500 focus:bg-white"
+                                        />
                                     </div>
                                 ))}
                             </div>
-                        )}
-
-                        <p className="mt-4 text-xs text-slate-400">
-                            학교 기본 정보 변경은 서비스 관리자에게 문의해 주세요.
-                        </p>
-                    </section>
+                            <button
+                                onClick={handleSaveLinks}
+                                disabled={linksSaving}
+                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2.5 text-sm font-black text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
+                            >
+                                <Save className="size-4" />
+                                {linksSaved ? "저장됨!" : linksSaving ? "저장 중..." : "링크 저장"}
+                            </button>
+                        </section>
+                    </div>
 
                     <div className="space-y-5">
-                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
-                            <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
-                                <Upload className="size-4" /> 로고·브랜드
-                            </div>
-                            <p className="mt-1 text-xs text-slate-400">사이드바와 로그인 화면 로고.</p>
-                            <div className="mt-4 flex h-20 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
-                                <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-700 text-2xl font-black text-white">
-                                    U
-                                </div>
-                            </div>
-                            <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-bold hover:bg-slate-50">
-                                <Upload className="size-3" /> 로고 업로드
-                            </button>
-                            <p className="mt-1 text-center text-[10px] text-slate-400">SVG·PNG · 최소 256×256 · 최대 2MB</p>
-                        </section>
-
                         <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
                             <div className="text-sm font-extrabold text-slate-500">운영 상태</div>
                             <div className="mt-3 space-y-2 text-sm">
@@ -153,8 +209,24 @@ export default function SettingsView() {
                                 </div>
                             ))}
                         </div>
-                        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
-                            변경사항 저장
+                        <button
+                            onClick={async () => {
+                                if (!univId) return;
+                                setWidgetsSaving(true);
+                                try {
+                                    await updateHomeWidgetConfig(univId, widgets);
+                                    setWidgetsSaved(true);
+                                    setTimeout(() => setWidgetsSaved(false), 2000);
+                                } catch (e) {
+                                    console.error(e);
+                                } finally {
+                                    setWidgetsSaving(false);
+                                }
+                            }}
+                            disabled={widgetsSaving}
+                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2.5 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                        >
+                            {widgetsSaved ? <><Check className="size-4" /> 저장됨!</> : widgetsSaving ? "저장 중..." : <><Save className="size-4" /> 변경사항 저장</>}
                         </button>
                     </section>
 
@@ -168,13 +240,13 @@ export default function SettingsView() {
                         <div className="mt-5">
                             <p className="text-sm font-black">기본 공지 대상</p>
                             <div className="mt-2 flex gap-2 rounded-lg border border-border p-1">
-                                {(["전체", "학생", "교수"] as const).map((t) => (
+                                {(["ALL", "STU", "PROF"] as const).map((t) => (
                                     <button
                                         key={t}
-                                        onClick={() => setNoticeDefaults({ ...noticeDefaults, target: t })}
-                                        className={`flex-1 rounded-md py-1.5 text-sm font-bold transition-colors ${noticeDefaults.target === t ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
+                                        onClick={() => setNoticeConfig({ ...noticeConfig, defaultTarget: t })}
+                                        className={`flex-1 rounded-md py-1.5 text-sm font-bold transition-colors ${noticeConfig.defaultTarget === t ? "bg-emerald-600 text-white" : "text-slate-600 hover:bg-slate-50"}`}
                                     >
-                                        {t}
+                                        {t === "ALL" ? "전체" : t === "STU" ? "학생" : "교수"}
                                     </button>
                                 ))}
                             </div>
@@ -191,12 +263,32 @@ export default function SettingsView() {
                                         <p className="text-xs text-slate-400">{desc}</p>
                                     </div>
                                     <Toggle
-                                        checked={noticeDefaults[key]}
-                                        onChange={() => setNoticeDefaults({ ...noticeDefaults, [key]: !noticeDefaults[key] })}
+                                        checked={noticeConfig[key]}
+                                        onChange={() => setNoticeConfig({ ...noticeConfig, [key]: !noticeConfig[key] })}
                                     />
                                 </div>
                             ))}
                         </div>
+
+                        <button
+                            onClick={async () => {
+                                if (!univId) return;
+                                setNoticeSaving(true);
+                                try {
+                                    await updateNoticeConfig(univId, noticeConfig);
+                                    setNoticeSaved(true);
+                                    setTimeout(() => setNoticeSaved(false), 2000);
+                                } catch (e) {
+                                    console.error(e);
+                                } finally {
+                                    setNoticeSaving(false);
+                                }
+                            }}
+                            disabled={noticeSaving}
+                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 py-2.5 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                        >
+                            {noticeSaved ? <><Check className="size-4" /> 저장됨!</> : noticeSaving ? "저장 중..." : <><Save className="size-4" /> 변경사항 저장</>}
+                        </button>
                     </section>
                 </div>
             )}

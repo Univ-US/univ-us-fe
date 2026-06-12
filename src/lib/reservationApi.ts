@@ -112,12 +112,89 @@ export type ReservationMutationResponse = {
   message: string;
 };
 
+export type ActiveSeatReservation = {
+  reservationId: number;
+  memberId: number;
+  seatId: number;
+  readingRoomId: number;
+  roomName: string;
+  seatNumber: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+};
+
+export type SeatChatRoom = {
+  roomId: number;
+  myReservationId: number;
+  targetReservationId: number;
+  targetSeatId: number;
+  targetReadingRoomId: number;
+  targetRoomName: string;
+  targetSeatNumber: string;
+  status: string;
+  createdAt: string;
+  lastMessageText: string | null;
+  lastMessageAt: string | null;
+};
+
+export type SeatChatMessage = {
+  messageId: number;
+  roomId: number;
+  senderReservationId: number;
+  messageText: string;
+  isRead: number | null;
+  createdAt: string;
+};
+
+export type SeatChatContext = {
+  activeReservation: ActiveSeatReservation | null;
+  rooms: SeatChatRoom[];
+};
+
 export async function getReservationDateOptions(days = 5) {
   const res = await api.get<ReservationDateOptionsResponse>(
     '/api/reservations/date-options',
     {
       params: { days },
     },
+  );
+
+  return res.data;
+}
+
+export async function getSeatChatContext() {
+  const res = await api.get<SeatChatContext>(
+    '/api/reservations/seat-chats',
+  );
+
+  return res.data;
+}
+
+export async function createOrGetSeatChatRoom(targetReservationId: number) {
+  const res = await api.post<SeatChatRoom>(
+    '/api/reservations/seat-chats',
+    { targetReservationId },
+  );
+
+  return res.data;
+}
+
+export async function getSeatChatMessages(roomId: number) {
+  const res = await api.get<SeatChatMessage[]>(
+    `/api/reservations/seat-chats/${roomId}/messages`,
+  );
+
+  return res.data;
+}
+
+export async function sendSeatChatMessage(
+  roomId: number,
+  messageText: string,
+) {
+  const res = await api.post<SeatChatMessage>(
+    `/api/reservations/seat-chats/${roomId}/messages`,
+    { messageText },
   );
 
   return res.data;
@@ -135,6 +212,24 @@ export async function cancelReadingSeatReservation(reservationId: number) {
   const res = await api.delete<ReservationMutationResponse>(
     `/api/reservations/seats/${reservationId}`,
   );
+
+  return res.data;
+}
+
+export async function checkInReadingSeatReservation(reservationId: number) {
+  const res = await api.post<ReservationMutationResponse>(
+    `/api/reservations/seats/${reservationId}/checkin`,
+  );
+
+  return res.data;
+}
+
+export async function extendReadingSeatReservation(reservationId: number) {
+  const res = await api.post<{
+    success: boolean;
+    message: string;
+    data: ReadingSeatReservation;
+  }>(`/api/reservations/seats/${reservationId}/extend`);
 
   return res.data;
 }

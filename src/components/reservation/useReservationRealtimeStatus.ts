@@ -16,8 +16,18 @@ export type ReadingSeatRealtimeEvent = {
   endTime: string;
 };
 
+export type RoomReservationRealtimeEvent = {
+  action: 'RESERVED' | 'CANCELLED' | string;
+  reservationId: number;
+  memberId: number;
+  roomId: number;
+  startTime: string;
+  endTime: string;
+};
+
 type ReservationRealtimeOptions = {
   onSeatEvent?: (event: ReadingSeatRealtimeEvent) => void;
+  onRoomEvent?: (event: RoomReservationRealtimeEvent) => void;
 };
 
 function isBrowserOnline() {
@@ -28,10 +38,15 @@ export function useReservationRealtimeStatus(options?: ReservationRealtimeOption
   const [status, setStatus] =
     useState<ReservationRealtimeStatus>('disconnected');
   const onSeatEventRef = useRef(options?.onSeatEvent);
+  const onRoomEventRef = useRef(options?.onRoomEvent);
 
   useEffect(() => {
     onSeatEventRef.current = options?.onSeatEvent;
   }, [options?.onSeatEvent]);
+
+  useEffect(() => {
+    onRoomEventRef.current = options?.onRoomEvent;
+  }, [options?.onRoomEvent]);
 
   useEffect(() => {
     let client: Client | null = null;
@@ -74,6 +89,19 @@ export function useReservationRealtimeStatus(options?: ReservationRealtimeOption
             try {
               const event = JSON.parse(message.body) as ReadingSeatRealtimeEvent;
               onSeatEventRef.current?.(event);
+            } catch {
+              // Ignore malformed realtime messages without breaking the socket.
+            }
+          });
+
+          nextClient.subscribe('/sub/reservations/rooms', (message) => {
+            if (!message.body) {
+              return;
+            }
+
+            try {
+              const event = JSON.parse(message.body) as RoomReservationRealtimeEvent;
+              onRoomEventRef.current?.(event);
             } catch {
               // Ignore malformed realtime messages without breaking the socket.
             }

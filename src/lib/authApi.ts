@@ -20,6 +20,7 @@ export interface LoginResponse {
     univId: number | null;
     univName: string | null;
     communityNickname: string;
+    status: string;
 }
 
 export const login = async (payload: LoginRequest) => {

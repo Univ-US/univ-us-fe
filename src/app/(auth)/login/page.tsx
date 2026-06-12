@@ -10,7 +10,7 @@ import Link from "next/link";
 const getRedirectPathByRole = (role: string) => {
     switch (role) {
         case "SUA":
-            return "/dashboard/service-admin";
+            return "/service-admin";
         case "ADM":
             return "/dashboard/school-admin";
         case "GUEST":

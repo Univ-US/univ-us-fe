@@ -10,6 +10,7 @@
 import { useCallback, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 
 interface ImageCropDialogProps {
   open: boolean;
@@ -37,6 +38,9 @@ export default function ImageCropDialog({
     setAreaPixels(areaPx);
   }, []);
 
+  // ESC = '취소' 버튼과 동일 (적용 중엔 취소 버튼처럼 비활성)
+  useEscapeClose(open && !!imageSrc && !processing, onCancel);
+
   const handleApply = async () => {
     if (!imageSrc || !areaPixels) return;
     setProcessing(true);
@@ -52,7 +56,8 @@ export default function ImageCropDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      // 사이드바(w-60=240px)를 제외한 본문 영역 기준으로 중앙 정렬 (left-60)
+      className="fixed inset-y-0 right-0 left-60 z-50 flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="프로필 이미지 위치 조정"

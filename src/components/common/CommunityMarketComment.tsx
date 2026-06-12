@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Heart, CornerDownRight, Trash2 } from 'lucide-react';
+import { CornerDownRight, MessageCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getProductCommentList,
@@ -9,17 +9,15 @@ import {
   deleteProductComment,
 } from '@/lib/marketApi';
 import { useAuthStore } from '@/store/authStore';
+import { formatDate } from '@/lib/utils';
 import type { ProductComment } from '@/types/community';
 
-// ── cn 유틸 ────────────────────────────────────────────
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+const REPLY_PREVIEW_COUNT = 2;
 
 // ── 아바타 ─────────────────────────────────────────────
 function Avatar({ name }: { name: string }) {
   return (
-    <div className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-extrabold text-primary ring-1 ring-primary/10">
       {name.slice(0, 1)}
     </div>
   );
@@ -42,11 +40,17 @@ function MarketCommentItem({
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showAllReplies, setShowAllReplies] = useState(false);
 
   const authorLabel =
     comment.isAnonymous === 1
       ? '익명'
       : (comment.authorNickname ?? comment.authorName);
+  const replies = comment.replies ?? [];
+  const replyCount = replies.length;
+  const visibleReplies = showAllReplies
+    ? replies
+    : replies.slice(0, REPLY_PREVIEW_COUNT);
 
   const submitReply = async () => {
     if (!draft.trim()) return;
@@ -58,91 +62,104 @@ function MarketCommentItem({
   };
 
   return (
-    <div className={`px-1 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
+    <div className={`px-1 py-4 ${!isLast ? 'border-b border-slate-100' : ''}`}>
       {/* 댓글 본문 */}
       <div className="flex items-start gap-3">
         <Avatar name={authorLabel} />
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-[13px] font-bold">{authorLabel}</span>
+            <span className="text-[13px] font-extrabold text-slate-900">{authorLabel}</span>
             {comment.isSeller && (
               <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
                 판매자
               </span>
             )}
-            <span className="text-[11px] text-muted-foreground">
-              {String(comment.createdAt)}
+            <span className="text-[11px] font-medium text-slate-400">
+              {formatDate(comment.createdAt)}
             </span>
           </div>
-          <p className="text-sm leading-relaxed text-foreground/80">
+          <p className="text-[13px] leading-relaxed text-slate-700">
             {comment.content}
           </p>
-          <div className="mt-1 flex gap-3">
+          <div className="mt-2 flex items-center gap-3">
             <button
               onClick={() => setReplying(!replying)}
-              className="flex items-center gap-1 py-1 text-xs text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1 rounded-md py-1 text-xs font-semibold text-slate-400 transition-colors hover:text-primary"
             >
-              <CornerDownRight className="size-3.5" />
+              <MessageCircle className="size-3.5" />
               답글
             </button>
-            {currentMemberId === comment.memberId && (
+            {replyCount > REPLY_PREVIEW_COUNT ? (
               <button
-                onClick={() => onDelete(comment.commentId)}
-                className="flex items-center gap-1 py-1 text-xs text-red-400 hover:text-red-600"
+                type="button"
+                onClick={() => setShowAllReplies((prev) => !prev)}
+                className="text-xs font-bold text-primary transition-colors hover:text-teal-700"
               >
-                <Trash2 className="size-3.5" />
-                삭제
+                {showAllReplies ? '답글 접기' : `답글 ${replyCount}개 더보기`}
               </button>
-            )}
+            ) : replyCount > 0 ? (
+              <span className="text-xs font-bold text-slate-400">
+                답글 {replyCount}개
+              </span>
+            ) : null}
           </div>
         </div>
+        {currentMemberId === comment.memberId && (
+          <button
+            onClick={() => onDelete(comment.commentId)}
+            className="shrink-0 rounded-md p-1 text-slate-300 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-500 active:translate-y-0"
+            aria-label="댓글 삭제"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
       </div>
 
       {/* 대댓글 + 입력창 */}
-      {((comment.replies && comment.replies.length > 0) || replying) && (
-        <div className="ml-[42px] mt-2.5 flex flex-col gap-3 border-l-2 border-border pl-3.5">
-          {comment.replies?.map((reply) => {
+      {((replyCount > 0) || replying) && (
+        <div className="ml-[42px] mt-3 flex flex-col gap-2 border-l border-slate-200 pl-3.5">
+          {visibleReplies.map((reply) => {
             const replyLabel =
               reply.isAnonymous === 1
                 ? '익명'
                 : (reply.authorNickname ?? reply.authorName);
             return (
-              <div key={reply.commentId} className="flex items-start gap-2">
-                <CornerDownRight className="mt-2 size-3.5 shrink-0 text-muted-foreground/60" />
-                <div className="flex min-w-0 flex-1 items-start gap-2">
+              <div key={reply.commentId} className="flex items-start gap-2 rounded-xl bg-slate-50/80 px-3 py-2.5">
+                <CornerDownRight className="mt-2 size-3.5 shrink-0 text-slate-300" />
+                <div className="flex min-w-0 flex-1 items-start gap-2.5">
                   <Avatar name={replyLabel} />
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-2">
-                      <span className="text-[13px] font-bold">{replyLabel}</span>
+                      <span className="text-[13px] font-extrabold text-slate-900">{replyLabel}</span>
                       {reply.isSeller && (
                         <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
                           판매자
                         </span>
                       )}
-                      <span className="text-[11px] text-muted-foreground">
-                        {String(reply.createdAt)}
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {formatDate(reply.createdAt)}
                       </span>
                     </div>
-                    <p className="text-sm leading-relaxed text-foreground/80">
+                    <p className="text-[13px] leading-relaxed text-slate-700">
                       {reply.content}
                     </p>
-                    {currentMemberId === reply.memberId && (
-                      <button
-                        onClick={() => onDelete(reply.commentId)}
-                        className="mt-1 flex items-center gap-1 py-1 text-xs text-red-400 hover:text-red-600"
-                      >
-                        <Trash2 className="size-3.5" />
-                        삭제
-                      </button>
-                    )}
                   </div>
+                  {currentMemberId === reply.memberId && (
+                    <button
+                      onClick={() => onDelete(reply.commentId)}
+                      className="shrink-0 rounded-md p-1 text-slate-300 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:text-red-500 active:translate-y-0"
+                      aria-label="댓글 삭제"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
 
           {replying && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-slate-50 px-2.5 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm">
               <Avatar name="나" />
               <input
                 autoFocus
@@ -150,7 +167,7 @@ function MarketCommentItem({
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !submitting && submitReply()}
                 placeholder="답글을 입력하세요"
-                className="flex-1 bg-transparent text-[13.5px] outline-none"
+                className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-slate-400"
               />
               <Button
                 variant="ghost"
@@ -211,7 +228,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('댓글 등록 실패:', err);
-      alert('댓글 등록에 실패했어.');
+      alert('댓글 등록에 실패했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +241,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('댓글 삭제 실패:', err);
-      alert('댓글 삭제에 실패했어.');
+      alert('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -234,7 +251,7 @@ export default function CommunityMarketComment({
       await fetchComments();
     } catch (err) {
       console.error('답글 등록 실패:', err);
-      alert('답글 등록에 실패했어.');
+      alert('답글 등록에 실패했습니다.');
     }
   };
 
@@ -245,10 +262,10 @@ export default function CommunityMarketComment({
 
   return (
     <div className="mt-6">
-      <h3 className="mb-3.5 text-[15px] font-bold">문의 {totalCount}</h3>
+      <h3 className="mb-3.5 text-[14px] font-extrabold text-slate-900">문의 {totalCount}</h3>
 
       {/* 입력창 */}
-      <div className="mb-4 rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all focus-within:border-primary focus-within:shadow-md">
         <div className="flex items-center gap-3">
           <Avatar name="나" />
           <input
@@ -256,7 +273,7 @@ export default function CommunityMarketComment({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !submitting && submitComment()}
             placeholder="상품에 대해 궁금한 점을 물어보세요"
-            className="flex-1 bg-transparent py-1.5 text-sm outline-none"
+            className="flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-slate-400"
           />
           <Button size="sm" onClick={submitComment} disabled={submitting}>
             등록
@@ -265,14 +282,14 @@ export default function CommunityMarketComment({
       </div>
 
       {/* 댓글 목록 */}
-      <div className="rounded-2xl border border-border bg-card px-5">
+      <div className="rounded-xl border border-slate-200 bg-white px-5 shadow-sm">
         {loading ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             불러오는 중...
           </p>
         ) : comments.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            첫 번째 문의를 남겨보세요!
+            첫 번째 문의를 남겨 보세요.
           </p>
         ) : (
           comments.map((comment, i) => (

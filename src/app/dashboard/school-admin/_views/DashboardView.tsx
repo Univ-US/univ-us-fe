@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getAdminMembers, getAdminUniversity, ROLE_LABEL, STATUS_LABEL, type ApiMember, type ApiUniversity } from "@/lib/adminApi";
 import { Avatar } from "../_components";
 
-export default function DashboardView() {
+export default function DashboardView({ onNavigate }: { onNavigate: (view: string) => void }) {
     const { univId } = useAuthStore();
     const [members, setMembers] = useState<ApiMember[]>([]);
     const [university, setUniversity] = useState<ApiUniversity | null>(null);
@@ -130,12 +130,13 @@ export default function DashboardView() {
                         <h2 className="font-black">바로 처리</h2>
                         <div className="mt-4 space-y-2">
                             {[
-                                { label: "일괄 회원가입", icon: Users },
-                                { label: "공지 작성", icon: Megaphone },
-                                { label: "회원 상태 변경", icon: X },
-                            ].map(({ label, icon: Icon }) => (
+                                { label: "일괄 회원가입", icon: Users, view: "members" },
+                                { label: "공지 작성", icon: Megaphone, view: "notices" },
+                                { label: "회원 상태 변경", icon: X, view: "members" },
+                            ].map(({ label, icon: Icon, view }) => (
                                 <button
                                     key={label}
+                                    onClick={() => onNavigate(view)}
                                     className="flex h-10 w-full items-center gap-3 rounded-lg bg-slate-50 px-4 text-left text-sm font-bold transition-colors hover:bg-emerald-50 hover:text-emerald-800"
                                 >
                                     <Icon className="size-4 text-slate-400" />

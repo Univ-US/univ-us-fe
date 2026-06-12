@@ -12,6 +12,7 @@ import {
   PROFILE_IMAGE_ALLOWED_TYPES,
 } from "@/lib/lmsProfessorApi";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
+import { describeApiError } from "@/lib/lmsApiError";
 import ImageCropDialog from "@/components/lms/ImageCropDialog";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
@@ -23,6 +24,7 @@ export default function ProfessorProfilePage() {
   // 공유 스토어 (저장된 프로필 = single source of truth)
   const profile = useProfessorProfileStore((s) => s.profile);
   const loadProfile = useProfessorProfileStore((s) => s.load);
+  const reloadProfile = useProfessorProfileStore((s) => s.reload);
   const updateProfile = useProfessorProfileStore((s) => s.update);
 
   // 폼 로컬 draft (편집 중 값 — 저장 전엔 스토어/사이드바에 영향 없음)
@@ -37,16 +39,20 @@ export default function ProfessorProfilePage() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null); // 최초 조회 실패(BE 문제)
   const [notice, setNotice] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 마운트 시 조회 (스토어가 이미 들고 있으면 스킵)
   useEffect(() => {
-    loadProfile().catch(() =>
-      setError("프로필을 불러오지 못했습니다. 로그인 상태를 확인해주세요.")
-    );
+    loadProfile().catch((e) => setLoadError(describeApiError(e)));
   }, [loadProfile]);
+
+  const handleRetry = () => {
+    setLoadError(null);
+    reloadProfile().catch((e) => setLoadError(describeApiError(e)));
+  };
 
   // 스토어 profile이 바뀌면(최초 로드 / 저장 성공) 폼 draft를 동기화
   useEffect(() => {
@@ -151,10 +157,19 @@ export default function ProfessorProfilePage() {
         introduction !== (profile.lmsProfessorProfileIntroduction ?? "")
       : false);
 
-  if (!profile && !error) {
+  if (!profile) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
-        프로필을 불러오는 중…
+      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 px-4 text-center">
+        {loadError ? (
+          <>
+            <p className="text-sm text-red-500">⚠ 프로필을 불러오지 못했습니다 — {loadError}</p>
+            <Button variant="outline" size="sm" onClick={handleRetry}>
+              다시 시도
+            </Button>
+          </>
+        ) : (
+          <p className="text-slate-500">프로필을 불러오는 중…</p>
+        )}
       </main>
     );
   }
@@ -210,10 +225,13 @@ export default function ProfessorProfilePage() {
             <p className="text-xs text-slate-400">이미지를 클릭하여 변경 · JPG, PNG / 최대 30MB</p>
           </div>
 
-          {/* 이름 / 소속 학과 (읽기전용) */}
+          {/* 이름 / 사번 / 소속 학과 (읽기전용) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="이름" note="※ 이름은 관리자를 통해 변경 가능">
               <input value={profile?.lmsProfessorProfileName ?? ""} readOnly className={readonlyInput} />
+            </Field>
+            <Field label="사번" note="※ 사번은 관리자를 통해 변경 가능">
+              <input value={profile?.lmsProfessorProfileEmployeeNo ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="소속 학과" note="※ 소속 학과는 관리자를 통해 변경 가능">
               <input value={profile?.lmsProfessorProfileDepartment ?? ""} readOnly className={readonlyInput} />

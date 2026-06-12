@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import ReactivateModal from "../community/ReactivateModal";
+import { reactivateCommunity } from "@/lib/cmypageApi";
+import ResultModal from "../community/mypage/ResultModal";
 
 const COMMUNITY_ALLOWED_ROLES = ["SUA", "ADM", "STU", "ALU"];
 
@@ -16,8 +19,13 @@ export default function CommunityGuard({
     const isInitialized = useAuthStore((state) => state.isInitialized);
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const role = useAuthStore((state) => state.role);
+    const status = useAuthStore((state) => state.status);
+    const updateStatus = useAuthStore((state) => state.updateStatus);
 
     const hasCommunityRole = !!role && COMMUNITY_ALLOWED_ROLES.includes(role);
+
+    const [isReactivating, setIsReactivating] = useState(false);
+    const [resultState, setResultState] = useState<{isOpen: boolean, type: 'success' | 'error', title: string, message: string}>({ isOpen: false, type: 'success', title: '', message: '' });
 
     useEffect(() => {
         if (!isInitialized) return;
@@ -32,7 +40,7 @@ export default function CommunityGuard({
                 return;
             }
 
-            window.alert("로그인이 안되어있습니다");
+            window.alert("로그인이 필요합니다.");
             router.replace(`/home/login?redirect=${encodeURIComponent(currentPath)}`);
             return;
         }
@@ -53,6 +61,42 @@ export default function CommunityGuard({
 
     if (!hasCommunityRole) {
         return null;
+    }
+
+    if (status === 'INACTIVE') {
+        return (
+            <>
+                <ReactivateModal 
+                    loading={isReactivating}
+                    onClose={() => router.replace('/home')}
+                    onSubmit={async () => {
+                        setIsReactivating(true);
+                        try {
+                            await reactivateCommunity();
+                            setResultState({ isOpen: true, type: 'success', title: '활성화 완료', message: '커뮤니티가 다시 활성화되었습니다.\n환영합니다!' });
+                        } catch (e) {
+                            console.error(e);
+                            setResultState({ isOpen: true, type: 'error', title: '활성화 실패', message: '오류가 발생했습니다. 잠시 후 다시 시도해주세요.' });
+                        } finally {
+                            setIsReactivating(false);
+                        }
+                    }}
+                />
+                {resultState.isOpen && (
+                    <ResultModal 
+                        type={resultState.type}
+                        title={resultState.title}
+                        message={resultState.message}
+                        onConfirm={() => {
+                            setResultState(prev => ({...prev, isOpen: false}));
+                            if (resultState.type === 'success') {
+                                updateStatus('ACTIVE');
+                            }
+                        }}
+                    />
+                )}
+            </>
+        );
     }
 
     return <>{children}</>;

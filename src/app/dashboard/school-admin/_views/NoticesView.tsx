@@ -8,6 +8,8 @@ import {
     createAdminNotice,
     updateAdminNotice,
     deleteAdminNotice,
+    getNoticeConfig,
+    DEFAULT_NOTICE_CONFIG,
     type ApiNotice,
 } from "@/lib/adminApi";
 
@@ -22,13 +24,15 @@ function formatDate(iso: string) {
 type EditTarget = { noticeId: number; title: string; content: string } | null;
 
 export default function NoticesView() {
-    const { memberId } = useAuthStore();
+    const { memberId, univId } = useAuthStore();
     const [notices, setNotices] = useState<ApiNotice[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState<EditTarget>(null);
-    const [form, setForm] = useState({ title: "", content: "" });
+    const [defaultTarget, setDefaultTarget] = useState<"ALL" | "STU" | "PROF">(DEFAULT_NOTICE_CONFIG.defaultTarget);
+    const [form, setForm] = useState({ title: "", content: "", target: "ALL" as "ALL" | "STU" | "PROF" });
     const [submitting, setSubmitting] = useState(false);
+    const [viewNotice, setViewNotice] = useState<ApiNotice | null>(null);
 
     const fetchNotices = () => {
         getAdminNotices()
@@ -37,17 +41,22 @@ export default function NoticesView() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { fetchNotices(); }, []);
+    useEffect(() => {
+        fetchNotices();
+        if (univId) {
+            getNoticeConfig(univId).then((c) => setDefaultTarget(c.defaultTarget)).catch(() => {});
+        }
+    }, [univId]);
 
     const openCreate = () => {
         setEditTarget(null);
-        setForm({ title: "", content: "" });
+        setForm({ title: "", content: "", target: defaultTarget });
         setShowModal(true);
     };
 
     const openEdit = (n: ApiNotice) => {
-        setEditTarget({ noticeId: n.noticeId, title: n.title, content: "" });
-        setForm({ title: n.title, content: "" });
+        setEditTarget({ noticeId: n.noticeId, title: n.title, content: n.content });
+        setForm({ title: n.title, content: n.content, target: n.target });
         setShowModal(true);
     };
 
@@ -60,12 +69,13 @@ export default function NoticesView() {
                     memberId,
                     title: form.title,
                     content: form.content,
+                    target: form.target,
                 });
             } else {
-                await createAdminNotice({ memberId, title: form.title, content: form.content });
+                await createAdminNotice({ memberId, title: form.title, content: form.content, target: form.target });
             }
             setShowModal(false);
-            setForm({ title: "", content: "" });
+            setForm({ title: "", content: "", target: "ALL" });
             setEditTarget(null);
             fetchNotices();
         } catch {
@@ -113,6 +123,7 @@ export default function NoticesView() {
                     <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                         <tr>
                             <th className="px-5 py-3">제목</th>
+                            <th className="px-5 py-3">대상</th>
                             <th className="px-5 py-3">작성일</th>
                             <th className="px-5 py-3">수정일</th>
                             <th className="px-5 py-3">관리</th>
@@ -121,7 +132,21 @@ export default function NoticesView() {
                     <tbody className="divide-y divide-slate-100">
                         {notices.map((n) => (
                             <tr key={n.noticeId} className="font-semibold text-slate-700 hover:bg-slate-50">
-                                <td className="px-5 py-4 font-black text-slate-950">{n.title}</td>
+                                <td
+                                    className="px-5 py-4 font-black text-slate-950 cursor-pointer hover:text-emerald-700 transition-colors"
+                                    onClick={() => setViewNotice(n)}
+                                >
+                                    {n.title}
+                                </td>
+                                <td className="px-5 py-4">
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                        n.target === "ALL" ? "bg-slate-100 text-slate-500" :
+                                        n.target === "STU" ? "bg-blue-100 text-blue-600" :
+                                        "bg-violet-100 text-violet-600"
+                                    }`}>
+                                        {n.target === "ALL" ? "전체" : n.target === "STU" ? "학생" : "교수"}
+                                    </span>
+                                </td>
                                 <td className="px-5 py-4 text-slate-500">{formatDate(n.postedAt)}</td>
                                 <td className="px-5 py-4 text-slate-400">
                                     {n.updatedAt ? formatDate(n.updatedAt) : "—"}
@@ -146,7 +171,7 @@ export default function NoticesView() {
                         ))}
                         {notices.length === 0 && (
                             <tr>
-                                <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">
+                                <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">
                                     등록된 공지가 없습니다.
                                 </td>
                             </tr>
@@ -155,6 +180,36 @@ export default function NoticesView() {
                 </table>
             </div>
 
+            {/* 공지 내용 보기 모달 */}
+            {viewNotice && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                    onClick={() => setViewNotice(null)}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <h2 className="text-base font-black text-slate-900 leading-snug">{viewNotice.title}</h2>
+                            <button onClick={() => setViewNotice(null)} className="shrink-0 text-slate-400 hover:text-slate-700 text-lg leading-none">✕</button>
+                        </div>
+                        <p className="text-xs text-slate-400">{formatDate(viewNotice.postedAt)}</p>
+                        <div className="border-t border-slate-100 pt-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {viewNotice.content || <span className="text-slate-400">내용 없음</span>}
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={() => { setViewNotice(null); openEdit(viewNotice); }}
+                                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                                <Pencil className="size-3" /> 수정
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
@@ -162,6 +217,18 @@ export default function NoticesView() {
                         <p className="mt-1 text-xs text-slate-500">작성된 공지는 홈-LMS의 최근 공지에 노출됩니다.</p>
 
                         <div className="mt-5 space-y-4">
+                            <div>
+                                <label className="text-sm font-black">대상</label>
+                                <select
+                                    value={form.target}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, target: e.target.value as "ALL" | "STU" | "PROF" }))}
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                >
+                                    <option value="ALL">전체</option>
+                                    <option value="STU">학생</option>
+                                    <option value="PROF">교수</option>
+                                </select>
+                            </div>
                             <div>
                                 <label className="text-sm font-black">
                                     제목 <span className="text-rose-500">*</span>

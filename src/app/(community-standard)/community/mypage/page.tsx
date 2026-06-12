@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from 'next/navigation';
 
-import CommunityMyPage from "@/components/common/CommunityMyPage";
-
-export default function MyPagePage() {
-  return <CommunityMyPage />;
+export default function MyPageRoot() {
+  redirect('/community/mypage/posts');
 }
