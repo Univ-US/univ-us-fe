@@ -25,6 +25,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { getUniversities, getNotices, getHomeConfig, Notice, sendChatMessage, type HomeWidgetConfig } from "@/lib/homeApi";
 import api from "@/lib/api";
+import { ROLE } from "@/lib/rolecode";
 
 const DEFAULT_CONFIG: HomeWidgetConfig = {
     weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
@@ -157,9 +158,11 @@ export default function CampusHomePage() {
         getHomeConfig().then(setHomeConfig).catch(() => {});
     }, [isLoggedIn]);
 
-    // LMS 바로가기: role에 따라 교수(PLM)/학생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
+    // LMS 바로가기: role에 따라 교수(PLM)/학생·졸업생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
     const lmsHref =
-        role === "PROF" ? "/lms/professor/profile" : role === "STU" ? "/lms/student/profile" : undefined;
+        role === ROLE.PROF ? "/lms/professor/profile"
+        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/profile"
+        : undefined;
 
     const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
     const dateStr = now ? `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}` : "";
@@ -293,6 +296,11 @@ export default function CampusHomePage() {
                                     : s.href;
                                 const handleClick = () => {
                                     if (!isLoggedIn) { router.push("/home/login"); return; }
+                                    // LMS는 역할 없으면(교수·학생·졸업생 외) 가드와 동일 문구로 안내 — 무반응 방지
+                                    if (s.label === "LMS" && !resolvedHref) {
+                                        window.alert("LMS 접근 권한이 없습니다.");
+                                        return;
+                                    }
                                     if (!resolvedHref) return;
                                     if (resolvedHref.startsWith("http")) {
                                         window.open(resolvedHref, "_blank", "noopener,noreferrer");

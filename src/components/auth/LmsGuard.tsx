@@ -2,18 +2,19 @@
 
 // LMS 페이지 접근 가드 (FE 1차 필터링)
 // - 커뮤니티(CommunityGuard)와 동일한 UX: 비로그인/권한없음 시 alert + 리다이렉트.
-// - 교수(PLM) 레이아웃 → allowedRoles={["SUA","ADM","PROF"]}
-// - 학생(SLM) 레이아웃 → allowedRoles={["SUA","ADM","STU","ALU"]}
+// - 교수(PLM) 레이아웃 → allowedRoles={[ROLE.PROF]}
+// - 학생(SLM) 레이아웃 → allowedRoles={[ROLE.STU, ROLE.ALU]} (관리자는 BO에서 별도 관리 — BE SecurityConfig 역할가드와 동일 정책)
 // ⚠ FE 가드는 UX용 1차 차단일 뿐, 실제 권한 검사는 BE에서 별도로 해야 한다(우회 가능).
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import type { Role } from "@/lib/rolecode";
 
 export default function LmsGuard({
     allowedRoles,
     children,
 }: {
-    allowedRoles: string[];
+    allowedRoles: Role[];
     children: React.ReactNode;
 }) {
     const router = useRouter();
