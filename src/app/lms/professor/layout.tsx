@@ -11,9 +11,10 @@ import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 import LmsGuard from "@/components/auth/LmsGuard";
+import { ROLE, type Role } from "@/lib/rolecode";
 
-// PLM(교수 LMS) 접근 허용 역할: 서비스/학교 관리자 + 교수
-const PROFESSOR_LMS_ROLES = ["SUA", "ADM", "PROF"];
+// PLM(교수 LMS) 접근 허용 역할: 교수 전용 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
+const PROFESSOR_LMS_ROLES: Role[] = [ROLE.PROF];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
@@ -71,9 +72,9 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
     loadProfile().catch(() => setLoadFailed(true));
   }, [loadProfile]);
 
-  // 미채점 건수는 PROF 본인 강의 한정(SUA/ADM은 403 → 조회 생략, 배지 없음)
+  // 미채점 건수 조회 — 가드가 PROF 전용이라 role 체크는 이중 안전장치
   useEffect(() => {
-    if (role === "PROF") loadUngradedCount();
+    if (role === ROLE.PROF) loadUngradedCount();
   }, [role, loadUngradedCount]);
 
   const handleLogout = async () => {

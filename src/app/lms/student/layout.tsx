@@ -10,9 +10,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import LmsGuard from "@/components/auth/LmsGuard";
+import { ROLE, type Role } from "@/lib/rolecode";
 
-// SLM(학생 LMS) 접근 허용 역할: 서비스/학교 관리자 + 학생 + 졸업생
-const STUDENT_LMS_ROLES = ["SUA", "ADM", "STU", "ALU"];
+// SLM(학생 LMS) 접근 허용 역할: 학생 + 졸업생 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
+const STUDENT_LMS_ROLES: Role[] = [ROLE.STU, ROLE.ALU];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
