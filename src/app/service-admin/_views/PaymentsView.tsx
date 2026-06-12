@@ -43,7 +43,6 @@ const STATUS_LABEL: Record<AdminPaymentStatus, string> = {
 
 const METHOD_LABEL: Record<AdminPaymentMethod, string> = {
     CARD: "카드",
-    TRANSFER: "계좌이체",
     VIRTUAL_ACCOUNT: "가상계좌",
 };
 
@@ -81,6 +80,13 @@ export default function PaymentsView({
     const schoolMap = useMemo(
         () => new Map(schools.map((school) => [school.id, school])),
         [schools],
+    );
+    const availablePlans = useMemo(
+        () =>
+            Array.from(new Set(payments.map((payment) => payment.plan))).sort(
+                (a, b) => a.localeCompare(b, "ko-KR"),
+            ),
+        [payments],
     );
 
     const summary = useMemo(() => {
@@ -264,9 +270,11 @@ export default function PaymentsView({
                         className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
                     >
                         <option value="ALL">전체 플랜</option>
-                        <option value="Basic">Basic</option>
-                        <option value="Pro">Pro</option>
-                        <option value="Enterprise">Enterprise</option>
+                        {availablePlans.map((planName) => (
+                            <option key={planName} value={planName}>
+                                {planName}
+                            </option>
+                        ))}
                     </select>
                     <select
                         value={method}
@@ -306,7 +314,16 @@ export default function PaymentsView({
 
             <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1180px] text-left text-sm">
+                    <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
+                        <colgroup>
+                            <col className="w-[170px]" />
+                            <col className="w-[220px]" />
+                            <col className="w-[210px]" />
+                            <col className="w-[110px]" />
+                            <col className="w-[130px]" />
+                            <col className="w-[150px]" />
+                            <col className="w-[150px]" />
+                        </colgroup>
                         <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                             <tr>
                                 <th className="px-5 py-3">결제 요청일</th>
@@ -325,19 +342,26 @@ export default function PaymentsView({
                                     onClick={() => openDetail(payment.id)}
                                     className="cursor-pointer font-semibold text-slate-700 transition hover:bg-emerald-50/60"
                                 >
-                                    <td className="px-5 py-4 text-slate-500">{payment.requestedAt}</td>
+                                    <td className="whitespace-nowrap px-5 py-4 text-slate-500">{payment.requestedAt}</td>
                                     <td className="px-5 py-4 font-black text-slate-950">
-                                        {schoolMap.get(payment.schoolId)?.name ?? "-"}
+                                        <p
+                                            className="truncate"
+                                            title={schoolMap.get(payment.schoolId)?.name ?? "-"}
+                                        >
+                                            {schoolMap.get(payment.schoolId)?.name ?? "-"}
+                                        </p>
                                     </td>
                                     <td className="px-5 py-4 font-mono text-xs text-slate-500">
-                                        {payment.merchantUid}
+                                        <p className="truncate" title={payment.merchantUid}>
+                                            {payment.merchantUid}
+                                        </p>
                                     </td>
-                                    <td className="px-5 py-4 font-bold">{payment.plan}</td>
-                                    <td className="px-5 py-4">{METHOD_LABEL[payment.method]}</td>
-                                    <td className="px-5 py-4 font-black text-slate-950">
+                                    <td className="whitespace-nowrap px-5 py-4 font-bold">{payment.plan}</td>
+                                    <td className="whitespace-nowrap px-5 py-4">{METHOD_LABEL[payment.method]}</td>
+                                    <td className="whitespace-nowrap px-5 py-4 font-black text-slate-950">
                                         {formatCurrency(payment.amount)}
                                     </td>
-                                    <td className="px-5 py-4">
+                                    <td className="whitespace-nowrap px-5 py-4">
                                         <PaymentStatusBadge status={payment.status} />
                                     </td>
                                 </tr>

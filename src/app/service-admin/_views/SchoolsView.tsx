@@ -34,6 +34,17 @@ export default function SchoolsView({ schools, onSelectSchool }: SchoolsViewProp
     const [plan, setPlan] = useState<"ALL" | SubscriptionPlan>("ALL");
     const [sort, setSort] = useState<SortOption>("name-asc");
     const [page, setPage] = useState(1);
+    const availablePlans = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    schools
+                        .map((school) => school.plan)
+                        .filter((value): value is SubscriptionPlan => Boolean(value)),
+                ),
+            ).sort((a, b) => a.localeCompare(b, "ko-KR")),
+        [schools],
+    );
 
     const filteredSchools = useMemo(() => {
         const keyword = search.trim().toLocaleLowerCase("ko-KR");
@@ -104,9 +115,11 @@ export default function SchoolsView({ schools, onSelectSchool }: SchoolsViewProp
                         className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
                     >
                         <option value="ALL">전체 플랜</option>
-                        <option value="Basic">Basic</option>
-                        <option value="Pro">Pro</option>
-                        <option value="Enterprise">Enterprise</option>
+                        {availablePlans.map((planName) => (
+                            <option key={planName} value={planName}>
+                                {planName}
+                            </option>
+                        ))}
                     </select>
 
                     <select
@@ -141,7 +154,18 @@ export default function SchoolsView({ schools, onSelectSchool }: SchoolsViewProp
 
             <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1260px] text-left text-sm">
+                    <table className="w-full min-w-[1320px] table-fixed text-left text-sm">
+                        <colgroup>
+                            <col className="w-[220px]" />
+                            <col className="w-[115px]" />
+                            <col className="w-[145px]" />
+                            <col className="w-[130px]" />
+                            <col className="w-[120px]" />
+                            <col className="w-[110px]" />
+                            <col className="w-[150px]" />
+                            <col className="w-[145px]" />
+                            <col className="w-[135px]" />
+                        </colgroup>
                         <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                             <tr>
                                 <th className="px-5 py-3">학교</th>
@@ -163,31 +187,31 @@ export default function SchoolsView({ schools, onSelectSchool }: SchoolsViewProp
                                     className="cursor-pointer font-semibold text-slate-700 transition hover:bg-emerald-50/60"
                                 >
                                     <td className="px-5 py-4">
-                                        <p className="font-black text-slate-950">{school.name}</p>
-                                        <p className="mt-1 text-xs text-slate-400">{school.category}</p>
+                                        <p className="truncate font-black text-slate-950" title={school.name}>{school.name}</p>
+                                        <p className="mt-1 truncate text-xs text-slate-400" title={school.category}>{school.category}</p>
                                     </td>
-                                    <td className="px-5 py-4 font-black">{school.plan ?? "미구독"}</td>
-                                    <td className="px-5 py-4">
+                                    <td className="whitespace-nowrap px-5 py-4 font-black">{school.plan ?? "미구독"}</td>
+                                    <td className="whitespace-nowrap px-5 py-4">
                                         <SubscriptionBadge value={school.subscriptionStatus} />
                                     </td>
-                                    <td className="px-5 py-4 text-slate-500">
+                                    <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                                         {school.firstSubscribedAt ?? "-"}
                                     </td>
-                                    <td className="px-5 py-4">
+                                    <td className="whitespace-nowrap px-5 py-4">
                                         {getSubscriptionDuration(
                                             school.firstSubscribedAt,
                                             school.subscriptionEndedAt,
                                             school.subscriptionStatus,
                                         )}
                                     </td>
-                                    <td className="px-5 py-4">{school.memberCount.toLocaleString()}명</td>
-                                    <td className="px-5 py-4 font-black text-slate-950">
+                                    <td className="whitespace-nowrap px-5 py-4">{school.memberCount.toLocaleString()}명</td>
+                                    <td className="whitespace-nowrap px-5 py-4 font-black text-slate-950">
                                         {formatCurrency(school.monthlyRevenue)}
                                     </td>
-                                    <td className="px-5 py-4">
+                                    <td className="whitespace-nowrap px-5 py-4">
                                         <PaymentBadge value={school.paymentStatus} />
                                     </td>
-                                    <td className="px-5 py-4 text-slate-500">{school.nextBillingAt}</td>
+                                    <td className="whitespace-nowrap px-5 py-4 text-slate-500">{school.nextBillingAt}</td>
                                 </tr>
                             ))}
                             {pagedSchools.length === 0 && (

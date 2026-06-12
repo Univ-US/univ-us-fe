@@ -46,7 +46,7 @@ const features = [
 const getDashboardPathByRole = (role: string | null) => {
     switch (role) {
         case "SUA":
-            return "/dashboard/service-admin";
+            return "/service-admin";
         case "ADM":
             return "/dashboard/school-admin";
         default:

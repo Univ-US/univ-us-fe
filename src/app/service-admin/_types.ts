@@ -4,9 +4,24 @@ export type ServiceAdminView =
     | "schoolDetail"
     | "members"
     | "payments"
-    | "lectureCodes";
+    | "plans"
+    | "inquiries"
+    | "logs"
+    | "users";
 
-export type SubscriptionPlan = "Basic" | "Pro" | "Enterprise";
+export type SubscriptionPlan = string;
+export type SubscriptionPlanStatus = "ACTIVE" | "INACTIVE";
+
+export interface ServiceSubscriptionPlan {
+    id: number;
+    name: string;
+    price: number;
+    description: string;
+    maxMemberCount: number | null;
+    status: SubscriptionPlanStatus;
+    createdAt: string;
+    updatedAt: string;
+}
 export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "PENDING" | "CANCELED" | "UNSUBSCRIBED";
 export type PaymentStatus = "PAID" | "READY" | "FAILED" | "CANCELED" | "NONE";
 
@@ -30,7 +45,7 @@ export interface ServiceSchool {
     portoneCustomerId: string | null;
 }
 
-export type MemberRole = "STU" | "PROF" | "ADM";
+export type MemberRole = "STU" | "PROF" | "ALU" | "ADM";
 export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 
 export interface ServiceMember {
@@ -53,7 +68,7 @@ export type AdminPaymentStatus =
     | "FAILED"
     | "CANCELED"
     | "REFUNDED";
-export type AdminPaymentMethod = "CARD" | "TRANSFER" | "VIRTUAL_ACCOUNT";
+export type AdminPaymentMethod = "CARD" | "VIRTUAL_ACCOUNT";
 export type AdminPaymentType = "INITIAL" | "RECURRING";
 
 export interface ServicePayment {
@@ -74,6 +89,37 @@ export interface ServicePayment {
     failureReason: string | null;
 }
 
+export type InquiryCategory =
+    | "PAYMENT"
+    | "SUBSCRIPTION"
+    | "ACCOUNT"
+    | "ERROR"
+    | "ETC";
+export type InquiryStatus = "WAITING" | "IN_PROGRESS" | "CLOSED";
+export type InquirySenderRole = "ADM" | "SUA";
+
+export interface InquiryMessage {
+    id: number;
+    senderRole: InquirySenderRole;
+    senderName: string;
+    text: string;
+    imageUrl: string | null;
+    imageName: string | null;
+    sentAt: string;
+}
+
+export interface ServiceInquiry {
+    id: number;
+    schoolId: number;
+    category: InquiryCategory;
+    title: string;
+    status: InquiryStatus;
+    createdAt: string;
+    updatedAt: string;
+    unreadCount: number;
+    messages: InquiryMessage[];
+}
+
 export interface MemberCommunityActivity {
     id: number;
     type: "POST" | "COMMENT";
@@ -89,6 +135,7 @@ export interface MemberAccessLog {
     occurredAt: string;
     device: string;
     ipAddress: string;
+    failReason: string | null;
 }
 
 export interface MemberCourseActivity {

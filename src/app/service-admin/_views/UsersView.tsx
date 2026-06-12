@@ -9,6 +9,7 @@ import {
     ChevronLeft,
     ChevronRight,
     FileText,
+    GraduationCap,
     LogIn,
     MessageSquareText,
     RotateCcw,
@@ -62,6 +63,7 @@ const PAGE_SIZE = 10;
 const ROLE_LABEL: Record<MemberRole, string> = {
     STU: "학생",
     PROF: "교수",
+    ALU: "졸업생",
     ADM: "학교 관리자",
 };
 
@@ -201,7 +203,7 @@ export default function MembersView({
         total: members.length,
         active: members.filter((member) => member.status === "ACTIVE").length,
         suspended: members.filter((member) => member.status === "SUSPENDED").length,
-        admins: members.filter((member) => member.role === "ADM").length,
+        alumni: members.filter((member) => member.role === "ALU").length,
     };
 
     useEffect(() => {
@@ -388,18 +390,18 @@ export default function MembersView({
     return (
         <div className="space-y-5">
             <div>
-                <h1 className="text-2xl font-black tracking-tight">회원 관리</h1>
+                <h1 className="text-2xl font-black tracking-tight">이용자 관리</h1>
                 <p className="mt-1 text-sm text-slate-500">
-                    전체 학교의 학생, 교수, 학교 관리자 계정을 통합 조회합니다.
+                    학교 관리자를 제외한 학생, 교수, 졸업생 계정을 통합 조회합니다.
                 </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {[
-                    { label: "전체 회원", value: stats.total, icon: UsersRound, color: "text-slate-700" },
-                    { label: "활성 회원", value: stats.active, icon: UserRoundCheck, color: "text-emerald-700" },
-                    { label: "정지 회원", value: stats.suspended, icon: UserRoundX, color: "text-amber-600" },
-                    { label: "학교 관리자", value: stats.admins, icon: ShieldCheck, color: "text-sky-700" },
+                    { label: "전체 이용자", value: stats.total, icon: UsersRound, color: "text-slate-700" },
+                    { label: "활성 이용자", value: stats.active, icon: UserRoundCheck, color: "text-emerald-700" },
+                    { label: "정지 이용자", value: stats.suspended, icon: UserRoundX, color: "text-amber-600" },
+                    { label: "졸업생", value: stats.alumni, icon: GraduationCap, color: "text-sky-700" },
                 ].map(({ label, value, icon: Icon, color }) => (
                     <section
                         key={label}
@@ -449,7 +451,7 @@ export default function MembersView({
                         <option value="ALL">전체 역할</option>
                         <option value="STU">학생</option>
                         <option value="PROF">교수</option>
-                        <option value="ADM">학교 관리자</option>
+                        <option value="ALU">졸업생</option>
                     </select>
 
                     <select
@@ -498,7 +500,16 @@ export default function MembersView({
             <div>
                 <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[980px] text-left text-sm">
+                        <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
+                            <colgroup>
+                                <col className="w-[170px]" />
+                                <col className="w-[220px]" />
+                                <col className="w-[95px]" />
+                                <col className="w-[180px]" />
+                                <col className="w-[105px]" />
+                                <col className="w-[130px]" />
+                                <col className="w-[170px]" />
+                            </colgroup>
                             <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                                 <tr>
                                     <th className="px-5 py-3">회원</th>
@@ -522,17 +533,23 @@ export default function MembersView({
                                         }`}
                                     >
                                         <td className="px-5 py-4">
-                                            <p className="font-black text-slate-950">{member.name}</p>
-                                            <p className="mt-1 text-xs text-slate-400">{member.loginId}</p>
+                                            <p className="truncate font-black text-slate-950" title={member.name}>{member.name}</p>
+                                            <p className="mt-1 truncate text-xs text-slate-400" title={member.loginId}>{member.loginId}</p>
                                         </td>
-                                        <td className="px-5 py-4">{schoolMap.get(member.schoolId)?.name}</td>
-                                        <td className="px-5 py-4">{ROLE_LABEL[member.role]}</td>
-                                        <td className="px-5 py-4">{member.department}</td>
                                         <td className="px-5 py-4">
+                                            <p className="truncate" title={schoolMap.get(member.schoolId)?.name}>
+                                                {schoolMap.get(member.schoolId)?.name}
+                                            </p>
+                                        </td>
+                                        <td className="whitespace-nowrap px-5 py-4">{ROLE_LABEL[member.role]}</td>
+                                        <td className="px-5 py-4">
+                                            <p className="truncate" title={member.department}>{member.department}</p>
+                                        </td>
+                                        <td className="whitespace-nowrap px-5 py-4">
                                             <MemberStatusBadge status={member.status} />
                                         </td>
-                                        <td className="px-5 py-4 text-slate-500">{member.joinedAt}</td>
-                                        <td className="px-5 py-4 text-slate-500">{member.lastLoginAt}</td>
+                                        <td className="whitespace-nowrap px-5 py-4 text-slate-500">{member.joinedAt}</td>
+                                        <td className="whitespace-nowrap px-5 py-4 text-slate-500">{member.lastLoginAt}</td>
                                     </tr>
                                 ))}
                                 {pagedMembers.length === 0 && (
