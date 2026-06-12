@@ -8,6 +8,8 @@ import {
     createAdminNotice,
     updateAdminNotice,
     deleteAdminNotice,
+    getNoticeConfig,
+    DEFAULT_NOTICE_CONFIG,
     type ApiNotice,
 } from "@/lib/adminApi";
 
@@ -22,11 +24,12 @@ function formatDate(iso: string) {
 type EditTarget = { noticeId: number; title: string; content: string } | null;
 
 export default function NoticesView() {
-    const { memberId } = useAuthStore();
+    const { memberId, univId } = useAuthStore();
     const [notices, setNotices] = useState<ApiNotice[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editTarget, setEditTarget] = useState<EditTarget>(null);
+    const [defaultTarget, setDefaultTarget] = useState<"ALL" | "STU" | "PROF">(DEFAULT_NOTICE_CONFIG.defaultTarget);
     const [form, setForm] = useState({ title: "", content: "", target: "ALL" as "ALL" | "STU" | "PROF" });
     const [submitting, setSubmitting] = useState(false);
     const [viewNotice, setViewNotice] = useState<ApiNotice | null>(null);
@@ -38,11 +41,16 @@ export default function NoticesView() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { fetchNotices(); }, []);
+    useEffect(() => {
+        fetchNotices();
+        if (univId) {
+            getNoticeConfig(univId).then((c) => setDefaultTarget(c.defaultTarget)).catch(() => {});
+        }
+    }, [univId]);
 
     const openCreate = () => {
         setEditTarget(null);
-        setForm({ title: "", content: "", target: "ALL" });
+        setForm({ title: "", content: "", target: defaultTarget });
         setShowModal(true);
     };
 

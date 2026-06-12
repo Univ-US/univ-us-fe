@@ -1,5 +1,50 @@
 import api from "@/lib/api";
 
+export interface HomeWidgetConfig {
+    weather: boolean;
+    aiChat: boolean;
+    notice: boolean;
+    meal: boolean;
+    tel: boolean;
+    shortcut: boolean;
+}
+
+const DEFAULT_WIDGET_CONFIG: HomeWidgetConfig = {
+    weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
+};
+
+export const getHomeWidgetConfig = async (univId: number): Promise<HomeWidgetConfig> => {
+    const res = await api.get<HomeWidgetConfig>(`/api/admin/universities/${univId}/home-config`);
+    return res.data;
+};
+
+export const updateHomeWidgetConfig = async (univId: number, config: HomeWidgetConfig): Promise<void> => {
+    await api.patch(`/api/admin/universities/${univId}/home-config`, config);
+};
+
+export { DEFAULT_WIDGET_CONFIG };
+
+export interface NoticeConfig {
+    defaultTarget: "ALL" | "STU" | "PROF";
+    showTop: boolean;
+    pushAlert: boolean;
+}
+
+export const DEFAULT_NOTICE_CONFIG: NoticeConfig = {
+    defaultTarget: "ALL",
+    showTop: true,
+    pushAlert: false,
+};
+
+export const getNoticeConfig = async (univId: number): Promise<NoticeConfig> => {
+    const res = await api.get<NoticeConfig>(`/api/admin/universities/${univId}/notice-config`);
+    return res.data;
+};
+
+export const updateNoticeConfig = async (univId: number, config: NoticeConfig): Promise<void> => {
+    await api.patch(`/api/admin/universities/${univId}/notice-config`, config);
+};
+
 export interface ApiMember {
     memberId: number;
     univId: number;

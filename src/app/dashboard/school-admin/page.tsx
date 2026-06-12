@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useAuthStore } from "@/store/authStore";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
@@ -46,10 +46,19 @@ const SECTION_LABEL: Record<View, string> = {
     settings: "학교 설정",
 };
 
-export default function SchoolAdminDashboardPage() {
+const VALID_VIEWS = new Set<View>(["dashboard", "members", "notices", "inquiries", "lectureCodes", "billing", "settings"]);
+
+function SchoolAdminDashboard() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { logoutAction, memberName } = useAuthStore();
-    const [view, setView] = useState<View>("dashboard");
+
+    const rawView = searchParams.get("view") as View | null;
+    const view: View = rawView && VALID_VIEWS.has(rawView) ? rawView : "dashboard";
+
+    const setView = (v: View) => {
+        router.push(`/dashboard/school-admin?view=${v}`);
+    };
 
     const handleLogout = async () => {
         await logoutAction();
@@ -152,5 +161,13 @@ export default function SchoolAdminDashboardPage() {
                 </div>
             </main>
         </RoleGuard>
+    );
+}
+
+export default function SchoolAdminDashboardPage() {
+    return (
+        <Suspense>
+            <SchoolAdminDashboard />
+        </Suspense>
     );
 }

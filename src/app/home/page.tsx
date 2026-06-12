@@ -23,8 +23,12 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities, getNotices, Notice, sendChatMessage } from "@/lib/homeApi";
+import { getUniversities, getNotices, getHomeConfig, Notice, sendChatMessage, type HomeWidgetConfig } from "@/lib/homeApi";
 import api from "@/lib/api";
+
+const DEFAULT_CONFIG: HomeWidgetConfig = {
+    weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
+};
 
 const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-blue-500" },
@@ -55,8 +59,9 @@ const MOCK_MEALS = [
 ];
 
 function useNow() {
-    const [now, setNow] = useState(new Date());
+    const [now, setNow] = useState<Date | null>(null);
     useEffect(() => {
+        setNow(new Date());
         const id = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(id);
     }, []);
@@ -127,6 +132,7 @@ function useWeather() {
 
 export default function CampusHomePage() {
     const router = useRouter();
+    const isInitialized = useAuthStore((s) => s.isInitialized);
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
     const role = useAuthStore((s) => s.role);
     const memberName = useAuthStore((s) => s.memberName);
@@ -137,6 +143,7 @@ export default function CampusHomePage() {
     const now = useNow();
     const weather = useWeather();
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
+    const [homeConfig, setHomeConfig] = useState<HomeWidgetConfig>(DEFAULT_CONFIG);
     const [notices, setNotices] = useState<Notice[]>([]);
     const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
     const [chatInput, setChatInput] = useState("");
@@ -147,15 +154,16 @@ export default function CampusHomePage() {
     useEffect(() => {
         if (!isLoggedIn) return;
         getNotices().then(setNotices).catch(() => {});
+        getHomeConfig().then(setHomeConfig).catch(() => {});
     }, [isLoggedIn]);
 
     // LMS 바로가기: role에 따라 교수(PLM)/학생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
     const lmsHref =
         role === "PROF" ? "/lms/professor/profile" : role === "STU" ? "/lms/student/profile" : undefined;
 
-    const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true });
-    const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
-    const dayStr = `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})`;
+    const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+    const dateStr = now ? `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}` : "";
+    const dayStr = now ? `${now.getMonth() + 1}/${now.getDate()} (${WEEKDAYS[now.getDay()]})` : "";
 
     const handleLogout = async () => {
         await logoutAction();
@@ -201,7 +209,7 @@ export default function CampusHomePage() {
                         </Link>
                     </div>
 
-                    {isLoggedIn && (
+                    {isInitialized && isLoggedIn && (
                         <div className="flex items-center gap-4 text-sm">
                             <span className="text-slate-500 hidden sm:inline">{memberName}님</span>
                             <button
@@ -226,7 +234,7 @@ export default function CampusHomePage() {
                         </h1>
                     </div>
                     <div className="text-right hidden md:block shrink-0">
-                        {weather ? (
+                        {homeConfig.weather && (weather ? (
                             <div className="flex items-center gap-2 justify-end text-white/70 text-sm mb-1">
                                 <img
                                     src={`https://openweathermap.org/img/wn/${weather.icon}.png`}
@@ -242,7 +250,7 @@ export default function CampusHomePage() {
                                 <Sun className="w-4 h-4 text-yellow-300" />
                                 <span className="text-white/40">날씨 불러오는 중...</span>
                             </div>
-                        )}
+                        ))}
                         <p className="text-2xl font-black tracking-tight">{timeStr}</p>
                         <p className="text-white/40 text-xs mt-0.5">{dateStr}</p>
                     </div>
@@ -256,7 +264,7 @@ export default function CampusHomePage() {
                 <div className="lg:col-span-2 flex flex-col gap-5">
 
                     {/* 바로가기 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.shortcut && <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="font-extrabold text-slate-800 text-sm">바로가기</h2>
                             <button
@@ -299,10 +307,10 @@ export default function CampusHomePage() {
                                 );
                             })}
                         </div>
-                    </section>
+                    </section>}
 
                     {/* AI 챗봇 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.aiChat && <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">AI 챗봇</h2>
                             <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">
@@ -375,10 +383,10 @@ export default function CampusHomePage() {
                                 <Send className="w-4 h-4" />
                             </button>
                         </div>
-                    </section>
+                    </section>}
 
                     {/* 교내 전화번호 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.tel && <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <h2 className="font-extrabold text-slate-800 text-sm mb-4">교내 전화번호</h2>
                         {schoolInfo ? (
                             <a
@@ -396,7 +404,7 @@ export default function CampusHomePage() {
                             </div>
                         )}
                         <p className="text-[11px] text-slate-400 mt-3">※ 세부 전화번호는 학교 홈페이지를 확인하세요.</p>
-                    </section>
+                    </section>}
 
                     {/* 학교 유튜브 · 동아리 */}
                     <div className="grid grid-cols-2 gap-3">
@@ -433,7 +441,7 @@ export default function CampusHomePage() {
                 <div className="flex flex-col gap-5">
 
                     {/* 로그인 카드 */}
-                    {!isLoggedIn && (
+                    {isInitialized && !isLoggedIn && (
                         <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                             <p className="text-xs text-slate-500 mb-4">
                                 로그인하면 캠퍼스의 모든 서비스를 이용할 수 있어요.
@@ -448,8 +456,32 @@ export default function CampusHomePage() {
                         </section>
                     )}
 
+                    {/* 관리자 대시보드 바로가기 */}
+                    {isInitialized && isLoggedIn && role === "ADM" && (
+                        <Link
+                            href="/dashboard/school-admin"
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#064b35] to-[#0d7a56] px-5 py-3.5 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
+                        >
+                            <div className="absolute -right-5 -top-5 size-28 rounded-full bg-white/5" />
+                            <div className="absolute -right-3 -bottom-8 size-36 rounded-full bg-white/5" />
+                            <div className="relative">
+                                <div className="flex items-center justify-between mb-2.5">
+                                    <span className="text-[10px] font-black tracking-widest text-emerald-300/60 uppercase">School Admin</span>
+                                    <div className="flex size-7 items-center justify-center rounded-lg bg-white/10">
+                                        <LayoutDashboard className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                </div>
+                                <p className="text-white font-black text-base leading-snug">관리자<br />대시보드</p>
+                                <p className="mt-2 flex items-center gap-1 text-emerald-300 text-xs font-bold">
+                                    이동하기
+                                    <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+                                </p>
+                            </div>
+                        </Link>
+                    )}
+
                     {/* 최근 공지 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.notice && <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
                             {isLoggedIn && (
@@ -481,11 +513,10 @@ export default function CampusHomePage() {
                                 ))}
                             </ul>
                         )}
-                    </section>
+                    </section>}
 
                     {/* 오늘의 학식 */}
-                    {/* TODO(HOM-011): 학식 API 연동 */}
-                    <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    {homeConfig.meal && <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
                                 <Utensils className="w-4 h-4 text-primary" />
@@ -508,7 +539,7 @@ export default function CampusHomePage() {
                                 </div>
                             ))}
                         </div>
-                    </section>
+                    </section>}
                 </div>
             </div>
 

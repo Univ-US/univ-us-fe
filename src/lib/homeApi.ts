@@ -1,4 +1,12 @@
 import api from "@/lib/api";
+import type { HomeWidgetConfig } from "@/lib/adminApi";
+
+export const getHomeConfig = async (): Promise<HomeWidgetConfig> => {
+    const res = await api.get<HomeWidgetConfig>("/api/home/config");
+    return res.data;
+};
+
+export type { HomeWidgetConfig };
 
 export interface HomeProfile {
     univId: number;
