@@ -32,3 +32,11 @@ export const getMyWishlist = async (): Promise<MyWishlistType[]> => {
   const res = await api.get<MyWishlistType[]>("/api/cmypage/wishlist");
   return res.data ?? [];
 };
+
+export const deactivateCommunity = async (): Promise<void> => {
+  await api.post("/api/cmypage/deactivate");
+};
+
+export const reactivateCommunity = async (): Promise<void> => {
+  await api.post("/api/cmypage/reactivate");
+};

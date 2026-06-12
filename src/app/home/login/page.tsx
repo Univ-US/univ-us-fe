@@ -88,6 +88,7 @@ export default function UserLoginPage() {
             if (data.univId != null) localStorage.setItem("univId", String(data.univId));
             if (data.univName) localStorage.setItem("univName", data.univName);
             localStorage.setItem("communityNickname", data.communityNickname ?? "");
+            localStorage.setItem("status", data.status ?? "ACTIVE");
             loadFromStorage();
 
             const redirectPath = new URLSearchParams(window.location.search).get("redirect");

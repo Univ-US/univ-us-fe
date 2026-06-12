@@ -13,6 +13,7 @@ interface AuthState {
     univId: number | null;
     univName: string | null;
     communityNickname: string | null;
+    status: string | null;
     isLoggedIn: boolean;
     // localStorage 복원이 끝났는지 확인하는 값입니다.
     isInitialized: boolean;
@@ -24,6 +25,7 @@ interface AuthState {
         verification: SubscriptionPaymentVerifyResponse,
         univName: string,
     ) => void;
+    updateStatus: (status: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -35,6 +37,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     univId: null,
     univName: null,
     communityNickname: null,
+    status: null,
     isLoggedIn: false,
     // 앱이 처음 뜬 직후에는 아직 localStorage를 읽기 전입니다.
     isInitialized: false,
@@ -48,6 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const univId = localStorage.getItem("univId");
         const univName = localStorage.getItem("univName");
         const communityNickname = localStorage.getItem("communityNickname");
+        const status = localStorage.getItem("status");
 
         set({
             accessToken,
@@ -58,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             univId: univId ? Number(univId) : null,
             univName: univName ?? null,
             communityNickname: communityNickname || null,
+            status: status || null,
             isLoggedIn: !!accessToken,
             // localStorage 복원이 끝났다는 표시입니다.
             isInitialized: true,
@@ -75,6 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (data.univId != null) localStorage.setItem("univId", String(data.univId));
         if (data.univName) localStorage.setItem("univName", data.univName);
         localStorage.setItem("communityNickname", data.communityNickname ?? "");
+        localStorage.setItem("status", data.status ?? "ACTIVE");
 
         set({
             accessToken: data.accessToken,
@@ -85,6 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             univId: data.univId ?? null,
             univName: data.univName ?? null,
             communityNickname: data.communityNickname || null,
+            status: data.status ?? "ACTIVE",
             isLoggedIn: true,
             // 로그인 성공 후에는 인증 상태가 초기화 완료 상태입니다.
             isInitialized: true,
@@ -111,6 +118,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
     },
 
+    updateStatus: (status: string) => {
+        localStorage.setItem("status", status);
+        set({ status });
+    },
+
     logoutAction: async () => {
         const refreshToken = get().refreshToken ?? localStorage.getItem("refreshToken");
 
@@ -129,6 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             localStorage.removeItem("communityNickname");
             localStorage.removeItem("univId");
             localStorage.removeItem("univName");
+            localStorage.removeItem("status");
 
             set({
                 accessToken: null,
@@ -139,6 +152,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 univId: null,
                 univName: null,
                 communityNickname: null,
+                status: null,
                 isLoggedIn: false,
                 isInitialized: true,
             });
