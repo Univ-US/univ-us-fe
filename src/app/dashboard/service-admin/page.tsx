@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     Bell,
+    BookOpen,
     Building2,
     ChartNoAxesColumn,
     CircleDollarSign,
