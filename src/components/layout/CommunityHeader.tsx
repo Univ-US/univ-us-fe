@@ -15,12 +15,22 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { getPostList } from '@/lib/postApi';
 
-const NAV_ITEMS = [
+const NOTICE_BOARD_ID = 3;
+
+type NavItem = {
+  href: string;
+  label: string;
+  exact?: boolean;
+  count?: number | null;
+};
+
+const NAV_ITEMS: NavItem[] = [
   { href: '/community', label: '홈', exact: true },
   { href: '/community/free', label: '자유게시판' },
   { href: '/community/secret', label: '익명게시판' },
-  { href: '/community/notice', label: '공지사항', count: 2 },
+  { href: '/community/notice', label: '공지사항' },
   { href: '/community/market', label: '중고거래' },
   { href: '/community/reservation', label: '시설 이용' },
 ];
@@ -31,6 +41,7 @@ export default function CommunityHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [noticeTodayCount, setNoticeTodayCount] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const univName = useAuthStore((s) => s.univName);
@@ -39,6 +50,36 @@ export default function CommunityHeader() {
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
+
+  const navItems = NAV_ITEMS.map((item) =>
+    item.href === '/community/notice'
+      ? { ...item, count: noticeTodayCount }
+      : item,
+  );
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchNoticeTodayCount = async () => {
+      try {
+        const data = await getPostList({ boardId: NOTICE_BOARD_ID, page: 1, size: 1 });
+        if (!ignore) {
+          setNoticeTodayCount(data.todayCount ?? 0);
+        }
+      } catch (error) {
+        console.error('CommunityHeader notice count fetch error:', error);
+        if (!ignore) {
+          setNoticeTodayCount(null);
+        }
+      }
+    };
+
+    fetchNoticeTodayCount();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const submitSearch = () => {
     const trimmed = searchValue.trim();
@@ -91,7 +132,7 @@ export default function CommunityHeader() {
 
         {/* 네비게이션 */}
         <nav className='hidden shrink-0 items-center gap-0.5 md:flex'>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <Link
