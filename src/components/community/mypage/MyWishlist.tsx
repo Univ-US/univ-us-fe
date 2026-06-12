@@ -1,32 +1,12 @@
 'use client';
 
 import { Bookmark } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { StatusBadge, formatPrice, SectionTitle } from './shared';
 import type { MyWishlist as MyWishlistType } from '@/types/mypage';
+import { getMyWishlist } from '@/lib/cmypageApi';
 
-const SAMPLE_WISHLIST: MyWishlistType[] = [
-  {
-    productId: 1,
-    productName: '자료구조 전공서적 (거의 새것)',
-    price: 12000,
-    place: '중앙도서관 앞',
-    status: '판매중',
-  },
-  {
-    productId: 4,
-    productName: '맥북 거치대 알루미늄',
-    price: 20000,
-    place: '학생회관',
-    status: '판매중',
-  },
-  {
-    productId: 5,
-    productName: '아이패드 펜슬 2세대',
-    price: 55000,
-    place: '중앙도서관',
-    status: '예약중',
-  },
-];
+
 
 const S = {
   grid: 'grid grid-cols-2 gap-4 lg:grid-cols-3',
@@ -41,7 +21,19 @@ const S = {
 };
 
 export default function MyWishlist() {
-  const wishlist = SAMPLE_WISHLIST;
+  const [wishlist, setWishlist] = useState<MyWishlistType[]>([]);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        const data = await getMyWishlist();
+        setWishlist(data);
+      } catch (err) {
+        console.error('Failed to fetch wishlist', err);
+      }
+    };
+    fetchWishlist();
+  }, []);
   return (
     <>
       <SectionTitle sub='찜해둔 상품을 한눈에 확인하세요'>관심목록</SectionTitle>
