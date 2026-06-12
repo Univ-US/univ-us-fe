@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CommunityBoardComment from '@/components/common/CommunityBoardComment';
 import CommunityReportModal from '@/components/common/CommunityReportModal';
-import { getPostById, deletePost, togglePostLike, getPostLikeStatus, getPostReportStatus } from '@/lib/postApi';
+import { getPostById, deletePost, togglePostLike, getPostLikeStatus, getPostReportStatus, increasePostViewCount } from '@/lib/postApi';
 import type { Post, BoardType } from '@/types/community';
 import { useAuthStore } from '@/store/authStore';
 
@@ -16,6 +16,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:9090'
 
 const resolveImageUrl = (url: string) =>
   url.startsWith('http') ? url : `${API_BASE}${url}`;
+
+const viewedPostIds = new Set<number>();
 
 interface CommunityBoardDetailProps {
   post: Post;
@@ -58,7 +60,10 @@ export default function CommunityBoardDetail({
           getPostLikeStatus(initialPost.postId),
           getPostReportStatus(initialPost.postId),
         ]);
-        setPost(data);
+        setPost((prev) => ({
+          ...data,
+          viewCount: Math.max(data.viewCount ?? 0, prev.viewCount ?? 0),
+        }));
         setLiked(likeStatus.liked);
         setAlreadyReported(reportStatus.reported);
       } catch {
@@ -66,6 +71,23 @@ export default function CommunityBoardDetail({
       }
     };
     fetchDetail();
+  }, [initialPost.postId]);
+
+  useEffect(() => {
+    const postId = initialPost.postId;
+    if (viewedPostIds.has(postId)) return;
+    viewedPostIds.add(postId);
+
+    increasePostViewCount(postId)
+      .then((data) => {
+        setPost((prev) => ({
+          ...prev,
+          viewCount: data.viewCount,
+        }));
+      })
+      .catch(() => {
+        viewedPostIds.delete(postId);
+      });
   }, [initialPost.postId]);
 
   const handleLike = async () => {
