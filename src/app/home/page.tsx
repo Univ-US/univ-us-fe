@@ -21,7 +21,7 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities, sendChatMessage } from "@/lib/homeApi";
+import { getUniversities, streamChatMessage } from "@/lib/homeApi";
 import api from "@/lib/api";
 
 const BASE_SHORTCUTS = [
@@ -172,14 +172,23 @@ export default function CampusHomePage() {
     const handleChatSend = async () => {
         const msg = chatInput.trim();
         if (!msg || chatLoading) return;
-        setChatMessages((prev) => [...prev, { role: "user", text: msg }]);
+        setChatMessages((prev) => [...prev, { role: "user", text: msg }, { role: "ai", text: "" }]);
         setChatInput("");
         setChatLoading(true);
         try {
-            const answer = await sendChatMessage(msg);
-            setChatMessages((prev) => [...prev, { role: "ai", text: answer }]);
-        } catch {
-            setChatMessages((prev) => [...prev, { role: "ai", text: "죄송해요, 답변을 가져오지 못했어요." }]);
+            for await (const token of streamChatMessage(msg)) {
+                setChatMessages((prev) => {
+                    const last = prev[prev.length - 1];
+                    return [...prev.slice(0, -1), { ...last, text: last.text + token }];
+                });
+            }
+        } catch (e) {
+            setChatMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last.role === "ai" && last.text.length > 0) return prev;
+                console.error("[AI stream error]", e);
+                return [...prev.slice(0, -1), { ...last, text: "죄송해요, 답변을 가져오지 못했어요." }];
+            });
         } finally {
             setChatLoading(false);
         }
@@ -321,7 +330,7 @@ export default function CampusHomePage() {
                                     {m.text}
                                 </div>
                             ))}
-                            {chatLoading && (
+                            {chatLoading && chatMessages[chatMessages.length - 1]?.text === "" && (
                                 <div className="bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-400 self-start animate-pulse">
                                     답변 생성 중...
                                 </div>

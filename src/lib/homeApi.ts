@@ -1,4 +1,4 @@
-import api from "@/lib/api";
+import api, { API_BASE_URL } from "@/lib/api";
 
 export interface HomeProfile {
     univId: number;
@@ -26,7 +26,32 @@ export const getUniversities = async (): Promise<University[]> => {
     return res.data;
 };
 
-export const sendChatMessage = async (message: string): Promise<string> => {
-    const res = await api.post<{ response: string }>("/api/ai", { message });
-    return res.data.response;
-};
+export async function* streamChatMessage(message: string): AsyncGenerator<string> {
+    const accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const res = await fetch(`${API_BASE_URL}/api/ai/stream`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.body) throw new Error("body is null");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            const content = line.slice(5);
+            if (content) yield content;
+        }
+    }
+}
