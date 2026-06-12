@@ -83,6 +83,33 @@ function isRoomRealtimeEventForDate(
 ) {
   return !!event.startTime && event.startTime.slice(0, 10) === date;
 }
+const S = {
+  pageContainer: 'min-h-screen bg-slate-50 px-[30px] py-6',
+  contentWrapper: 'mx-auto max-w-[1140px]',
+  headerGroup: 'mb-6 flex flex-wrap items-end justify-between gap-4',
+  title: 'text-[22px] font-extrabold tracking-tight text-slate-900',
+  subtitle: 'mt-1.5 text-[13px] text-slate-400',
+  statusGroup: 'flex items-center gap-2',
+  realtimeBadge: 'flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm',
+  realtimeDot: 'size-[7px] rounded-full',
+  summaryBadge: 'rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm',
+  tabContainer: 'mb-5 flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1',
+  tabBtnBase: 'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+  tabBtnActive: 'scale-[1.03] bg-white text-primary shadow-sm',
+  tabBtnInactive: 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
+  tabIcon: 'size-3.5',
+  dateGroup: 'mb-5 flex flex-wrap items-center gap-3',
+  dateLabel: 'text-[13px] font-bold text-slate-400',
+  dateBtnGroup: 'flex gap-2',
+  dateBtnBase: 'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+  dateBtnActive: 'scale-[1.04] border-primary bg-primary text-white shadow-md',
+  dateBtnSat: 'border-border bg-white text-blue-500',
+  dateBtnSun: 'border-border bg-white text-red-400',
+  dateBtnDefault: 'border-border bg-white text-slate-700 hover:border-primary',
+  dayOfWeek: 'mb-0.5 text-[11px]',
+  dayNumber: 'text-[18px] font-extrabold leading-none',
+  todayBadge: 'mt-1 text-[10px] font-bold',
+};
 
 export default function CommunityReservation() {
   const currentMemberId = useAuthStore((state) => state.memberId);
@@ -847,20 +874,20 @@ export default function CommunityReservation() {
   }
 
   return (
-    <div className='min-h-screen bg-slate-50 px-[30px] py-6'>
-      <div className='mx-auto max-w-[1140px]'>
-        <div className='mb-6 flex flex-wrap items-end justify-between gap-4'>
+    <div className={S.pageContainer}>
+      <div className={S.contentWrapper}>
+        <div className={S.headerGroup}>
           <div>
-            <h1 className='text-[22px] font-extrabold tracking-tight text-slate-900'>
+            <h1 className={S.title}>
               시설 이용
             </h1>
-            <p className='mt-1.5 text-[13px] text-slate-400'>
+            <p className={S.subtitle}>
               실시간 좌석·공간 현황을 확인하고 바로 예약하세요.
             </p>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className={S.statusGroup}>
             <span
-              className='flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm'
+              className={S.realtimeBadge}
               style={{
                 background: isRealtimeConnected
                   ? 'var(--brand-soft)'
@@ -870,7 +897,7 @@ export default function CommunityReservation() {
             >
               <span
                 className={cn(
-                  'size-[7px] rounded-full',
+                  S.realtimeDot,
                   isRealtimeConnected && 'animate-pulse',
                 )}
                 style={{
@@ -882,67 +909,67 @@ export default function CommunityReservation() {
               />
               {isRealtimeConnected ? '실시간' : '네트워크 연결안됨'}
             </span>
-            <span className='rounded-full border border-border bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm'>
+            <span className={S.summaryBadge}>
               빈 좌석 <b className='text-slate-900'>{totalFree}</b> · 예약 가능
               공간 <b className='text-slate-900'>{availableRoomCount}</b>곳
             </span>
           </div>
         </div>
 
-        <div className='mb-5 flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1'>
+        <div className={S.tabContainer}>
           <button
             onClick={() => setTab('seat')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+              S.tabBtnBase,
               tab === 'seat'
-                ? 'scale-[1.03] bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
+                ? S.tabBtnActive
+                : S.tabBtnInactive,
             )}
           >
-            <BookOpen className='size-3.5' />
+            <BookOpen className={S.tabIcon} />
             독서실 좌석
           </button>
           <button
             onClick={() => setTab('room')}
             className={cn(
-              'flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+              S.tabBtnBase,
               tab === 'room'
-                ? 'scale-[1.03] bg-white text-primary shadow-sm'
-                : 'text-slate-500 hover:bg-white/70 hover:text-slate-700',
+                ? S.tabBtnActive
+                : S.tabBtnInactive,
             )}
           >
-            <Monitor className='size-3.5' />
+            <Monitor className={S.tabIcon} />
             강의실 / 스터디룸
           </button>
         </div>
 
-        <div className='mb-5 flex flex-wrap items-center gap-3'>
-          <span className='text-[13px] font-bold text-slate-400'>
+        <div className={S.dateGroup}>
+          <span className={S.dateLabel}>
             {reservationDateRangeLabel}
           </span>
-          <div className='flex gap-2'>
+          <div className={S.dateBtnGroup}>
             {reservationDays.map((day, index) => (
               <button
                 key={day.key}
                 onClick={() => handleDaySelect(day, index)}
                 className={cn(
-                  'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+                  S.dateBtnBase,
                   selDay === index
-                    ? 'scale-[1.04] border-primary bg-primary text-white shadow-md'
+                    ? S.dateBtnActive
                     : day.sat
-                      ? 'border-border bg-white text-blue-500'
+                      ? S.dateBtnSat
                       : day.sun
-                        ? 'border-border bg-white text-red-400'
-                        : 'border-border bg-white text-slate-700 hover:border-primary',
+                        ? S.dateBtnSun
+                        : S.dateBtnDefault,
                 )}
               >
-                <span className='mb-0.5 text-[11px]'>{day.dayOfWeek}</span>
-                <span className='text-[18px] font-extrabold leading-none'>
+                <span className={S.dayOfWeek}>{day.dayOfWeek}</span>
+                <span className={S.dayNumber}>
                   {day.day}
                 </span>
                 {day.today && (
                   <span
-                    className='mt-1 text-[10px] font-bold'
+                    className={S.todayBadge}
                     style={{
                       color:
                         selDay === index ? 'rgba(255,255,255,0.8)' : 'var(--brand)',
