@@ -217,9 +217,13 @@ export default function CommunityBoardComment({
 
   // 대댓글 등록
   const handleReplySubmit = async (parentId: number, content: string) => {
-    await createComment(postId, { content, parentId, isAnonymous: isAnon ? 1 : 0 });
-    await fetchComments();
-    onRefresh?.();
+    try {
+      await createComment(postId, { content, parentId, isAnonymous: isAnon ? 1 : 0 });
+      await fetchComments();
+      onRefresh?.();
+    } catch {
+      alert('답글 등록에 실패했습니다. 다시 시도해 주세요.');
+    }
   };
 
   // 댓글/대댓글 삭제

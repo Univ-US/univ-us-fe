@@ -28,7 +28,7 @@ export default function MyComments() {
     const fetchComments = async () => {
       try {
         const data = await getMyComments();
-        setComments(data.map((c: any) => ({
+        setComments(data.map((c: MyComment & { boardName?: string }) => ({
           commentId: c.commentId,
           content: c.content,
           postTitle: c.postTitle,

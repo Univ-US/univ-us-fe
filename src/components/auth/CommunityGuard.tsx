@@ -32,7 +32,7 @@ export default function CommunityGuard({
                 return;
             }
 
-            window.alert("로그인이 안되어있습니다");
+            window.alert("로그인이 필요합니다.");
             router.replace(`/home/login?redirect=${encodeURIComponent(currentPath)}`);
             return;
         }

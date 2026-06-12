@@ -44,14 +44,14 @@ export default function AccountSettings() {
           <div className={S.deleteLeft}>
             <div className={S.deleteLabel}>
               <TriangleAlert className={S.deleteIcon} />
-              회원 탈퇴
+              계정 비활성화
             </div>
             <div className={S.deleteDesc}>
-              탈퇴 시 작성한 글·댓글·거래 내역이 모두 삭제되며 복구할 수 없습니다.
+              계정 비활성화 시 게시글과 댓글 등 활동 내역의 처리 정책에 따라 숨겨지거나 유지될 수 있습니다.
             </div>
           </div>
           <button className={S.deleteButton}>
-            탈퇴하기
+            비활성화하기
           </button>
         </div>
       </div>

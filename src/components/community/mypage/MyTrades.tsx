@@ -71,7 +71,7 @@ export default function MyTrades() {
         {['전체', '판매', '구매'].map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t as any)}
+            onClick={() => setTab(t as '전체' | '판매' | '구매')}
             className={cn(S.tabBtn, tab === t ? S.tabActive : S.tabInactive)}
           >
             {t}

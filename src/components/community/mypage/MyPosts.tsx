@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { BoardBadge, SectionTitle } from './shared';
 import type { MyPost } from '@/types/mypage';
 import { getMyPosts } from '@/lib/cmypageApi';
+import type { Post } from '@/types/community';
 import Link from 'next/link';
 
 const S = {
@@ -31,7 +32,7 @@ export default function MyPosts() {
       try {
         const data = await getMyPosts();
         const boardLabels: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
-        setPosts(data.map((p: any) => ({
+        setPosts(data.map((p: Post) => ({
           postId: p.postId,
           title: p.title,
           board: boardLabels[p.boardId] ?? '기타',

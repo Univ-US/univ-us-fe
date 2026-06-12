@@ -1,7 +1,6 @@
 'use client';
 
 import { Bookmark } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { StatusBadge, formatPrice, SectionTitle } from './shared';
 import type { MyWishlist as MyWishlistType } from '@/types/mypage';
 

@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BoardBadge, SectionTitle } from './shared';
 import type { MyPost } from '@/types/mypage';
+import type { Post } from '@/types/community';
 import { getLikedPosts } from '@/lib/cmypageApi';
 
 const S = {
@@ -29,7 +30,7 @@ export default function LikedPosts() {
       try {
         const data = await getLikedPosts();
         const boardLabels: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
-        setPosts(data.map((p: any) => ({
+        setPosts(data.map((p: Post) => ({
           postId: p.postId,
           title: p.title,
           board: boardLabels[p.boardId] ?? '기타',

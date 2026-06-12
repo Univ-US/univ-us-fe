@@ -11,9 +11,10 @@ export const getMyPosts = async (): Promise<Post[]> => {
   const res = await api.get<MyPostsResponse>("/api/cmypage/posts");
   return res.data.postList ?? [];
 };
+import type { MyComment } from "@/types/mypage";
 
-export const getMyComments = async (): Promise<any[]> => {
-  const res = await api.get<any[]>("/api/cmypage/comments");
+export const getMyComments = async (): Promise<MyComment[]> => {
+  const res = await api.get<MyComment[]>("/api/cmypage/comments");
   return res.data ?? [];
 };
 
