@@ -7,7 +7,6 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import Link from "next/link";
 import {
     Bell,
-    BookOpen,
     Building2,
     ChartNoAxesColumn,
     ChevronRight,
@@ -22,8 +21,6 @@ import {
     UsersRound,
     CircleDollarSign,
 } from "lucide-react";
-import LectureCodesView from "../school-admin/_views/LectureCodesView";
-
 const schools = [
     ["동명사이버대학교", "프로", "1,840명", "₩1,490,000", "정상"],
     ["라온에듀센터", "베이직", "312명", "₩490,000", "정상"],
@@ -41,7 +38,7 @@ const members = [
     ["배하린", "harin.bae@univus.kr", "관리자", "라온에듀센터", "운영팀", "활성"],
 ];
 
-type SuaView = "dashboard" | "lectureCodes";
+type SuaView = "dashboard";
 
 const navItems: { label: string; icon: React.ComponentType<{ className?: string }>; view?: SuaView }[] = [
     { label: "대시보드", icon: LayoutDashboard, view: "dashboard" },
@@ -49,7 +46,6 @@ const navItems: { label: string; icon: React.ComponentType<{ className?: string 
     { label: "회원 관리", icon: UsersRound },
     { label: "결제 관리", icon: CircleDollarSign },
     { label: "구독플랜 설정", icon: Settings },
-    { label: "강의코드 관리", icon: BookOpen, view: "lectureCodes" },
     { label: "공지 관리", icon: Bell },
     { label: "채팅 문의", icon: MessageSquareText },
     { label: "운영 로그", icon: ListChecks },
@@ -194,7 +190,6 @@ export default function ServiceAdminDashboardPage() {
                     </header>
 
                     <section className="px-6 py-8 lg:px-8">
-                        {view === "lectureCodes" && <LectureCodesView />}
                         {view === "dashboard" && <>
                         <div className="mb-6">
                             <h1 className="text-3xl font-black tracking-tight">어드민 대시보드</h1>

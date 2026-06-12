@@ -145,17 +145,6 @@ export interface ApiDepartment {
     univId: number;
 }
 
-export interface ApiLectureCode {
-    lecCodeId: number;
-    univId: number;
-    univName: string;
-    deptId: number;
-    deptName: string;
-    lecCode: string;
-    lecCodName: string;
-    valStatus: string;
-}
-
 // 대학 목록 조회 (SUA용)
 export const getAdminUniversities = async () => {
     const res = await api.get<ApiUniversity[]>("/api/admin/universities");
@@ -168,34 +157,7 @@ export const getAdminDepartments = async (univId: number) => {
     return res.data;
 };
 
-// 강의코드 목록 조회
-export const getLectureCodes = async (univId: number) => {
-    const res = await api.get<ApiLectureCode[]>("/api/admin/lecture-codes", { params: { univId } });
-    return res.data;
-};
 
-// 강의코드 등록
-export const createLectureCode = async (data: { deptId: number; lecCode: string; lecCodName: string }) => {
-    await api.post("/api/admin/lecture-codes", data);
-};
-
-// 강의코드 수정
-export const updateLectureCode = async (
-    lecCodeId: number,
-    data: { deptId: number; lecCode: string; lecCodName: string }
-) => {
-    await api.put(`/api/admin/lecture-codes/${lecCodeId}`, data);
-};
-
-// 강의코드 삭제
-export const deleteLectureCode = async (lecCodeId: number) => {
-    await api.delete(`/api/admin/lecture-codes/${lecCodeId}`);
-};
-
-// 강의코드 상태 변경
-export const updateLectureCodeStatus = async (lecCodeId: number, valStatus: string) => {
-    await api.patch(`/api/admin/lecture-codes/${lecCodeId}/status`, { valStatus });
-};
 
 export interface ApiSemester {
     semId: number;
