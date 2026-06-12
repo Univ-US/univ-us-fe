@@ -415,8 +415,8 @@ export default function LectureManageView() {
                                     onChange={(e) =>
                                         setForm((prev) => ({
                                             ...prev,
-                                            // 영문만 허용 — 소문자는 대문자로 자동 변환, 그 외 문자는 입력 자체를 차단
-                                            lecCode: e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, CODE_MAX),
+                                            // 영문·숫자·하이픈 허용 — 소문자는 대문자로 자동 변환, 그 외 문자는 입력 자체를 차단
+                                            lecCode: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, CODE_MAX),
                                         }))
                                     }
                                     placeholder="예) DTST"
@@ -424,7 +424,7 @@ export default function LectureManageView() {
                                     className="mt-2 h-10 w-full rounded-lg border border-border px-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 <p className={`mt-1 text-xs ${form.lecCode.length >= CODE_MAX ? "text-rose-500" : "text-slate-400"}`}>
-                                    영문만 입력 가능 (소문자는 대문자로 자동 변환) · 최대 {CODE_MAX}자 ({form.lecCode.length}/{CODE_MAX})
+                                    영문·숫자·하이픈(-) 입력 가능 (소문자는 대문자로 자동 변환) · 최대 {CODE_MAX}자 ({form.lecCode.length}/{CODE_MAX})
                                 </p>
                             </div>
                             <div>
