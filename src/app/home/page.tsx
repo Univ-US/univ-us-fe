@@ -23,7 +23,7 @@ import {
     Utensils,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getUniversities, streamChatMessage, getNotices, getHomeConfig, Notice, sendChatMessage, type HomeWidgetConfig } from "@/lib/homeApi";
+import { getUniversities, streamChatMessage, getNotices, getHomeConfig, Notice, type HomeWidgetConfig } from "@/lib/homeApi";
 import api from "@/lib/api";
 import { ROLE } from "@/lib/rolecode";
 
