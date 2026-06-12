@@ -20,6 +20,10 @@ import {
     UsersRound,
 } from "lucide-react";
 import RoleGuard from "@/components/auth/RoleGuard";
+import {
+    getServiceAdminDashboard,
+    type ServiceAdminDashboardResponse,
+} from "@/lib/serviceAdminApi";
 import { useAuthStore } from "@/store/authStore";
 import DashboardView from "./_views/DashboardView";
 import InquiriesView from "./_views/InquiriesView";
@@ -112,7 +116,13 @@ const SERVICE_ADMIN_PARAM_BY_VIEW: Record<ServiceAdminView, string> = {
 function ServiceAdminDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { logoutAction, memberName } = useAuthStore();
+    const {
+        logoutAction,
+        memberName,
+        isInitialized,
+        isLoggedIn,
+        role,
+    } = useAuthStore();
     const [schools, setSchools] = useState<ServiceSchool[]>(SERVICE_SCHOOLS);
     const [members, setMembers] = useState<ServiceMember[]>(() =>
         SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
@@ -123,6 +133,30 @@ function ServiceAdminDashboardContent() {
     );
     const [inquiries, setInquiries] =
         useState<ServiceInquiry[]>(SERVICE_INQUIRIES);
+    const [dashboard, setDashboard] =
+        useState<ServiceAdminDashboardResponse | null>(null);
+    const [dashboardLoading, setDashboardLoading] = useState(true);
+    const [dashboardError, setDashboardError] = useState("");
+
+    const loadDashboard = useCallback(async () => {
+        setDashboardLoading(true);
+        setDashboardError("");
+
+        try {
+            setDashboard(await getServiceAdminDashboard());
+        } catch (error) {
+            console.error("Failed to load service admin dashboard.", error);
+            setDashboardError("대시보드 정보를 불러오지 못했습니다.");
+        } finally {
+            setDashboardLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isInitialized || !isLoggedIn || role !== "SUA") return;
+        void loadDashboard();
+    }, [isInitialized, isLoggedIn, loadDashboard, role]);
+
     const requestedView = searchParams.get("view");
     const requestedSchoolId = Number(searchParams.get("schoolId"));
     const requestedSchool =
@@ -521,8 +555,10 @@ function ServiceAdminDashboardContent() {
                     <section className="px-6 py-8 lg:px-8">
                         {view === "dashboard" && (
                             <DashboardView
-                                schools={schools}
-                                onOpenSchool={openSchool}
+                                dashboard={dashboard}
+                                loading={dashboardLoading}
+                                error={dashboardError}
+                                onRetry={loadDashboard}
                                 onOpenSchools={() => navigateToView("schools")}
                             />
                         )}
