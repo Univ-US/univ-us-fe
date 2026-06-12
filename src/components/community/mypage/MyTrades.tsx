@@ -1,37 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { StatusBadge, formatPrice, SectionTitle } from './shared';
+import { StatusBadge, formatPrice, SectionTitle, formatDate } from './shared';
 import type { MyTrade } from '@/types/mypage';
 
-const SAMPLE_TRADES: MyTrade[] = [
-  {
-    tradeId: 1,
-    productName: '자료구조 전공서적 (거의 새것)',
-    price: 12000,
-    status: '판매중',
-    role: '판매',
-    createdAt: '3분 전',
-  },
-  {
-    tradeId: 2,
-    productName: '맥북 거치대 알루미늄',
-    price: 20000,
-    status: '예약중',
-    role: '판매',
-    createdAt: '어제',
-  },
-  {
-    tradeId: 3,
-    productName: '전공 원서 3권 일괄',
-    price: 25000,
-    status: '거래완료',
-    role: '구매',
-    createdAt: '2주 전',
-  },
-];
+import { getMyTrades } from '@/lib/cmypageApi';
 
 const S = {
   tabContainer: 'mb-4 flex gap-2',
@@ -57,8 +32,22 @@ const S = {
 };
 
 export default function MyTrades() {
+  const [trades, setTrades] = useState<MyTrade[]>([]);
   const [tab, setTab] = useState<'전체' | '판매' | '구매'>('전체');
-  const filtered = SAMPLE_TRADES.filter((t) =>
+
+  useEffect(() => {
+    const fetchTrades = async () => {
+      try {
+        const data = await getMyTrades();
+        setTrades(data);
+      } catch (err) {
+        console.error('Failed to fetch trades', err);
+      }
+    };
+    fetchTrades();
+  }, []);
+
+  const filtered = trades.filter((t) =>
     tab === '전체' ? true : t.role === tab,
   );
 
@@ -94,7 +83,7 @@ export default function MyTrades() {
               <div className={S.itemBottomRow}>
                 <span className={S.price}>{formatPrice(trade.price)}</span>
                 <span className={S.divider}>|</span>
-                <span className={S.date}>{trade.createdAt}</span>
+                <span className={S.date}>{formatDate(trade.createdAt)}</span>
               </div>
             </div>
             <span

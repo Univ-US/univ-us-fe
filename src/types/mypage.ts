@@ -19,7 +19,7 @@ export interface MyTrade {
   tradeId: number;
   productName: string;
   price: number;
-  status: '판매중' | '예약중' | '거래완료';
+  status: string;
   role: '판매' | '구매';
   createdAt: string;
 }
@@ -29,7 +29,7 @@ export interface MyWishlist {
   productName: string;
   price: number;
   place: string;
-  status: '판매중' | '예약중' | '거래완료';
+  status: string;
 }
 
 export interface UserProfile {
