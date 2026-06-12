@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuthStore } from "@/store/authStore";
-import LectureCodesView from "../school-admin/_views/LectureCodesView";
 import DashboardView from "./_views/DashboardView";
 import MembersView from "./_views/MembersView";
 import PaymentsView from "./_views/PaymentsView";
@@ -344,7 +343,6 @@ function ServiceAdminDashboardContent() {
                                 onChangeStatus={changePaymentStatus}
                             />
                         )}
-                        {view === "lectureCodes" && <LectureCodesView />}
                     </section>
                 </div>
             </main>
