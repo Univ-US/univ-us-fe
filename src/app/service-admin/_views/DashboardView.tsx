@@ -32,10 +32,13 @@ export default function DashboardView({
     const totalMembers = schools.reduce((sum, school) => sum + school.memberCount, 0);
     const visibleMembers = schools
         .flatMap((school) =>
-            getMockMembersForSchool(school).slice(0, 2).map((member) => ({
-                ...member,
-                schoolName: school.name,
-            })),
+            getMockMembersForSchool(school)
+                .filter((member) => member.role !== "ADM")
+                .slice(0, 2)
+                .map((member) => ({
+                    ...member,
+                    schoolName: school.name,
+                })),
         )
         .slice(0, 18);
 
@@ -127,7 +130,14 @@ export default function DashboardView({
                         </button>
                     </div>
                     <div className="max-h-[340px] overflow-y-auto">
-                        <table className="w-full min-w-[760px] text-left text-sm">
+                        <table className="w-full min-w-[760px] table-fixed text-left text-sm">
+                            <colgroup>
+                                <col className="w-[230px]" />
+                                <col className="w-[110px]" />
+                                <col className="w-[130px]" />
+                                <col className="w-[110px]" />
+                                <col className="w-[150px]" />
+                            </colgroup>
                             <thead className="sticky top-0 z-10 bg-slate-50 text-xs font-extrabold text-slate-500">
                                 <tr>
                                     <th className="px-5 py-3">기관명</th>
@@ -144,17 +154,19 @@ export default function DashboardView({
                                         onClick={() => onOpenSchool(school)}
                                         className="cursor-pointer font-semibold text-slate-700 transition hover:bg-emerald-50/60"
                                     >
-                                        <td className="px-5 py-3 font-black text-slate-950">{school.name}</td>
-                                        <td className="px-5 py-3">{school.plan ?? "미구독"}</td>
-                                        <td className="px-5 py-3">
+                                        <td className="px-5 py-3 font-black text-slate-950">
+                                            <p className="truncate" title={school.name}>{school.name}</p>
+                                        </td>
+                                        <td className="whitespace-nowrap px-5 py-3">{school.plan ?? "미구독"}</td>
+                                        <td className="whitespace-nowrap px-5 py-3">
                                             {getSubscriptionDuration(
                                                 school.firstSubscribedAt,
                                                 school.subscriptionEndedAt,
                                                 school.subscriptionStatus,
                                             )}
                                         </td>
-                                        <td className="px-5 py-3">{school.memberCount.toLocaleString()}명</td>
-                                        <td className="px-5 py-3">
+                                        <td className="whitespace-nowrap px-5 py-3">{school.memberCount.toLocaleString()}명</td>
+                                        <td className="whitespace-nowrap px-5 py-3">
                                             <SubscriptionBadge value={school.subscriptionStatus} />
                                         </td>
                                     </tr>
@@ -166,11 +178,17 @@ export default function DashboardView({
 
                 <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
                     <div className="border-b border-slate-100 px-5 py-4">
-                        <h2 className="font-black">전체 회원 조회</h2>
-                        <p className="mt-1 text-xs text-slate-400">기관별 최근 회원을 일부 표시합니다.</p>
+                        <h2 className="font-black">최근 이용자 조회</h2>
+                        <p className="mt-1 text-xs text-slate-400">학교 관리자를 제외한 기관별 최근 이용자를 일부 표시합니다.</p>
                     </div>
                     <div className="max-h-[340px] overflow-y-auto">
-                        <table className="w-full min-w-[620px] text-left text-sm">
+                        <table className="w-full min-w-[620px] table-fixed text-left text-sm">
+                            <colgroup>
+                                <col className="w-[160px]" />
+                                <col className="w-[230px]" />
+                                <col className="w-[90px]" />
+                                <col className="w-[140px]" />
+                            </colgroup>
                             <thead className="sticky top-0 z-10 bg-slate-50 text-xs font-extrabold text-slate-500">
                                 <tr>
                                     <th className="px-5 py-3">회원</th>
@@ -183,14 +201,20 @@ export default function DashboardView({
                                 {visibleMembers.map((member) => (
                                     <tr key={member.id} className="font-semibold text-slate-700">
                                         <td className="px-5 py-3">
-                                            <p className="font-black text-slate-950">{member.name}</p>
-                                            <p className="mt-0.5 text-xs text-slate-400">{member.loginId}</p>
+                                            <p className="truncate font-black text-slate-950" title={member.name}>{member.name}</p>
+                                            <p className="mt-0.5 truncate text-xs text-slate-400" title={member.loginId}>{member.loginId}</p>
                                         </td>
-                                        <td className="px-5 py-3">{member.schoolName}</td>
                                         <td className="px-5 py-3">
-                                            {member.role === "STU" ? "학생" : member.role === "PROF" ? "교수" : "관리자"}
+                                            <p className="truncate" title={member.schoolName}>{member.schoolName}</p>
                                         </td>
-                                        <td className="px-5 py-3 text-slate-400">{member.joinedAt}</td>
+                                        <td className="whitespace-nowrap px-5 py-3">
+                                            {member.role === "STU"
+                                                ? "학생"
+                                                : member.role === "PROF"
+                                                    ? "교수"
+                                                    : "졸업생"}
+                                        </td>
+                                        <td className="whitespace-nowrap px-5 py-3 text-slate-400">{member.joinedAt}</td>
                                     </tr>
                                 ))}
                             </tbody>

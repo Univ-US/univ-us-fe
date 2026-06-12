@@ -1,45 +1,54 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
     Bell,
-    BookOpen,
     Building2,
-    ChartNoAxesColumn,
     CircleDollarSign,
-    FileBox,
     Home,
     LayoutDashboard,
     ListChecks,
     LogOut,
     MessageSquareText,
+    ScrollText,
     School,
     Settings,
+    UserRoundCog,
     UsersRound,
 } from "lucide-react";
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuthStore } from "@/store/authStore";
 import DashboardView from "./_views/DashboardView";
+import InquiriesView from "./_views/InquiriesView";
 import MembersView from "./_views/MembersView";
+import OperationsLogsView from "./_views/OperationsLogsView";
 import PaymentsView from "./_views/PaymentsView";
 import SchoolDetailView from "./_views/SchoolDetailView";
 import SchoolsView from "./_views/SchoolsView";
+import SubscriptionPlansView, {
+    type PlanForm,
+} from "./_views/SubscriptionPlansView";
+import UsersView from "./_views/UsersView";
 import {
     getMockMembersForSchool,
-    PLAN_PRICE,
+    SERVICE_INQUIRIES,
     SERVICE_PAYMENTS,
     SERVICE_SCHOOLS,
+    SERVICE_SUBSCRIPTION_PLANS,
 } from "./_mockData";
 import type {
     AdminPaymentStatus,
+    InquiryStatus,
     MemberStatus,
     ServiceAdminView,
+    ServiceInquiry,
     ServiceMember,
     ServicePayment,
     ServiceSchool,
+    ServiceSubscriptionPlan,
     SubscriptionPlan,
 } from "./_types";
 
@@ -49,18 +58,19 @@ interface NavItem {
     view?: ServiceAdminView;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const PLATFORM_NAV_ITEMS: NavItem[] = [
     { label: "대시보드", icon: LayoutDashboard, view: "dashboard" },
     { label: "학교 관리", icon: School, view: "schools" },
-    { label: "회원 관리", icon: UsersRound, view: "members" },
+    { label: "회원 관리", icon: UserRoundCog, view: "members" },
     { label: "결제 관리", icon: CircleDollarSign, view: "payments" },
-    { label: "구독 플랜 설정", icon: Settings },
-    { label: "강의 관리", icon: BookOpen, view: "lectureCodes" },
-    { label: "공지 관리", icon: Bell },
-    { label: "채팅 문의", icon: MessageSquareText },
-    { label: "운영 로그", icon: ListChecks },
-    { label: "통계 리포트", icon: ChartNoAxesColumn },
-    { label: "첨부 파일", icon: FileBox },
+    { label: "구독 플랜 설정", icon: Settings, view: "plans" },
+    { label: "채팅 문의", icon: MessageSquareText, view: "inquiries" },
+    { label: "운영 로그", icon: ListChecks, view: "logs" },
+];
+
+const DETAIL_NAV_ITEMS: NavItem[] = [
+    { label: "이용자 관리", icon: UsersRound, view: "users" },
+    { label: "커뮤니티 관리", icon: ScrollText },
 ];
 
 const VIEW_LABEL: Record<ServiceAdminView, string> = {
@@ -69,7 +79,10 @@ const VIEW_LABEL: Record<ServiceAdminView, string> = {
     schoolDetail: "학교 상세",
     members: "회원 관리",
     payments: "결제 관리",
-    lectureCodes: "강의 관리",
+    plans: "구독 플랜 설정",
+    inquiries: "채팅 문의",
+    logs: "운영 로그",
+    users: "이용자 관리",
 };
 
 const SERVICE_ADMIN_VIEW_BY_PARAM: Record<string, ServiceAdminView> = {
@@ -78,7 +91,10 @@ const SERVICE_ADMIN_VIEW_BY_PARAM: Record<string, ServiceAdminView> = {
     "school-detail": "schoolDetail",
     members: "members",
     payments: "payments",
-    "lecture-codes": "lectureCodes",
+    plans: "plans",
+    inquiries: "inquiries",
+    logs: "logs",
+    users: "users",
 };
 
 const SERVICE_ADMIN_PARAM_BY_VIEW: Record<ServiceAdminView, string> = {
@@ -87,7 +103,10 @@ const SERVICE_ADMIN_PARAM_BY_VIEW: Record<ServiceAdminView, string> = {
     schoolDetail: "school-detail",
     members: "members",
     payments: "payments",
-    lectureCodes: "lecture-codes",
+    plans: "plans",
+    inquiries: "inquiries",
+    logs: "logs",
+    users: "users",
 };
 
 function ServiceAdminDashboardContent() {
@@ -99,6 +118,11 @@ function ServiceAdminDashboardContent() {
         SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
     );
     const [payments, setPayments] = useState<ServicePayment[]>(SERVICE_PAYMENTS);
+    const [plans, setPlans] = useState<ServiceSubscriptionPlan[]>(
+        SERVICE_SUBSCRIPTION_PLANS,
+    );
+    const [inquiries, setInquiries] =
+        useState<ServiceInquiry[]>(SERVICE_INQUIRIES);
     const requestedView = searchParams.get("view");
     const requestedSchoolId = Number(searchParams.get("schoolId"));
     const requestedSchool =
@@ -117,12 +141,12 @@ function ServiceAdminDashboardContent() {
 
     useEffect(() => {
         if (requestedView && !parsedView) {
-            router.replace("/dashboard/service-admin");
+            router.replace("/service-admin");
             return;
         }
 
         if (parsedView === "schoolDetail" && !requestedSchool) {
-            router.replace("/dashboard/service-admin?view=schools");
+            router.replace("/service-admin?view=schools");
         }
     }, [parsedView, requestedSchool, requestedView, router]);
 
@@ -130,8 +154,8 @@ function ServiceAdminDashboardContent() {
         const viewParam = SERVICE_ADMIN_PARAM_BY_VIEW[nextView];
         router.push(
             nextView === "dashboard"
-                ? "/dashboard/service-admin"
-                : `/dashboard/service-admin?view=${viewParam}`,
+                ? "/service-admin"
+                : `/service-admin?view=${viewParam}`,
         );
     };
 
@@ -142,7 +166,7 @@ function ServiceAdminDashboardContent() {
 
     const openSchool = (school: ServiceSchool) => {
         router.push(
-            `/dashboard/service-admin?view=school-detail&schoolId=${school.id}`,
+            `/service-admin?view=school-detail&schoolId=${school.id}`,
         );
     };
 
@@ -154,6 +178,11 @@ function ServiceAdminDashboardContent() {
     };
 
     const changePlan = (plan: SubscriptionPlan) => {
+        const selectedPlan = plans.find(
+            (candidate) => candidate.name === plan && candidate.status === "ACTIVE",
+        );
+        if (!selectedPlan) return;
+
         const todayDate = new Date();
         const today = todayDate.toLocaleDateString("en-CA");
         const nextBillingDate = new Date(todayDate);
@@ -162,7 +191,7 @@ function ServiceAdminDashboardContent() {
         updateSelectedSchool((school) => ({
             ...school,
             plan,
-            monthlyRevenue: PLAN_PRICE[plan],
+            monthlyRevenue: selectedPlan.price,
             paymentStatus: "READY",
             subscriptionStatus: "ACTIVE",
             firstSubscribedAt: school.firstSubscribedAt ?? today,
@@ -173,6 +202,87 @@ function ServiceAdminDashboardContent() {
                     : school.nextBillingAt,
             portoneCustomerId: school.portoneCustomerId ?? `cus_mock_${school.id}`,
         }));
+    };
+
+    const createPlan = (form: PlanForm) => {
+        const today = new Date().toLocaleDateString("en-CA");
+        setPlans((current) => [
+            ...current,
+            {
+                id: Math.max(0, ...current.map((plan) => plan.id)) + 1,
+                name: form.name,
+                price: Number(form.price),
+                description: form.description,
+                maxMemberCount: form.maxMemberCount
+                    ? Number(form.maxMemberCount)
+                    : null,
+                status: "ACTIVE",
+                createdAt: today,
+                updatedAt: today,
+            },
+        ]);
+    };
+
+    const updatePlan = (planId: number, form: PlanForm) => {
+        const currentPlan = plans.find((plan) => plan.id === planId);
+        if (!currentPlan) return;
+
+        const today = new Date().toLocaleDateString("en-CA");
+        const price = Number(form.price);
+        setPlans((current) =>
+            current.map((plan) =>
+                plan.id === planId
+                    ? {
+                        ...plan,
+                        name: form.name,
+                        price,
+                        description: form.description,
+                        maxMemberCount: form.maxMemberCount
+                            ? Number(form.maxMemberCount)
+                            : null,
+                        updatedAt: today,
+                    }
+                    : plan,
+            ),
+        );
+        setSchools((current) =>
+            current.map((school) =>
+                school.plan === currentPlan.name
+                    ? {
+                        ...school,
+                        plan: form.name,
+                        monthlyRevenue:
+                            school.subscriptionStatus === "UNSUBSCRIBED" ||
+                            school.subscriptionStatus === "CANCELED"
+                                ? 0
+                                : price,
+                    }
+                    : school,
+            ),
+        );
+        setPayments((current) =>
+            current.map((payment) =>
+                payment.plan === currentPlan.name
+                    ? { ...payment, plan: form.name, amount: price }
+                    : payment,
+            ),
+        );
+    };
+
+    const togglePlanStatus = (planId: number) => {
+        const today = new Date().toLocaleDateString("en-CA");
+        setPlans((current) =>
+            current.map((plan) =>
+                plan.id === planId
+                    ? {
+                        ...plan,
+                        status:
+                            plan.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+                        updatedAt: today,
+                    }
+                    : plan,
+            ),
+        );
     };
 
     const cancelSubscription = () => {
@@ -212,6 +322,76 @@ function ServiceAdminDashboardContent() {
         );
     };
 
+    const readInquiry = useCallback((inquiryId: number) => {
+        setInquiries((current) => {
+            const target = current.find((inquiry) => inquiry.id === inquiryId);
+            if (!target || target.unreadCount === 0) return current;
+            return current.map((inquiry) =>
+                inquiry.id === inquiryId
+                    ? { ...inquiry, unreadCount: 0 }
+                    : inquiry,
+            );
+        });
+    }, []);
+
+    const sendInquiryMessage = (
+        inquiryId: number,
+        payload: {
+            text: string;
+            imageUrl: string | null;
+            imageName: string | null;
+        },
+    ) => {
+        const now = new Date();
+        const sentAt = `${now.toLocaleDateString("en-CA")} ${now
+            .toTimeString()
+            .slice(0, 5)}`;
+        setInquiries((current) =>
+            current.map((inquiry) =>
+                inquiry.id === inquiryId
+                    ? {
+                        ...inquiry,
+                        status:
+                            inquiry.status === "WAITING"
+                                ? "IN_PROGRESS"
+                                : inquiry.status,
+                        updatedAt: sentAt,
+                        unreadCount: 0,
+                        messages: [
+                            ...inquiry.messages,
+                            {
+                                id: Date.now(),
+                                senderRole: "SUA",
+                                senderName: memberName ?? "서비스 관리자",
+                                text: payload.text,
+                                imageUrl: payload.imageUrl,
+                                imageName: payload.imageName,
+                                sentAt,
+                            },
+                        ],
+                    }
+                    : inquiry,
+            ),
+        );
+    };
+
+    const changeInquiryStatus = (
+        inquiryId: number,
+        status: InquiryStatus,
+    ) => {
+        const now = new Date();
+        const updatedAt = `${now.toLocaleDateString("en-CA")} ${now
+            .toTimeString()
+            .slice(0, 5)}`;
+        setInquiries((current) =>
+            current.map((inquiry) =>
+                inquiry.id === inquiryId
+                    ? { ...inquiry, status, updatedAt }
+                    : inquiry,
+            ),
+        );
+    };
+
     return (
         <RoleGuard allowedRoles={["SUA"]}>
             <main className="min-h-screen bg-[#f4faf7] text-slate-950">
@@ -247,8 +427,9 @@ function ServiceAdminDashboardContent() {
                     <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
                         플랫폼 운영
                     </p>
-                    <nav className="mt-2 min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
-                        {NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
+                    <nav className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
+                        <div className="space-y-0.5">
+                        {PLATFORM_NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
                             const isActive =
                                 itemView === "schools"
                                     ? view === "schools" || view === "schoolDetail"
@@ -274,6 +455,34 @@ function ServiceAdminDashboardContent() {
                                 </button>
                             );
                         })}
+                        </div>
+
+                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
+                            상세 관리
+                        </p>
+                        <div className="mt-2 space-y-0.5">
+                            {DETAIL_NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
+                                const isReady = Boolean(itemView);
+                                return (
+                                    <button
+                                        key={label}
+                                        onClick={() => itemView && navigateToView(itemView)}
+                                        disabled={!isReady}
+                                        title={isReady ? label : `${label} 화면은 다음 구현 범위입니다.`}
+                                        className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition-colors ${
+                                            itemView === view
+                                                ? "bg-white/18 text-white"
+                                                : isReady
+                                                    ? "text-emerald-50/80 hover:bg-white/10"
+                                                    : "cursor-not-allowed text-emerald-100/35"
+                                        }`}
+                                    >
+                                        <Icon className="size-4 shrink-0" />
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </nav>
 
                     <div className="mt-4 space-y-1.5">
@@ -323,7 +532,7 @@ function ServiceAdminDashboardContent() {
                         {view === "schoolDetail" && selectedSchool && (
                             <SchoolDetailView
                                 school={selectedSchool}
-                                members={members.filter((member) => member.schoolId === selectedSchool.id)}
+                                plans={plans}
                                 onBack={() => navigateToView("schools")}
                                 onChangePlan={changePlan}
                                 onCancelSubscription={cancelSubscription}
@@ -337,11 +546,45 @@ function ServiceAdminDashboardContent() {
                                 onOpenSchool={openSchool}
                             />
                         )}
+                        {view === "users" && (
+                            <UsersView
+                                schools={schools}
+                                members={members.filter((member) => member.role !== "ADM")}
+                                onChangeStatus={changeMemberStatus}
+                                onOpenSchool={openSchool}
+                            />
+                        )}
                         {view === "payments" && (
                             <PaymentsView
                                 schools={schools}
                                 payments={payments}
                                 onChangeStatus={changePaymentStatus}
+                            />
+                        )}
+                        {view === "plans" && (
+                            <SubscriptionPlansView
+                                plans={plans}
+                                schools={schools}
+                                onCreate={createPlan}
+                                onUpdate={updatePlan}
+                                onToggleStatus={togglePlanStatus}
+                            />
+                        )}
+                        {view === "inquiries" && (
+                            <InquiriesView
+                                inquiries={inquiries}
+                                schools={schools}
+                                adminName={memberName ?? "서비스 관리자"}
+                                onRead={readInquiry}
+                                onSendMessage={sendInquiryMessage}
+                                onChangeStatus={changeInquiryStatus}
+                            />
+                        )}
+                        {view === "logs" && (
+                            <OperationsLogsView
+                                schools={schools}
+                                members={members}
+                                payments={payments}
                             />
                         )}
                     </section>

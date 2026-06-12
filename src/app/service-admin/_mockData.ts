@@ -4,8 +4,10 @@ import type {
     MemberActivitySummary,
     MemberReservationSummary,
     ServiceMember,
+    ServiceInquiry,
     ServicePayment,
     ServiceSchool,
+    ServiceSubscriptionPlan,
     SubscriptionPlan,
 } from "./_types";
 
@@ -14,6 +16,210 @@ export const PLAN_PRICE: Record<SubscriptionPlan, number> = {
     Pro: 1490000,
     Enterprise: 3100000,
 };
+
+export const SERVICE_SUBSCRIPTION_PLANS: ServiceSubscriptionPlan[] = [
+    {
+        id: 1,
+        name: "Basic",
+        price: PLAN_PRICE.Basic,
+        description: "소규모 학교와 교육기관을 위한 기본 플랜",
+        maxMemberCount: 500,
+        status: "ACTIVE",
+        createdAt: "2025-01-10",
+        updatedAt: "2026-04-02",
+    },
+    {
+        id: 2,
+        name: "Pro",
+        price: PLAN_PRICE.Pro,
+        description: "대학 운영에 필요한 주요 관리 기능을 제공하는 표준 플랜",
+        maxMemberCount: 2000,
+        status: "ACTIVE",
+        createdAt: "2025-01-10",
+        updatedAt: "2026-05-18",
+    },
+    {
+        id: 3,
+        name: "Enterprise",
+        price: PLAN_PRICE.Enterprise,
+        description: "대규모 기관을 위한 이용자 제한 없는 확장 플랜",
+        maxMemberCount: null,
+        status: "ACTIVE",
+        createdAt: "2025-01-10",
+        updatedAt: "2026-05-18",
+    },
+];
+
+export const SERVICE_INQUIRIES: ServiceInquiry[] = [
+    {
+        id: 1001,
+        schoolId: 4,
+        category: "PAYMENT",
+        title: "이번 달 정기결제 실패 사유를 확인해주세요",
+        status: "WAITING",
+        createdAt: "2026-06-12 09:18",
+        updatedAt: "2026-06-12 09:18",
+        unreadCount: 2,
+        messages: [
+            {
+                id: 100101,
+                senderRole: "ADM",
+                senderName: "이주원",
+                text: "오늘 오전 정기결제가 실패로 표시됩니다. 등록된 카드에는 문제가 없는데 확인 부탁드립니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-12 09:16",
+            },
+            {
+                id: 100102,
+                senderRole: "ADM",
+                senderName: "이주원",
+                text: "결제 관리 화면도 함께 첨부합니다.",
+                imageUrl: "/univusicon.png",
+                imageName: "payment-error.png",
+                sentAt: "2026-06-12 09:18",
+            },
+        ],
+    },
+    {
+        id: 1002,
+        schoolId: 1,
+        category: "SUBSCRIPTION",
+        title: "Enterprise 플랜 변경 시 적용 시점 문의",
+        status: "IN_PROGRESS",
+        createdAt: "2026-06-11 14:04",
+        updatedAt: "2026-06-12 08:42",
+        unreadCount: 0,
+        messages: [
+            {
+                id: 100201,
+                senderRole: "ADM",
+                senderName: "김서윤",
+                text: "다음 학기부터 이용자가 증가할 예정이라 Enterprise 변경을 검토 중입니다. 지금 변경하면 바로 적용되나요?",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-11 14:04",
+            },
+            {
+                id: 100202,
+                senderRole: "SUA",
+                senderName: "서비스 관리자",
+                text: "플랜 기능은 즉시 적용되고 변경된 금액은 다음 정기결제일부터 반영됩니다. 현재 구독 정보를 확인해서 다시 안내드리겠습니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-11 14:22",
+            },
+            {
+                id: 100203,
+                senderRole: "ADM",
+                senderName: "김서윤",
+                text: "네, 다음 결제 예정 금액도 확인 부탁드립니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-12 08:42",
+            },
+        ],
+    },
+    {
+        id: 1003,
+        schoolId: 10,
+        category: "ACCOUNT",
+        title: "학교 관리자 로그인 ID 변경 문의",
+        status: "WAITING",
+        createdAt: "2026-06-11 17:31",
+        updatedAt: "2026-06-11 17:31",
+        unreadCount: 1,
+        messages: [
+            {
+                id: 100301,
+                senderRole: "ADM",
+                senderName: "권채원",
+                text: "담당자 변경으로 학교 관리자 로그인 ID와 이메일을 변경하려고 합니다. 필요한 절차를 알려주세요.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-11 17:31",
+            },
+        ],
+    },
+    {
+        id: 1004,
+        schoolId: 7,
+        category: "ERROR",
+        title: "회원 목록 엑셀 다운로드가 진행되지 않습니다",
+        status: "IN_PROGRESS",
+        createdAt: "2026-06-10 11:26",
+        updatedAt: "2026-06-10 13:08",
+        unreadCount: 0,
+        messages: [
+            {
+                id: 100401,
+                senderRole: "ADM",
+                senderName: "서지훈",
+                text: "회원 관리에서 엑셀 다운로드를 누르면 로딩만 표시되고 파일이 내려받아지지 않습니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-10 11:26",
+            },
+            {
+                id: 100402,
+                senderRole: "SUA",
+                senderName: "서비스 관리자",
+                text: "확인 중입니다. 이용 중인 브라우저와 발생 시간을 알려주시면 로그를 함께 확인하겠습니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-10 11:45",
+            },
+            {
+                id: 100403,
+                senderRole: "ADM",
+                senderName: "서지훈",
+                text: "Chrome 최신 버전이고 오늘 11시 20분경부터 반복해서 발생했습니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-10 13:08",
+            },
+        ],
+    },
+    {
+        id: 1005,
+        schoolId: 3,
+        category: "ETC",
+        title: "서비스 점검 일정 사전 안내 요청",
+        status: "CLOSED",
+        createdAt: "2026-06-05 10:12",
+        updatedAt: "2026-06-06 16:40",
+        unreadCount: 0,
+        messages: [
+            {
+                id: 100501,
+                senderRole: "ADM",
+                senderName: "정다은",
+                text: "정기 점검 일정은 학교 관리자에게 며칠 전에 안내되는지 궁금합니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-05 10:12",
+            },
+            {
+                id: 100502,
+                senderRole: "SUA",
+                senderName: "서비스 관리자",
+                text: "정기 점검은 최소 7일 전에 공지와 관리자 이메일로 안내됩니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-05 10:38",
+            },
+            {
+                id: 100503,
+                senderRole: "ADM",
+                senderName: "정다은",
+                text: "확인했습니다. 감사합니다.",
+                imageUrl: null,
+                imageName: null,
+                sentAt: "2026-06-06 16:40",
+            },
+        ],
+    },
+];
 
 export const SERVICE_SCHOOLS: ServiceSchool[] = [
     {
@@ -305,7 +511,6 @@ export const SERVICE_SCHOOLS: ServiceSchool[] = [
 
 const PAYMENT_METHODS: AdminPaymentMethod[] = [
     "CARD",
-    "TRANSFER",
     "VIRTUAL_ACCOUNT",
 ];
 
@@ -400,7 +605,14 @@ const DEPARTMENTS = [
 
 export function getMockMembersForSchool(school: ServiceSchool): ServiceMember[] {
     return MEMBER_NAMES.map((name, index) => {
-        const role = index % 7 === 0 ? "ADM" : index % 4 === 0 ? "PROF" : "STU";
+        const role =
+            index === 0
+                ? "ADM"
+                : index % 9 === 0
+                    ? "ALU"
+                    : index % 4 === 0
+                        ? "PROF"
+                        : "STU";
         const status = index === 8 ? "SUSPENDED" : index === 13 ? "WITHDRAWN" : "ACTIVE";
         const loginId = `${school.id}${String(index + 1).padStart(4, "0")}`;
 
@@ -453,6 +665,12 @@ export function getMockMemberActivity(member: ServiceMember): MemberActivitySumm
             occurredAt: `2026-06-${String(12 - Math.floor(index / 2)).padStart(2, "0")} ${String(8 + (index % 9)).padStart(2, "0")}:${index % 2 === 0 ? "05" : "42"}`,
             device: index % 3 === 0 ? "Chrome · Windows" : index % 3 === 1 ? "Safari · iPhone" : "Chrome · Android",
             ipAddress: `203.0.113.${20 + ((member.id + index) % 80)}`,
+            failReason:
+                index % 5 === 4
+                    ? index % 10 === 4
+                        ? "비밀번호 불일치"
+                        : "정지된 계정"
+                    : null,
         }),
     );
 
