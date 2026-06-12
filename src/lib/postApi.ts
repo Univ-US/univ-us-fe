@@ -27,6 +27,11 @@ export const getPostById = async (postId: number) => {
   return res.data as Post;
 };
 
+export const increasePostViewCount = async (postId: number) => {
+  const res = await api.post(`/api/posts/${postId}/view`);
+  return res.data as Post;
+};
+
 // 게시글 등록
 export const createPost = async (postData: {
   boardId: number;
