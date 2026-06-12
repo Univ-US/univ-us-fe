@@ -46,7 +46,7 @@ const SECTION_LABEL: Record<View, string> = {
     settings: "학교 설정",
 };
 
-const VALID_VIEWS = new Set<View>(["dashboard", "members", "notices", "inquiries", "lectureCodes", "billing", "settings"]);
+const VALID_VIEWS = new Set(Object.keys(SECTION_LABEL) as View[]);
 
 function SchoolAdminDashboard() {
     const router = useRouter();
