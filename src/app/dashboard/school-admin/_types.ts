@@ -1,1 +1,1 @@
-export type View = "dashboard" | "members" | "notices" | "billing" | "settings" | "inquiries" | "lectureCodes" | "lectureManage" | "lectureAssign";
+export type View = "dashboard" | "members" | "notices" | "billing" | "settings" | "inquiries" | "lectureManage" | "lectureAssign";
