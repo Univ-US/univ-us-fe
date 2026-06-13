@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { getMyPageSummary, getMyProfile } from '@/lib/cmypageApi';
 import { useAuthStore } from '@/store/authStore';
-import { getMyPosts, getMyComments, getLikedPosts } from '@/lib/cmypageApi';
+import type { MyPageSummary, UserProfile } from '@/types/mypage';
 
 const S = {
   container: 'mb-6 flex items-center justify-between rounded-2xl border border-border bg-white px-8 py-6 shadow-sm',
@@ -20,64 +21,86 @@ const S = {
   divider: 'h-8 w-px bg-slate-200',
 };
 
+const EMPTY_SUMMARY: MyPageSummary = {
+  postCount: 0,
+  commentCount: 0,
+  likedPostCount: 0,
+  tradeCount: 0,
+  wishlistCount: 0,
+};
+
+function firstLetter(value: string) {
+  return Array.from(value.trim() || 'U')[0];
+}
+
+function formatJoinDate(value?: string | null) {
+  if (!value) return '가입일 정보 없음';
+  return `가입 ${value.slice(0, 10).replaceAll('-', '.')}`;
+}
+
 export default function MyPageProfileCard() {
   const memberName = useAuthStore((s) => s.memberName);
   const communityNickname = useAuthStore((s) => s.communityNickname);
   const univName = useAuthStore((s) => s.univName);
 
-  const [stats, setStats] = useState({ posts: 0, comments: 0, likes: 0 });
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [summary, setSummary] = useState<MyPageSummary>(EMPTY_SUMMARY);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    let mounted = true;
+
+    const fetchProfileCard = async () => {
       try {
-        const [posts, comments, liked] = await Promise.all([
-          getMyPosts(),
-          getMyComments(),
-          getLikedPosts()
+        const [profileData, summaryData] = await Promise.all([
+          getMyProfile(),
+          getMyPageSummary(),
         ]);
-        setStats({
-          posts: posts.length,
-          comments: comments.length,
-          likes: liked.length,
-        });
-      } catch (e) {
-        console.error(e);
+
+        if (!mounted) return;
+        setProfile(profileData);
+        setSummary(summaryData);
+      } catch (error) {
+        console.error(error);
       }
     };
-    fetchStats();
+
+    fetchProfileCard();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const displayName = profile?.memberName ?? memberName ?? '사용자';
+  const displayNickname = communityNickname ?? profile?.communityNickname ?? displayName;
+  const displaySchool = profile?.univName ?? univName ?? '소속 대학 정보 없음';
+  const joinDate = formatJoinDate(profile?.createdAt);
 
   return (
     <div className={S.container}>
       <div className={S.profileGroup}>
-        <div className={S.avatar}>
-          {(communityNickname || memberName || '사').charAt(0)}
-        </div>
+        <div className={S.avatar}>{firstLetter(displayNickname)}</div>
         <div>
           <div className={S.infoGroup}>
-            <h1 className={S.nickname}>
-              {communityNickname || memberName || '사용자'}
-            </h1>
-            <span className={S.univName}>
-              {univName || '소속 학교'}
-            </span>
+            <h1 className={S.nickname}>{displayNickname}</h1>
+            <span className={S.univName}>{displaySchool}</span>
           </div>
-          <div className={S.joinDate}>가입 - - -</div>
+          <div className={S.joinDate}>{joinDate}</div>
         </div>
       </div>
       <div className={S.statsGroup}>
         <Link href='/community/mypage/posts' className={S.statLink}>
-          <span className={S.statNumber}>{stats.posts}</span>
+          <span className={S.statNumber}>{summary.postCount}</span>
           <span className={S.statLabel}>작성글</span>
         </Link>
         <div className={S.divider} />
         <Link href='/community/mypage/comments' className={S.statLink}>
-          <span className={S.statNumber}>{stats.comments}</span>
+          <span className={S.statNumber}>{summary.commentCount}</span>
           <span className={S.statLabel}>댓글</span>
         </Link>
         <div className={S.divider} />
         <Link href='/community/mypage/liked' className={S.statLink}>
-          <span className={S.statNumber}>{stats.likes}</span>
+          <span className={S.statNumber}>{summary.likedPostCount}</span>
           <span className={S.statLabel}>좋아요</span>
         </Link>
       </div>

@@ -1,12 +1,37 @@
 import api from "./api";
 import type { Post } from "@/types/community";
-import type { MyComment, MyTrade, MyWishlist as MyWishlistType } from "@/types/mypage";
+import type {
+  MyComment,
+  MyPageSummary,
+  MyTrade,
+  MyWishlist as MyWishlistType,
+  ProfileUpdatePayload,
+  UserProfile,
+} from "@/types/mypage";
 
 interface MyPostsResponse {
   postList: Post[];
-  totalElements: number;
-  totalPages: number;
+  totalCount: number;
+  totalPage: number;
+  currentPage: number;
 }
+
+export const getMyProfile = async (): Promise<UserProfile> => {
+  const res = await api.get<UserProfile>("/api/cmypage/profile");
+  return res.data;
+};
+
+export const updateMyProfile = async (
+  payload: ProfileUpdatePayload,
+): Promise<UserProfile> => {
+  const res = await api.patch<UserProfile>("/api/cmypage/profile", payload);
+  return res.data;
+};
+
+export const getMyPageSummary = async (): Promise<MyPageSummary> => {
+  const res = await api.get<MyPageSummary>("/api/cmypage/summary");
+  return res.data;
+};
 
 export const getMyPosts = async (): Promise<Post[]> => {
   const res = await api.get<MyPostsResponse>("/api/cmypage/posts");

@@ -26,6 +26,7 @@ interface AuthState {
         univName: string,
     ) => void;
     updateStatus: (status: string) => void;
+    updateCommunityNickname: (communityNickname: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -121,6 +122,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     updateStatus: (status: string) => {
         localStorage.setItem("status", status);
         set({ status });
+    },
+
+    updateCommunityNickname: (communityNickname: string) => {
+        localStorage.setItem("communityNickname", communityNickname);
+        set({ communityNickname: communityNickname || null });
     },
 
     logoutAction: async () => {
