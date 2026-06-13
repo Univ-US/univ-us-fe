@@ -33,11 +33,23 @@ export interface MyWishlist {
 }
 
 export interface UserProfile {
-  name: string;
-  nickname: string;
-  department: string;
-  joinedAt: string;
+  memberId: number;
+  memberName: string;
+  communityNickname: string | null;
+  univName: string | null;
+  deptName: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface MyPageSummary {
   postCount: number;
   commentCount: number;
-  likeCount: number;
+  likedPostCount: number;
+  tradeCount: number;
+  wishlistCount: number;
+}
+
+export interface ProfileUpdatePayload {
+  communityNickname: string;
 }
