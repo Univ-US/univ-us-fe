@@ -369,7 +369,7 @@ export default function CampusHomePage() {
                         {/* 추천 질문 */}
                         {chatMessages.length === 0 && (
                             <div className="flex gap-2 mb-3 flex-wrap">
-                                {["도서관 운영시간", "오늘 학식 메뉴", "스터디룸 예약 방법"].map((q) => (
+                                {["오늘 날씨 어때?", "최근 공지사항 알려줘", "학교 대표 번호가 뭐야?"].map((q) => (
                                     <button
                                         key={q}
                                         onClick={(e) => {
