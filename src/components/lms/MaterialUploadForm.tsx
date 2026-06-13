@@ -29,6 +29,7 @@ import {
   type Material,
 } from "@/lib/lmsProfessorUploadApi";
 import { describeApiError } from "@/lib/lmsApiError";
+import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 
 interface MaterialUploadFormProps {
   lectures: Lecture[];
@@ -168,9 +169,9 @@ export default function MaterialUploadForm({
     }
   };
 
-  // 드롭다운 라벨: 과목명 · N분반 · 연도 학기(공통코드 라벨)
+  // 드롭다운 라벨: 과목명(20자 제한) · N반 · 연도 학기(공통코드 라벨)
   const lectureLabel = (l: Lecture) =>
-    `${l.courseName} · ${l.lecSection ?? "-"}반 · ${l.year} ${termMap[l.termCode] ?? l.termCode}`;
+    `${truncateLectureName(l.courseName)} · ${l.lecSection ?? "-"}반 · ${l.year} ${termMap[l.termCode] ?? l.termCode}`;
 
   // 업로드 버튼 활성 조건 — 등록: 전부 빈칸이면 비활성 / 수정: 변경(텍스트·추가 파일·제거 예약) 없으면 비활성
   const dirty =
@@ -201,7 +202,11 @@ export default function MaterialUploadForm({
               <option value="0">담당 강의가 없습니다</option>
             ) : (
               lectures.map((l) => (
-                <option key={l.lecId} value={String(l.lecId)}>
+                <option
+                  key={l.lecId}
+                  value={String(l.lecId)}
+                  title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
+                >
                   {lectureLabel(l)}
                 </option>
               ))
