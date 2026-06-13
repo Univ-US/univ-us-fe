@@ -2,8 +2,8 @@
 // PLM-006 교수 "과제 관리" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
 // BE 공식 연동(2026-06-13). 전부 본인 강의 한정(타 강의/과제 403).
-//  · GET    /api/lms/professor/assignments/lectures   (등록 폼 과목 드롭다운 — 담당 강의)
-//  · GET    /api/lms/professor/assignments            (과제 목록 + 제출/채점/수강생 집계 + 첨부)
+//  · GET    /api/lms/professor/assignments/lectures   (과목 드롭다운 — 담당 강의 전체. 등록 폼 + 화면 상단 과목 선택 공용, 수강생 현황 패턴)
+//  · GET    /api/lms/professor/assignments?lecId=&page=&size=  (선택 과목 1개의 과제 1페이지 + 집계 + 첨부 — 서버 페이지네이션)
 //  · POST   /api/lms/professor/assignments            (multipart: lecId·title·dueDate 필수, description·files 선택)
 //  · PUT    /api/lms/professor/assignments/{id}       (multipart: files=추가 첨부, removeAttachmentIds=개별 제거)
 //  · DELETE /api/lms/professor/assignments/{id}
@@ -109,9 +109,27 @@ export const getAssignmentLectures = async (): Promise<AssignmentLecture[]> => {
   return res.data;
 };
 
-/** GET 과제 목록 (담당 강의 전체 — 학기 필터·그룹핑은 FE 클라이언트) */
-export const getAssignments = async (): Promise<Assignment[]> => {
-  const res = await api.get<Assignment[]>("/api/lms/professor/assignments");
+/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/** GET 선택 과목 1개의 과제 1페이지 (서버 페이지네이션). page 0-based.
+ *  과목 드롭다운은 getAssignmentLectures(담당 강의 전체)를 재사용 — 수강생 현황(PLM-003) 패턴 */
+export const getCourseAssignments = async (params: {
+  lecId: number;
+  page: number;
+  size: number;
+}): Promise<PageResponse<Assignment>> => {
+  const res = await api.get<PageResponse<Assignment>>("/api/lms/professor/assignments", {
+    params: { lecId: String(params.lecId), page: String(params.page), size: String(params.size) },
+  });
   return res.data;
 };
 
