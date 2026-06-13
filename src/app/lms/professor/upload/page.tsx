@@ -2,9 +2,12 @@
 
 // ─────────────────────────────────────────────────────────────
 // PLM-005 — 교수 "강의 업로드" (영상·파일 업로드 & 텍스트 작성) — ✅ BE 실연동(2026-06-11)
-// - 마운트 시 로드: 과목 드롭다운(GET /uploads/lectures) + 자료 목록(GET /uploads) + SEM_TERM 공통코드
-// - 등록/수정: '새 자료 업로드'/'수정' → 모달(PLM-005-01, 폼이 BE 호출) → 성공 시 목록 재조회
-// - 삭제: confirm → DELETE → 목록 재조회
+//   + 서버 페이지네이션 전환(2026-06-13, 공통 PaginateRestUtil/PageResponse)
+// - 마운트: 과목 드롭다운(GET /uploads/lectures) + SEM_TERM 공통코드 + 메타(GET /uploads/meta) + 첫 페이지
+// - 목록: GET /uploads?page=&size=&year=&termCode= → 서버가 필터·페이지 처리(PageResponse)
+//   · 필터 옵션(년도/학기)·전체 건수는 메타에서, 현재 페이지 항목·필터 건수는 페이지 응답에서
+// - 등록/수정: 모달(PLM-005-01) → 성공 시 메타 + 페이지 재조회 (등록은 1페이지로)
+// - 삭제: confirm → DELETE → 메타 + 현재 페이지 재조회(마지막 1건 삭제 시 페이지 보정)
 // - 목록은 페이지당 최대 10건 + 빈 행 패딩으로 높이 고정(0건 포함, 페이저 상시 표시)
 // - 유형 칼럼은 BE가 내려주는 확장자(EXT_TYPE) 문자열 그대로 표기(예: mp4·avi·pdf)
 // - ⚠️ 실패 시 가짜 데이터로 가리지 않음 — describeApiError 표기 + 재시도
@@ -17,15 +20,17 @@ import {
   formatFileSize,
   getUploadLectures,
   getUploads,
+  getUploadsMeta,
   isVideoExt,
   type Lecture,
   type Material,
+  type SemesterOption,
 } from "@/lib/lmsProfessorUploadApi";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 
-// 페이지당 표시 건수 (클라이언트 슬라이싱 — 자료 수가 화면 단위라 서버 페이지네이션은 추후)
+// 페이지당 표시 건수 (서버 페이지네이션 size)
 const MATERIALS_PAGE_SIZE = 10;
 
 // 학기 필터 옵션 정렬 순서 (공통코드 SEM_TERM — 연중 순서)
@@ -34,57 +39,133 @@ const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 export default function LectureUploadPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+
+  // 메타 — 전체 건수(필터 무관) + 필터 옵션(자료 보유 년도/학기)
+  const [totalAll, setTotalAll] = useState(0);
+  const [semesters, setSemesters] = useState<SemesterOption[]>([]);
+
+  // 현재 페이지 데이터(서버)
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [totalElements, setTotalElements] = useState(0); // 필터 적용 전체 건수
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(0); // 0-based
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // 초기 로드 실패
+  const [error, setError] = useState<string | null>(null); // 초기/페이지 로드 실패
   const [actionError, setActionError] = useState<string | null>(null); // 삭제/재조회 실패
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Material | null>(null);
-  const [page, setPage] = useState(0);
-  // 목록 년도/학기 필터 — "all" = '전체'(기본값). 변경 시 1페이지로 복귀
+
+  // 목록 년도/학기 필터 — "all" = '전체'(기본값). 변경 시 0페이지로 복귀
   const [yearFilter, setYearFilter] = useState("all");
   const [termFilter, setTermFilter] = useState("all");
 
-  // 초기 로드 — 드롭다운·목록·학기 라벨맵 병렬 (공통코드 실패는 빈 맵 폴백이라 치명적이지 않음)
-  const loadAll = useCallback(async () => {
+  // 등록/삭제 후 같은 page라도 강제 재조회하기 위한 틱
+  const [reloadTick, setReloadTick] = useState(0);
+
+  // 필터 옵션 — 메타(자료 보유 년도/학기)에서 유도. 년도 내림차순, 학기는 연중 순서
+  const yearOptions = useMemo(
+    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    [semesters]
+  );
+  const termOptions = useMemo(
+    () =>
+      [...new Set(semesters.map((s) => s.termCode))].sort(
+        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+      ),
+    [semesters]
+  );
+
+  // 메타 로드 (마운트 + 등록/삭제 후) — 전체 건수·필터 옵션. 실패는 페이지 로드 에러로 통합 처리.
+  const loadMeta = useCallback(async () => {
+    const meta = await getUploadsMeta();
+    setTotalAll(meta.totalAll);
+    setSemesters(meta.semesters);
+  }, []);
+
+  // 현재 페이지 로드 — page/필터 변경·재조회 시. 범위 벗어난 page는 마지막 페이지로 보정.
+  const loadPage = useCallback(async (p: number, year: string, term: string) => {
     setLoading(true);
     setError(null);
     try {
-      const [lectureList, uploadList, semTermMap] = await Promise.all([
-        getUploadLectures(),
-        getUploads(),
-        getCommonCodeMap("SEM_TERM"),
-      ]);
-      setLectures(lectureList);
-      setMaterials(uploadList);
-      setTermMap(semTermMap);
+      const res = await getUploads({
+        page: p,
+        size: MATERIALS_PAGE_SIZE,
+        year: year === "all" ? null : Number(year),
+        termCode: term === "all" ? null : term,
+      });
+      setMaterials(res.content);
+      setTotalElements(res.totalElements);
+      setTotalPages(Math.max(1, res.totalPages));
+      // 삭제 등으로 현재 page가 범위를 벗어났으면 마지막 페이지로 보정(setPage → effect 재조회)
+      if (res.totalPages > 0 && p > res.totalPages - 1) {
+        setPage(res.totalPages - 1);
+      }
     } catch (err) {
       setError(describeApiError(err));
+      setMaterials([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // 마운트: 강의 드롭다운 + 학기 라벨 + 메타 (페이지는 아래 effect가 로드)
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    (async () => {
+      try {
+        const [lectureList, semTermMap] = await Promise.all([
+          getUploadLectures(),
+          getCommonCodeMap("SEM_TERM"),
+        ]);
+        setLectures(lectureList);
+        setTermMap(semTermMap);
+        await loadMeta();
+      } catch (err) {
+        setError(describeApiError(err));
+        setLoading(false);
+      }
+    })();
+  }, [loadMeta]);
 
-  const reloadUploads = async () => {
+  // page/필터/재조회틱 변경 시 현재 페이지 재조회
+  useEffect(() => {
+    loadPage(page, yearFilter, termFilter);
+  }, [page, yearFilter, termFilter, reloadTick, loadPage]);
+
+  // 상단 에러 재시도 — 메타 + 현재 페이지 모두 재조회
+  const retry = async () => {
+    setError(null);
     try {
-      setMaterials(await getUploads());
+      await loadMeta();
     } catch (err) {
-      setActionError(describeApiError(err));
+      setError(describeApiError(err));
     }
+    setReloadTick((t) => t + 1);
   };
 
-  // 모달 저장 성공 — 목록 재조회 (등록이면 최신이 맨 위라 1페이지로)
+  // 필터 변경 — 0페이지로 복귀(effect가 재조회)
+  const changeYear = (v: string) => {
+    setYearFilter(v);
+    setPage(0);
+  };
+  const changeTerm = (v: string) => {
+    setTermFilter(v);
+    setPage(0);
+  };
+
+  // 모달 저장 성공 — 메타 갱신 + 재조회 (등록이면 0페이지로)
   const handleDialogSubmit = async (saved: Material) => {
     const wasEdit = editTarget != null;
     setDialogOpen(false);
     setEditTarget(null);
     setActionError(null);
-    await reloadUploads();
+    try {
+      await loadMeta();
+    } catch {
+      /* 메타 실패는 치명적 아님 — 페이지 재조회로 목록은 갱신됨 */
+    }
     if (!wasEdit) setPage(0);
+    setReloadTick((t) => t + 1);
     void saved; // 목록 재조회로 일관성 확보 — 단건 머지 대신 전체 갱신
   };
 
@@ -103,50 +184,25 @@ export default function LectureUploadPage() {
     setActionError(null);
     try {
       await deleteUpload(m.uploadId);
-      await reloadUploads();
+      try {
+        await loadMeta();
+      } catch {
+        /* 메타 실패는 무시 — 페이지 재조회로 목록 갱신 */
+      }
+      setReloadTick((t) => t + 1); // 현재 페이지 재조회(마지막 1건 삭제 시 loadPage가 페이지 보정)
     } catch (err) {
       setActionError(describeApiError(err));
     }
   };
 
-  // 필터 옵션 — 보유 자료에서 유도(없는 년도/학기는 옵션에 안 띄움). 년도 내림차순, 학기는 연중 순서
-  const yearOptions = useMemo(
-    () => [...new Set(materials.map((m) => m.year))].sort((a, b) => b - a),
-    [materials]
-  );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(materials.map((m) => m.termCode))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [materials]
-  );
-
-  // 년도·학기 필터 적용(AND) → 페이지 슬라이스. 필터 결과 기준으로 건수·페이저 계산
-  const filtered = materials.filter(
-    (m) =>
-      (yearFilter === "all" || String(m.year) === yearFilter) &&
-      (termFilter === "all" || m.termCode === termFilter)
-  );
-
-  // 페이지 슬라이스 — 삭제/필터로 마지막 페이지가 사라져도 범위를 벗어나지 않게 클램프
-  const totalPages = Math.max(1, Math.ceil(filtered.length / MATERIALS_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageItems = filtered.slice(
-    safePage * MATERIALS_PAGE_SIZE,
-    safePage * MATERIALS_PAGE_SIZE + MATERIALS_PAGE_SIZE
-  );
-
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8">
       <div className="mx-auto max-w-5xl">
-        {/* 헤더 */}
+        {/* 헤더 — 전체 건수(필터 무관, 메타) */}
         <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">강의 업로드</h1>
-            <p className="text-sm text-slate-500">
-              {loading ? "불러오는 중…" : `업로드된 자료 ${materials.length}건`}
-            </p>
+            <p className="text-sm text-slate-500">업로드된 자료 {totalAll}건</p>
           </div>
           <Button
             onClick={openCreateDialog}
@@ -158,10 +214,10 @@ export default function LectureUploadPage() {
         </header>
 
         {error ? (
-          // 초기 로드 실패 — 가짜 데이터로 가리지 않고 에러 표기 + 재시도
+          // 초기/페이지 로드 실패 — 가짜 데이터로 가리지 않고 에러 표기 + 재시도
           <section className="mb-6 rounded-2xl border border-red-200 bg-red-50/70 px-5 py-6 text-center">
             <p className="text-sm font-medium text-red-600">{error}</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={loadAll}>
+            <Button variant="outline" size="sm" className="mt-3" onClick={retry}>
               다시 시도
             </Button>
           </section>
@@ -180,20 +236,17 @@ export default function LectureUploadPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <div className="flex items-baseline gap-2">
                   <h2 className="text-base font-semibold text-slate-800">업로드된 강의 자료</h2>
-                  <span className="text-sm text-slate-500">{filtered.length}건</span>
+                  <span className="text-sm text-slate-500">{totalElements}건</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <select
                     value={yearFilter}
-                    onChange={(e) => {
-                      setYearFilter(e.target.value);
-                      setPage(0);
-                    }}
+                    onChange={(e) => changeYear(e.target.value)}
                     disabled={loading}
                     aria-label="년도 필터"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
-                    <option value="all">전체</option>
+                    <option value="all">전체 년도</option>
                     {yearOptions.map((y) => (
                       <option key={y} value={String(y)}>
                         {y}년
@@ -202,15 +255,12 @@ export default function LectureUploadPage() {
                   </select>
                   <select
                     value={termFilter}
-                    onChange={(e) => {
-                      setTermFilter(e.target.value);
-                      setPage(0);
-                    }}
+                    onChange={(e) => changeTerm(e.target.value)}
                     disabled={loading}
                     aria-label="학기 필터"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
-                    <option value="all">전체</option>
+                    <option value="all">전체 학기</option>
                     {termOptions.map((t) => (
                       <option key={t} value={t}>
                         {termMap[t] ?? t}
@@ -225,6 +275,7 @@ export default function LectureUploadPage() {
                     <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                       <th className="px-5 py-3 font-medium">제목</th>
                       <th className="px-5 py-3 font-medium">대상 과목</th>
+                      <th className="px-5 py-3 font-medium">분반</th>
                       <th className="px-5 py-3 font-medium">유형</th>
                       <th className="px-5 py-3 font-medium">크기</th>
                       <th className="px-5 py-3 font-medium">업로드</th>
@@ -235,19 +286,19 @@ export default function LectureUploadPage() {
                     {loading ? (
                       <>
                         <tr className="border-b border-slate-50">
-                          <td colSpan={6} className="px-5 py-3 text-center text-slate-400">
+                          <td colSpan={7} className="px-5 py-3 text-center text-slate-400">
                             <div className="flex h-9 items-center justify-center">불러오는 중…</div>
                           </td>
                         </tr>
                         <PadRows count={MATERIALS_PAGE_SIZE - 1} />
                       </>
-                    ) : filtered.length === 0 ? (
+                    ) : totalElements === 0 ? (
                       // 0건도 높이 고정(고정식) — 안내 1행 + 빈 행 패딩 (전체 0건 / 필터 결과 0건 문구 분기)
                       <>
                         <tr className="border-b border-slate-50">
-                          <td colSpan={6} className="px-5 py-3 text-center text-slate-400">
+                          <td colSpan={7} className="px-5 py-3 text-center text-slate-400">
                             <div className="flex h-9 items-center justify-center">
-                              {materials.length === 0
+                              {totalAll === 0
                                 ? "업로드된 자료가 없습니다."
                                 : "선택한 년도·학기에 해당하는 자료가 없습니다."}
                             </div>
@@ -257,7 +308,7 @@ export default function LectureUploadPage() {
                       </>
                     ) : (
                       <>
-                        {pageItems.map((m) => (
+                        {materials.map((m) => (
                           <tr key={m.uploadId} className="border-b border-slate-50 last:border-0">
                             <td className="px-5 py-3">
                               {/* 설명(content)은 에디터 HTML → plain text 요약 표기. min-h-9 = 패딩 행과 동일 높이.
@@ -277,7 +328,15 @@ export default function LectureUploadPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-5 py-3 text-slate-700">{m.courseName}</td>
+                            <td className="px-5 py-3 text-slate-700">
+                              {/* 강의명 = 폭 기준 CSS truncate(글자 수 고정 아님) + 전체명 hover title */}
+                              <div className="max-w-[180px] truncate" title={m.courseName}>
+                                {m.courseName}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 text-slate-600">
+                              {m.lecSection != null ? `${m.lecSection}반` : "-"}
+                            </td>
                             <td className="px-5 py-3">
                               {/* 다중 첨부: 첫 파일 확장자 배지 + 나머지 개수(+N). 첨부 없으면 — */}
                               {m.attachments.length > 0 ? (
@@ -329,14 +388,14 @@ export default function LectureUploadPage() {
                           </tr>
                         ))}
                         {/* 행 부족분을 빈 행으로 채워 목록 높이 고정(항상 MATERIALS_PAGE_SIZE행) */}
-                        <PadRows count={MATERIALS_PAGE_SIZE - pageItems.length} />
+                        <PadRows count={MATERIALS_PAGE_SIZE - materials.length} />
                       </>
                     )}
                   </tbody>
                 </table>
               </div>
               {/* 페이지네이션 — 고정 높이 유지를 위해 0건/1페이지여도 상시 표시 */}
-              <Pager page={safePage} totalPages={totalPages} onPage={setPage} />
+              <Pager page={page} totalPages={totalPages} onPage={setPage} />
             </section>
           </>
         )}
@@ -366,7 +425,7 @@ function PadRows({ count }: { count: number }) {
     <>
       {Array.from({ length: count }).map((_, i) => (
         <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-          <td colSpan={6} className="px-5 py-3">
+          <td colSpan={7} className="px-5 py-3">
             <div className="h-9" />
           </td>
         </tr>

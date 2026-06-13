@@ -36,6 +36,7 @@ export interface Material {
   uploadId: number;
   lecId: number;
   courseName: string;
+  lecSection: number | null; // LECTURE.LEC_SECTION 분반 (2026-06-13 추가 — 목록 분반 컬럼)
   year: number;     // 강의 학기 연도 (SEMESTERS.SEM_YEAR) — 목록 년도/학기 필터용 (2026-06-11 추가)
   termCode: string; // SM1/SMR/SM2/WNT (공통코드 SEM_TERM — 라벨은 termMap 매핑)
   title: string;
@@ -95,9 +96,49 @@ export const getUploadLectures = async (): Promise<Lecture[]> => {
   return res.data;
 };
 
-/** GET 자료 목록 (담당 강의 전체, 최신순) */
-export const getUploads = async (): Promise<Material[]> => {
-  const res = await api.get<Material[]>("/api/lms/professor/uploads");
+/** 서버 페이지네이션 공통 응답 (BE PageResponse<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/** 목록 필터 옵션용 학기 (자료 보유 년도/학기) */
+export interface SemesterOption {
+  year: number;
+  termCode: string;
+}
+
+/** 목록 메타 — 전체 건수(필터 무관) + 필터 옵션 */
+export interface UploadMeta {
+  totalAll: number;
+  semesters: SemesterOption[];
+}
+
+/** GET 자료 목록 1페이지 (서버 페이지네이션 + 년도/학기 필터). page 0-based */
+export const getUploads = async (params: {
+  page: number;
+  size: number;
+  year?: number | null;
+  termCode?: string | null;
+}): Promise<PageResponse<Material>> => {
+  const query: Record<string, string> = {
+    page: String(params.page),
+    size: String(params.size),
+  };
+  if (params.year != null) query.year = String(params.year);
+  if (params.termCode != null) query.termCode = params.termCode;
+  const res = await api.get<PageResponse<Material>>("/api/lms/professor/uploads", { params: query });
+  return res.data;
+};
+
+/** GET 목록 메타 (전체 건수 + 필터 옵션 — 등록/삭제 후 재조회) */
+export const getUploadsMeta = async (): Promise<UploadMeta> => {
+  const res = await api.get<UploadMeta>("/api/lms/professor/uploads/meta");
   return res.data;
 };
 
