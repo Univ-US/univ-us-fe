@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import LmsGuard from "@/components/auth/LmsGuard";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 import { ROLE, type Role } from "@/lib/rolecode";
 
 // SLM(학생 LMS) 접근 허용 역할: 학생 + 졸업생 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
@@ -29,20 +30,20 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "메인",
     items: [
-      { label: "대시보드", icon: "🏠" },
-      { label: "수강 내역", icon: "📖" },
-      { label: "과제 내역", icon: "📄", badge: 3 },
-      { label: "출석 내역", icon: "🗓️" },
+      { label: "대시보드", icon: "🏠", href: "/lms/student/dashboard" },
+      { label: "수강 내역", icon: "📖", href: "/lms/student/courses" },
+      { label: "과제 내역", icon: "📄", href: "/lms/student/assignments/history", badge: 3 },
+      { label: "출석 내역", icon: "🗓️", href: "/lms/student/attendance" },
     ],
   },
   {
     title: "학습",
     items: [
-      { label: "강의 자료", icon: "🎬" },
-      { label: "과제 제출", icon: "📤" },
-      { label: "채팅", icon: "💬", badge: 2 },
-      { label: "공지사항", icon: "📢" },
-      { label: "캘린더", icon: "📅" },
+      { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
+      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
+      { label: "채팅", icon: "💬", href: "/lms/student/chat", badge: 2 },
+      { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
+      { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },
     ],
   },
 ];
@@ -55,11 +56,13 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   const profile = useStudentProfileStore((s) => s.profile);
   const loadProfile = useStudentProfileStore((s) => s.load);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
+  const [logoutOpen, setLogoutOpen] = useState(false); // SLM-011 로그아웃 확인 모달
 
   useEffect(() => {
     loadProfile().catch(() => setLoadFailed(true));
   }, [loadProfile]);
 
+  // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
   const handleLogout = async () => {
     try {
       await logoutAction();
@@ -69,6 +72,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
       router.push("/");
     }
   };
+
+  useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
   const avatar = resolveImg(profile?.lmsStudentProfileImageUrl ?? null);
   const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
@@ -89,7 +94,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           <div className="min-w-0">
             <p className="truncate text-[11px] text-emerald-200/70">
               {/* 학교명: BE 제공(계정 미설정이면 null) */}
-              {profile?.lmsStudentProfileUniversityName || "—"}
+              {profile?.lmsStudentProfileUniversityName || "-"}
             </p>
             <p className="text-lg font-bold text-white">UniVUs</p>
           </div>
@@ -114,7 +119,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
             </p>
             <p className="truncate text-xs text-emerald-200/60">
               {/* 학과 · 학번 */}
-              {profile?.lmsStudentProfileDepartment ?? "—"}
+              {profile?.lmsStudentProfileDepartment ?? "-"}
               {profile?.lmsStudentProfileStudentNo
                 ? ` · ${profile.lmsStudentProfileStudentNo}`
                 : ""}
@@ -188,7 +193,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setLogoutOpen(true)}
             className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white"
           >
             <span className="text-base">↩</span> 로그아웃
@@ -198,6 +203,63 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-x-hidden">{children}</div>
+
+      {/* SLM-011 로그아웃 확인 모달 — 사이드바(w-60) 제외 본문 기준 중앙 */}
+      {logoutOpen && (
+        <div
+          className="fixed inset-y-0 right-0 left-60 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="로그아웃 확인"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-2xl">
+              🚪
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">로그아웃 하시겠습니까?</h3>
+            <p className="mt-1 text-sm text-slate-500">아래 계정에서 로그아웃됩니다.</p>
+
+            {/* 계정 카드 */}
+            <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-left">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-sm font-semibold text-white">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span>{initial}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">
+                  {profile?.lmsStudentProfileName ?? "학생"}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {profile?.lmsStudentProfileStudentNo ?? "-"}
+                  {profile?.lmsStudentProfileDepartment ? ` · ${profile.lmsStudentProfileDepartment}` : ""}
+                </p>
+              </div>
+            </div>
+
+            {/* 액션 — 취소 / 로그아웃(로즈) */}
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLogoutOpen(false)}
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+              >
+                ↩ 로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
