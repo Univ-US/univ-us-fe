@@ -195,6 +195,10 @@ export default function CampusHomePage() {
                 });
             }
         } catch (e) {
+            if (e instanceof Error && e.message === "UNAUTHORIZED") {
+                router.push("/home/login");
+                return;
+            }
             setChatMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last.role === "ai" && last.text.length > 0) return prev;
