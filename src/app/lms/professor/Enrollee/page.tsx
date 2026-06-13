@@ -7,21 +7,19 @@
 // - 목록 테이블 + 서버 페이지네이션(page 0-based)
 // - '상세' 클릭 → PLM-003-01 상세 리포트 모달
 // ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import StudentReportDialog from "@/components/lms/StudentReportDialog";
 import {
-  getSemesters,
   getLectures,
   getLectureStudents,
   getStudentReport,
   getCommonCodeMap,
   exportEnrollees,
-  semesterLabel,
   lectureLabel,
+  LECTURE_NAME_MAX,
   resolveImageUrl,
   EMPTY_LECTURE_STUDENTS,
-  type Semester,
   type Lecture,
   type CourseStudentRow,
   type LectureStudentsResponse,
@@ -32,6 +30,43 @@ import { describeApiError } from "@/lib/lmsApiError";
 
 const PAGE_SIZE = 10;
 
+// 학기 정렬 순서(공통코드 SEM_TERM) — 학기 드롭다운 옵션 정렬용
+const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
+
+// 선택된 (년도, 학기) 조합에 매칭되는 담당 강의들. 둘 다 'all'이면 전 강의.
+// 강의 응답의 year/termCode로 클라이언트 필터(getLectures가 학기 1개만 받으므로 전체 로드 후 거른다).
+const matchLectures = (
+  year: number | "all",
+  term: string | "all",
+  lecs: Lecture[]
+): Lecture[] =>
+  lecs.filter(
+    (l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term)
+  );
+
+// 담당 강의 중 '데이터(강의) 있는 가장 나중 학기' = max(year), 그 해 안 시간상 max(term: SM1<SMR<SM2<WNT).
+// 기본 필터값으로 사용(빈 화면 회피). 강의가 없거나 학기정보 없으면 전체/전체.
+const latestLectureSem = (
+  lecs: Lecture[]
+): { year: number | "all"; term: string | "all" } => {
+  let bestYear: number | null = null;
+  let bestTerm: string | null = null;
+  for (const l of lecs) {
+    if (l.year == null || !l.termCode) continue;
+    const better =
+      bestYear == null ||
+      l.year > bestYear ||
+      (l.year === bestYear && TERM_ORDER.indexOf(l.termCode) > TERM_ORDER.indexOf(bestTerm!));
+    if (better) {
+      bestYear = l.year;
+      bestTerm = l.termCode;
+    }
+  }
+  return bestYear != null && bestTerm != null
+    ? { year: bestYear, term: bestTerm }
+    : { year: "all", term: "all" };
+};
+
 type Submission = "" | "complete" | "incomplete";
 type Sort = "name" | "studentNo" | "attendance" | "score"; // 기본 name
 type Order = "asc" | "desc";
@@ -40,9 +75,9 @@ export default function ProfessorStudentsPage() {
   // 드롭다운/구조
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [statusMap, setStatusMap] = useState<Record<string, string>>({}); // LEC_VAL_STATUS
-  const [semesters, setSemesters] = useState<Semester[]>([]);
-  const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [selectedSemId, setSelectedSemId] = useState<number | "all">("all");
+  const [lectures, setLectures] = useState<Lecture[]>([]); // 담당 강의 전체(년도/학기 필터는 클라이언트)
+  const [yearFilter, setYearFilter] = useState<number | "all">("all");
+  const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
 
   // 목록/통계
@@ -82,14 +117,15 @@ export default function ProfessorStudentsPage() {
       try {
         const tMap = await getCommonCodeMap("SEM_TERM");
         const stMap = await getCommonCodeMap("LEC_VAL_STATUS");
-        const sems = await getSemesters();
-        const lecs = await getLectures(); // 기본 '전체'
+        const lecs = await getLectures(); // 담당 강의 전체(년도/학기 필터는 클라이언트)
         setTermMap(tMap);
         setStatusMap(stMap);
-        setSemesters(sems);
         setLectures(lecs);
-        setSelectedSemId("all");
-        const lecId = lecs[0]?.lecId ?? null;
+        // 기본값 = 데이터 있는 최신 학기 + 그 학기 첫 강의 (전체/전체 아님)
+        const { year, term } = latestLectureSem(lecs);
+        setYearFilter(year);
+        setTermFilter(term);
+        const lecId = matchLectures(year, term, lecs)[0]?.lecId ?? null;
         setSelectedLecId(lecId);
         if (lecId == null) {
           setData(EMPTY_LECTURE_STUDENTS);
@@ -135,25 +171,47 @@ export default function ProfessorStudentsPage() {
     };
   }, [selectedLecId, appliedKeyword, submission, sort, order, page]);
 
-  // 학기 변경 → 강의 목록 재조회 + 첫 강의 선택 (페이지 0)
-  const handleSemesterChange = async (sem: number | "all") => {
-    setSelectedSemId(sem);
+  // 년도/학기 변경 → 강의 목록 클라이언트 필터 + 첫 강의 선택 (페이지 0). 각 축 독립.
+  const applyLectureFilter = (year: number | "all", term: string | "all") => {
     setPage(0);
-    try {
-      const lecs = sem === "all" ? await getLectures() : await getLectures(sem);
-      setLectures(lecs);
-      const lecId = lecs[0]?.lecId ?? null;
-      setSelectedLecId(lecId);
-      if (lecId == null) setData(EMPTY_LECTURE_STUDENTS);
-    } catch (e) {
-      setError(describeApiError(e));
-    }
+    const matched = matchLectures(year, term, lectures);
+    const lecId = matched[0]?.lecId ?? null;
+    setSelectedLecId(lecId);
+    if (lecId == null) setData(EMPTY_LECTURE_STUDENTS);
+  };
+  const handleYearChange = (year: number | "all") => {
+    setYearFilter(year);
+    applyLectureFilter(year, termFilter);
+  };
+  const handleTermChange = (term: string | "all") => {
+    setTermFilter(term);
+    applyLectureFilter(yearFilter, term);
   };
 
   const handleLectureChange = (lecId: number) => {
     setSelectedLecId(lecId);
     setPage(0);
   };
+
+  // 년도/학기 필터링된 강의(드롭다운 표시) + 옵션(담당 강의에서 유도 — 강의 있는 년도/학기만)
+  const filteredLectures = useMemo(
+    () => matchLectures(yearFilter, termFilter, lectures),
+    [yearFilter, termFilter, lectures]
+  );
+  const yearOptions = useMemo(
+    () =>
+      [...new Set(lectures.map((l) => l.year).filter((y): y is number => y != null))].sort(
+        (a, b) => b - a
+      ),
+    [lectures]
+  );
+  const termOptions = useMemo(
+    () =>
+      [...new Set(lectures.map((l) => l.termCode).filter((t): t is string => !!t))].sort(
+        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+      ),
+    [lectures]
+  );
 
   // 필터 패널: 열 때 현재 적용값을 드래프트로 복사 → 선택은 드래프트만 변경 → '확인'에서만 적용
   const openFilter = () => {
@@ -254,42 +312,56 @@ export default function ProfessorStudentsPage() {
       <div className="mx-auto max-w-5xl">
         {/* 헤더 */}
         <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-slate-900">수강생 현황</h1>
-            <p className="text-sm text-slate-500">
-              {selectedLectureName} · {summary?.totalStudents ?? 0}명
+            {/* 강의명만 CSS 폭 기준 말줄임(긴 강의명에 레이아웃 안 깨지게), '· N명'은 유지 */}
+            <p className="flex items-center gap-1 text-sm text-slate-500" title={selectedLectureName}>
+              <span className="min-w-0 truncate">{selectedLectureName}</span>
+              <span className="shrink-0">· {summary?.totalStudents ?? 0}명</span>
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* 년도·학기 분리 필터 — '전체' 옵션 없음(항상 특정 년도·학기 선택). 담당 강의를 클라이언트에서 좁힘 */}
             <select
-              value={String(selectedSemId)}
-              onChange={(e) => {
-                const v = e.target.value;
-                handleSemesterChange(v === "all" ? "all" : Number(v));
-              }}
-              className={`${selectClass} w-36`}
+              value={yearFilter === "all" ? "" : String(yearFilter)}
+              onChange={(e) => handleYearChange(Number(e.target.value))}
+              className={`${selectClass} w-28`}
             >
-              <option value="all">전체</option>
-              {semesters.map((s) => (
-                <option key={s.semId} value={s.semId}>
-                  {semesterLabel(s, termMap)}
+              {yearOptions.map((y) => (
+                <option key={y} value={String(y)}>
+                  {y}년
+                </option>
+              ))}
+            </select>
+            <select
+              value={termFilter === "all" ? "" : termFilter}
+              onChange={(e) => handleTermChange(e.target.value)}
+              className={`${selectClass} w-32`}
+            >
+              {termOptions.map((t) => (
+                <option key={t} value={t}>
+                  {termMap[t] ?? t}
                 </option>
               ))}
             </select>
             <select
               value={selectedLecId ?? ""}
               onChange={(e) => handleLectureChange(Number(e.target.value))}
-              disabled={lectures.length === 0}
+              disabled={filteredLectures.length === 0}
               className={`${selectClass} w-64 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
             >
-              {lectures.length === 0 ? (
+              {filteredLectures.length === 0 ? (
                 <option value="" disabled>
                   등록된 강의 없음
                 </option>
               ) : (
-                lectures.map((l) => (
-                  <option key={l.lecId} value={l.lecId}>
+                filteredLectures.map((l) => (
+                  <option
+                    key={l.lecId}
+                    value={l.lecId}
+                    title={l.lecName.length > LECTURE_NAME_MAX ? l.lecName : undefined}
+                  >
                     {lectureLabel(l, termMap, statusMap)}
                   </option>
                 ))
@@ -330,9 +402,10 @@ export default function ProfessorStudentsPage() {
         {/* 수강생 목록 */}
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-800">
-                {selectedLectureName} — 수강생 목록
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="flex min-w-0 items-center gap-1 text-base font-semibold text-slate-800">
+                <span className="min-w-0 truncate" title={selectedLectureName}>{selectedLectureName}</span>
+                <span className="shrink-0">— 수강생 목록</span>
               </h2>
               {lecStatusLabel && (
                 <span

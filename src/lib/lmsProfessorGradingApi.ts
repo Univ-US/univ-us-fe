@@ -20,6 +20,7 @@ export type { Semester } from "@/lib/lmsProfessorStudentsApi";
 export interface AssignmentRow {
   assignmentId: number;
   courseName: string; // 데이터구조 및 알고리즘
+  lecSection: number | null; // 분반 (LECTURE.LEC_SECTION) — "N반" 표기
   title: string; // 알고리즘 구현 #3
   dueDate: string; // 2026.05.25
   submittedCount: number; // 제출 수 (미제출 제외)
