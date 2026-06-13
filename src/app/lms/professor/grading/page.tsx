@@ -1,27 +1,29 @@
 "use client";
 
 // PLM-004 — 교수 "채점 현황" (미채점/채점 과제 목록 + 점수·피드백 채점)
-// - 상단: 학기 드롭다운(기본 '전체', SEM_TERM 라벨) + 미채점 배너(안내만)
-//   · '전체'는 overview omit이 '최신 학기'만 주므로 학기별로 불러 합산(mergeGradingOverviews)
-// - 미채점 과제 목록(마감일 순) → '채점하기' → 목록 바로 아래에 채점 상세(미채점 학생만)
-// - 채점 과제 목록(채점완료)   → '채점 보기' → 목록 바로 아래에 채점 상세(채점완료 학생만)
-// - 채점 상세(목록의 child 느낌으로 회색 배경): 학생별 제출일시·파일(보기)·점수·피드백
+//   + 서버 페이지네이션 전환(2026-06-13, 공통 PaginateUtilRestApi/Res)
+// - 상단: 년도·학기 분리 필터(기본 '전체') + 미채점 배너(현재 필터 범위 안내) + 부제 '미채점 N건'(전체, 사이드바 배지와 동일)
+// - 미채점/채점 과제 목록 = 각각 서버 페이지네이션(GET /grading/assignments?graded=&year=&termCode=&page=&size=)
+//   · 미채점 목록 → '채점하기' / 채점 목록 → '채점 보기' → 목록 바로 아래에 채점 상세
+// - 채점 상세(목록의 child 느낌 회색 배경): 학생별 제출일시·파일(보기)·점수·피드백
 //   · 미채점 행 = 입력 가능 + '저장' · 채점완료 행 = 입력 잠금 + '완료' + '수정'(클릭 시 편집)
 //   · 미제출 학생(submissionId=null) = 회색 행
 // - '보기' → PLM-004-01 제출 파일 미리보기 모달(인증 다운로드)
-// ⚠️ BE 공식 명세 연동(2026-06-10). 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
+// ⚠️ 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import SubmissionPreviewDialog from "@/components/lms/SubmissionPreviewDialog";
 import {
   getGradingOverview,
+  getGradingAssignments,
   getGradingDetail,
   saveGrade,
   getCommonCodeMap,
   getSemesters,
-  mergeGradingOverviews,
+  getUngradedCount,
   type GradingOverview,
   type GradingDetail,
+  type AssignmentRow,
   type Submission,
   type Semester,
 } from "@/lib/lmsProfessorGradingApi";
@@ -33,52 +35,34 @@ type DetailKind = "ungraded" | "graded";
 // 학기 정렬 순서(공통코드 SEM_TERM) — 학기 드롭다운 옵션 정렬용
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
-// 선택된 (년도, 학기) 조합에 매칭되는 학기 semId 목록.
-// 둘 다 'all'이면 전체(기존 '전체'와 동일), 한쪽만 'all'이면 그 축으로만 필터, 둘 다 선택이면 0~1건.
-const matchSemIds = (
-  year: number | "all",
-  term: string | "all",
-  sems: Semester[]
-): number[] =>
-  sems
-    .filter((s) => (year === "all" || s.year === year) && (term === "all" || s.termCode === term))
-    .map((s) => s.semId);
-
-// 과제(미채점+채점완료) 데이터가 있는 가장 나중 학기 = max(year), 그 해 안 시간상 max(term).
-// 단건 overview의 year/termCode를 사용(합산본 sentinel "ALL"은 제외). 데이터 없으면 전체/전체.
-const latestDataSem = (
-  overviews: GradingOverview[]
-): { year: number | "all"; term: string | "all" } => {
-  let bestYear: number | null = null;
-  let bestTerm: string | null = null;
-  for (const o of overviews) {
-    if (o.assignments.length + o.gradedAssignments.length === 0) continue;
-    if (!o.termCode || o.termCode === "ALL") continue;
-    const better =
-      bestYear == null ||
-      o.year > bestYear ||
-      (o.year === bestYear && TERM_ORDER.indexOf(o.termCode) > TERM_ORDER.indexOf(bestTerm!));
-    if (better) {
-      bestYear = o.year;
-      bestTerm = o.termCode;
-    }
-  }
-  return bestYear != null && bestTerm != null
-    ? { year: bestYear, term: bestTerm }
-    : { year: "all", term: "all" };
-};
+// 'all' sentinel → 서버 파라미터(null) 변환
+const toYearParam = (y: number | "all"): number | null => (y === "all" ? null : y);
+const toTermParam = (t: string | "all"): string | null => (t === "all" ? null : t);
 
 export default function ProfessorGradingPage() {
-  const [overview, setOverview] = useState<GradingOverview | null>(null);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // 년도·학기 분리 필터 — 둘 다 기본 '전체'. 조합에 매칭되는 학기들의 overview를 합산.
-  // ⚠️ overview는 semesterId 생략 시 '최신 학기'만 주므로, 매칭 semId마다 불러 합산(mergeGradingOverviews).
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
+
+  // 배너(현재 필터 범위 미채점 합 + 과목별)
+  const [overview, setOverview] = useState<GradingOverview | null>(null);
+
+  // 미채점/채점 과제 목록 — 서버 페이지네이션(독립 page)
+  const [ungraded, setUngraded] = useState<AssignmentRow[]>([]);
+  const [ungradedTotal, setUngradedTotal] = useState(0);
+  const [ungradedTotalPages, setUngradedTotalPages] = useState(1);
+  const [ungradedPage, setUngradedPage] = useState(0); // 0-based
+  const [ungradedLoading, setUngradedLoading] = useState(true);
+
+  const [graded, setGraded] = useState<AssignmentRow[]>([]);
+  const [gradedTotal, setGradedTotal] = useState(0);
+  const [gradedTotalPages, setGradedTotalPages] = useState(1);
+  const [gradedPage, setGradedPage] = useState(0);
+  const [gradedLoading, setGradedLoading] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0); // 재시도용 강제 재조회
 
   const [detail, setDetail] = useState<GradingDetail | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -95,14 +79,9 @@ export default function ProfessorGradingPage() {
   const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
   const [saveError, setSaveError] = useState<string | null>(null);
   // 원본 점수/피드백 스냅샷(memberId 기준) — 변경 여부(dirty) 판정 + '취소' 되돌리기용.
-  // 상세 로드 시 채움, 저장 성공 시 저장값으로 갱신(=다시 not-dirty).
   const [originals, setOriginals] = useState<
     Record<number, { score: number | null; feedback: string }>
   >({});
-
-  // 과제 목록 페이지네이션 — overview가 전체를 한 번에 주므로 클라이언트 슬라이싱. 미채점·채점 독립.
-  const [ungradedPage, setUngradedPage] = useState(0); // 0-based
-  const [gradedPage, setGradedPage] = useState(0);
 
   // 미리보기 모달
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -111,89 +90,106 @@ export default function ProfessorGradingPage() {
   // 채점 상세 섹션(선택한 목록 아래에 나타남) — 스크롤 이동용
   const detailRef = useRef<HTMLElement | null>(null);
 
-  // 사이드바 '채점 현황' 배지 동기화 — 배지는 '항상 전체' 기준이라 '전체' 볼 때만 갱신
+  // 사이드바 '채점 현황' 배지 + 헤더 부제 '미채점 N건' = '항상 전체' 미채점 합(필터 무관, 전용 카운트 엔드포인트)
   const setUngradedCount = useLmsGradingStore((s) => s.setUngradedCount);
+  const totalUngradedAll = useLmsGradingStore((s) => s.ungradedCount);
 
-  // 선택 (년도, 학기) 조합으로 개요 로드. 상세 닫기 + 페이지 0 + 배지 동기화.
-  const loadOverviewFor = useCallback(
-    async (year: number | "all", term: string | "all", sems: Semester[]) => {
-      setLoading(true);
-      setError(null);
-      // 필터가 바뀌면 다른 학기의 상세가 열려 있을 수 있으니 닫는다.
-      setSelectedKind(null);
-      setSelectedId(null);
-      setDetail(null);
-      try {
-        // 매칭 학기들의 overview 합산(omit이면 '최신 학기'만 옴). 단건·다건·0건 모두 동일 경로.
-        const ids = matchSemIds(year, term, sems);
-        const ov = mergeGradingOverviews(
-          await Promise.all(ids.map((id) => getGradingOverview(id)))
-        );
-        setOverview(ov);
-        // 사이드바 배지는 '항상 전체' 기준 → 년도·학기 둘 다 '전체'일 때만 갱신
-        if (year === "all" && term === "all") setUngradedCount(ov.totalUngraded);
-        setUngradedPage(0);
-        setGradedPage(0);
-      } catch (err) {
-        setError(describeApiError(err));
-        setOverview(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setUngradedCount]
-  );
-
-  // 최초: 학기 목록 + 라벨 로드 → 전 학기 overview로 (a)배지 전체합산 (b)데이터 있는 최신 학기를 기본 선택.
-  const init = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // 상세 닫기 (필터 변경 시 다른 학기 상세 잔류 방지)
+  const closeDetail = () => {
     setSelectedKind(null);
     setSelectedId(null);
     setDetail(null);
+  };
+
+  // ── 데이터 로더 ──────────────────────────────────────────
+  const fetchOverview = useCallback(async (year: number | "all", term: string | "all") => {
+    setError(null);
     try {
-      const [sems, term] = await Promise.all([getSemesters(), getCommonCodeMap("SEM_TERM")]);
-      setSemesters(sems);
-      setTermMap(term);
-      // 전 학기 overview를 한 번에 받아 — 배지(전체 합산) + 데이터 있는 최신 학기 판단 + 표시까지 재활용(추가 호출 없음)
-      const overviews = await Promise.all(sems.map((s) => getGradingOverview(s.semId)));
-      setUngradedCount(mergeGradingOverviews(overviews).totalUngraded); // 배지는 항상 전체 기준
-      const { year, term: t } = latestDataSem(overviews);
-      setYearFilter(year);
-      setTermFilter(t);
-      const ids = matchSemIds(year, t, sems);
-      const ov = mergeGradingOverviews(
-        sems.flatMap((s, i) => (ids.includes(s.semId) ? [overviews[i]] : []))
-      );
-      setOverview(ov);
-      setUngradedPage(0);
-      setGradedPage(0);
-      setLoading(false);
+      setOverview(await getGradingOverview(toYearParam(year), toTermParam(term)));
     } catch (err) {
       setError(describeApiError(err));
       setOverview(null);
-      setLoading(false);
     }
-  }, [setUngradedCount]);
+  }, []);
 
+  // 목록 1페이지 로드 (graded=false 미채점 / true 채점완료). 범위 벗어난 page는 마지막으로 보정.
+  const fetchList = useCallback(
+    async (gradedList: boolean, page: number, year: number | "all", term: string | "all") => {
+      const setRows = gradedList ? setGraded : setUngraded;
+      const setTotal = gradedList ? setGradedTotal : setUngradedTotal;
+      const setTotalPages = gradedList ? setGradedTotalPages : setUngradedTotalPages;
+      const setListLoading = gradedList ? setGradedLoading : setUngradedLoading;
+      const setListPage = gradedList ? setGradedPage : setUngradedPage;
+      setListLoading(true);
+      try {
+        const res = await getGradingAssignments({
+          graded: gradedList,
+          page,
+          size: ASSIGNMENTS_PAGE_SIZE,
+          year: toYearParam(year),
+          termCode: toTermParam(term),
+        });
+        setRows(res.content);
+        setTotal(res.totalElements);
+        setTotalPages(Math.max(1, res.totalPages));
+        if (res.totalPages > 0 && page > res.totalPages - 1) setListPage(res.totalPages - 1);
+      } catch (err) {
+        setError(describeApiError(err));
+        setRows([]);
+      } finally {
+        setListLoading(false);
+      }
+    },
+    []
+  );
+
+  // 마운트(정적): 학기 목록 + 학기 라벨 + 전체 미채점 합(부제·사이드바 배지)
   useEffect(() => {
-    init();
-  }, [init]);
+    (async () => {
+      try {
+        const [sems, term] = await Promise.all([getSemesters(), getCommonCodeMap("SEM_TERM")]);
+        setSemesters(sems);
+        setTermMap(term);
+      } catch (err) {
+        setError(describeApiError(err));
+      }
+      try {
+        setUngradedCount(await getUngradedCount()); // 전체 미채점 → 부제/배지
+      } catch {
+        /* 배지 실패는 숨김(치명적 아님) */
+      }
+    })();
+  }, [setUngradedCount, reloadTick]);
 
-  // 드롭다운 변경 → 선택 갱신 + 재조회 (각 축 독립, 다른 축은 현재값 유지)
+  // 배너 + 두 목록 재조회 (필터/페이지/재시도 변경 시)
+  useEffect(() => {
+    void fetchOverview(yearFilter, termFilter);
+  }, [yearFilter, termFilter, reloadTick, fetchOverview]);
+  useEffect(() => {
+    void fetchList(false, ungradedPage, yearFilter, termFilter);
+  }, [yearFilter, termFilter, ungradedPage, reloadTick, fetchList]);
+  useEffect(() => {
+    void fetchList(true, gradedPage, yearFilter, termFilter);
+  }, [yearFilter, termFilter, gradedPage, reloadTick, fetchList]);
+
+  // 드롭다운 변경 → 0페이지 복귀 + 상세 닫기 (effect가 재조회)
   const handleYearChange = (year: number | "all") => {
     setYearFilter(year);
-    loadOverviewFor(year, termFilter, semesters);
+    setUngradedPage(0);
+    setGradedPage(0);
+    closeDetail();
   };
   const handleTermChange = (term: string | "all") => {
     setTermFilter(term);
-    loadOverviewFor(yearFilter, term, semesters);
+    setUngradedPage(0);
+    setGradedPage(0);
+    closeDetail();
   };
 
-  // 상단 에러 재시도 — 학기 목록을 못 받았으면 처음부터, 받았으면 현재 선택 재조회
+  // 상단 에러 재시도 — 정적(학기/배지) + 배너 + 목록 전체 재조회
   const retryTop = () => {
-    if (semesters.length === 0) init();
-    else loadOverviewFor(yearFilter, termFilter, semesters);
+    setError(null);
+    setReloadTick((t) => t + 1);
   };
 
   // 필터 드롭다운 옵션 — 학기 목록에서 유도(년도 내림차순 / 학기 TERM_ORDER 순)
@@ -334,28 +330,6 @@ export default function ProfessorGradingPage() {
   const retryDetail = () => {
     if (selectedId != null && selectedKind != null) selectAssignment(selectedId, selectedKind);
   };
-
-  // 헤더 부제 라벨 — 선택한 년도·학기 조합 기준(overview는 합산이라 단일 year/termCode 없음)
-  const semesterLabel =
-    yearFilter === "all" && termFilter === "all"
-      ? "전체"
-      : `${yearFilter === "all" ? "전체 년도" : `${yearFilter}년`} ${
-          termFilter === "all" ? "전체 학기" : termMap[termFilter] ?? termFilter
-        }`;
-
-  // 과제 목록 페이지 슬라이스 (클라이언트). totalUngraded/byCourse는 전체 기준이라 영향 없음.
-  const ungradedAll = overview?.assignments ?? [];
-  const gradedAll = overview?.gradedAssignments ?? [];
-  const ungradedTotalPages = Math.max(1, Math.ceil(ungradedAll.length / ASSIGNMENTS_PAGE_SIZE));
-  const gradedTotalPages = Math.max(1, Math.ceil(gradedAll.length / ASSIGNMENTS_PAGE_SIZE));
-  const ungradedSlice = ungradedAll.slice(
-    ungradedPage * ASSIGNMENTS_PAGE_SIZE,
-    ungradedPage * ASSIGNMENTS_PAGE_SIZE + ASSIGNMENTS_PAGE_SIZE
-  );
-  const gradedSlice = gradedAll.slice(
-    gradedPage * ASSIGNMENTS_PAGE_SIZE,
-    gradedPage * ASSIGNMENTS_PAGE_SIZE + ASSIGNMENTS_PAGE_SIZE
-  );
 
   // 채점 상세 — 선택한 목록(미채점/채점) 바로 아래에 렌더. 로딩/에러/스냅샷(visibleIds) 처리.
   const renderDetailSection = () => (
@@ -569,6 +543,106 @@ export default function ProfessorGradingPage() {
     );
   };
 
+  // 과제 목록 1개 렌더 (미채점/채점 공용) — 서버 페이지네이션
+  const renderAssignmentList = (kind: DetailKind) => {
+    const isUngraded = kind === "ungraded";
+    const rows = isUngraded ? ungraded : graded;
+    const listLoading = isUngraded ? ungradedLoading : gradedLoading;
+    const total = isUngraded ? ungradedTotal : gradedTotal;
+    const totalPages = isUngraded ? ungradedTotalPages : gradedTotalPages;
+    const page = isUngraded ? ungradedPage : gradedPage;
+    const setPage = isUngraded ? setUngradedPage : setGradedPage;
+    return (
+      <section className="mb-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-slate-800">
+              {isUngraded ? "미채점 과제 목록" : "채점 과제 목록"}
+            </h2>
+            <p className="text-xs text-slate-400">{isUngraded ? "마감일 순" : "채점 완료된 과제"}</p>
+          </div>
+          {isUngraded ? (
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+              {overview?.totalUngraded ?? 0}건 미채점
+            </span>
+          ) : (
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              {gradedTotal}건 완료
+            </span>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                <th className="px-5 py-3 font-medium">과목</th>
+                <th className="px-5 py-3 font-medium">분반</th>
+                <th className="px-5 py-3 font-medium">과제명</th>
+                <th className="px-5 py-3 font-medium">마감일</th>
+                <th className="px-5 py-3 font-medium">제출 수</th>
+                <th className="px-5 py-3 font-medium">{isUngraded ? "미채점" : "채점완료"}</th>
+                <th className="px-5 py-3 font-medium text-right">채점</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
+                    불러오는 중…
+                  </td>
+                </tr>
+              ) : rows.length > 0 ? (
+                rows.map((a) => (
+                  <tr
+                    key={a.assignmentId}
+                    className={`border-b border-slate-50 last:border-0 ${
+                      a.assignmentId === selectedId && selectedKind === kind ? "bg-slate-50" : ""
+                    }`}
+                  >
+                    <td className="px-5 py-3 font-medium text-slate-800">{a.courseName}</td>
+                    <td className="px-5 py-3 text-slate-600">{a.lecSection != null ? `${a.lecSection}반` : "-"}</td>
+                    <td className="px-5 py-3 text-slate-700">{a.title}</td>
+                    <td className="px-5 py-3 text-slate-500">🕓 {a.dueDate}</td>
+                    <td className="px-5 py-3 text-slate-700">{a.submittedCount}명</td>
+                    <td className="px-5 py-3">
+                      {isUngraded ? (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
+                          {a.ungradedCount}명
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                          {a.gradedCount}명
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <Button variant="outline" size="sm" onClick={() => selectAssignment(a.assignmentId, kind)}>
+                        {isUngraded ? "채점하기 ›" : "채점 보기 ›"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
+                    {isUngraded ? "미채점 과제가 없습니다." : "채점 완료된 과제가 없습니다."}
+                  </td>
+                </tr>
+              )}
+              {/* 행이 부족하면(마지막 페이지 등) 빈 행으로 채워 목록 높이 고정(항상 PAGE_SIZE행) */}
+              {!listLoading && rows.length > 0 && (
+                <PadRows count={ASSIGNMENTS_PAGE_SIZE - rows.length} />
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!listLoading && (
+          <Pager total={total} page={page} totalPages={totalPages} onPage={setPage} />
+        )}
+      </section>
+    );
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8">
       <div className="mx-auto max-w-5xl">
@@ -576,11 +650,9 @@ export default function ProfessorGradingPage() {
         <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">채점 현황</h1>
-            <p className="text-sm text-slate-500">
-              {semesterLabel} · 미채점 {overview?.totalUngraded ?? 0}건
-            </p>
+            <p className="text-sm text-slate-500">미채점 {totalUngradedAll ?? 0}건</p>
           </div>
-          {/* 년도·학기 분리 필터 — 둘 다 기본 '전체'. 조합에 매칭되는 학기들의 overview 합산 */}
+          {/* 년도·학기 분리 필터 — 둘 다 기본 '전체'(서버 필터) */}
           <div className="flex gap-2">
             <select
               className={selectClass}
@@ -588,7 +660,7 @@ export default function ProfessorGradingPage() {
               onChange={(e) =>
                 handleYearChange(e.target.value === "all" ? "all" : Number(e.target.value))
               }
-              disabled={loading}
+              disabled={ungradedLoading || gradedLoading}
             >
               <option value="all">전체 년도</option>
               {yearOptions.map((y) => (
@@ -601,7 +673,7 @@ export default function ProfessorGradingPage() {
               className={selectClass}
               value={termFilter}
               onChange={(e) => handleTermChange(e.target.value)}
-              disabled={loading}
+              disabled={ungradedLoading || gradedLoading}
             >
               <option value="all">전체 학기</option>
               {termOptions.map((t) => (
@@ -623,7 +695,7 @@ export default function ProfessorGradingPage() {
           </section>
         ) : (
           <>
-            {/* 미채점 배너 / 완료 상태 */}
+            {/* 미채점 배너 / 완료 상태 (현재 필터 범위) */}
             {overview && overview.totalUngraded > 0 ? (
               <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-5 py-4">
                 <div className="flex items-start gap-3">
@@ -644,170 +716,12 @@ export default function ProfessorGradingPage() {
               </section>
             ) : null}
 
-            {/* 미채점 과제 목록 */}
-            <section className="mb-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <div>
-                  <h2 className="text-base font-semibold text-slate-800">미채점 과제 목록</h2>
-                  <p className="text-xs text-slate-400">마감일 순</p>
-                </div>
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                  {overview?.totalUngraded ?? 0}건 미채점
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                      <th className="px-5 py-3 font-medium">과목</th>
-                      <th className="px-5 py-3 font-medium">분반</th>
-                      <th className="px-5 py-3 font-medium">과제명</th>
-                      <th className="px-5 py-3 font-medium">마감일</th>
-                      <th className="px-5 py-3 font-medium">제출 수</th>
-                      <th className="px-5 py-3 font-medium">미채점</th>
-                      <th className="px-5 py-3 font-medium text-right">채점</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
-                          불러오는 중…
-                        </td>
-                      </tr>
-                    ) : ungradedAll.length > 0 ? (
-                      ungradedSlice.map((a) => (
-                        <tr
-                          key={a.assignmentId}
-                          className={`border-b border-slate-50 last:border-0 ${
-                            a.assignmentId === selectedId && selectedKind === "ungraded" ? "bg-slate-50" : ""
-                          }`}
-                        >
-                          <td className="px-5 py-3 font-medium text-slate-800">{a.courseName}</td>
-                          <td className="px-5 py-3 text-slate-600">{a.lecSection != null ? `${a.lecSection}반` : "-"}</td>
-                          <td className="px-5 py-3 text-slate-700">{a.title}</td>
-                          <td className="px-5 py-3 text-slate-500">🕓 {a.dueDate}</td>
-                          <td className="px-5 py-3 text-slate-700">{a.submittedCount}명</td>
-                          <td className="px-5 py-3">
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600">
-                              {a.ungradedCount}명
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <Button variant="outline" size="sm" onClick={() => selectAssignment(a.assignmentId, "ungraded")}>
-                              채점하기 ›
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
-                          미채점 과제가 없습니다.
-                        </td>
-                      </tr>
-                    )}
-                    {/* 행이 부족하면(마지막 페이지 등) 빈 행으로 채워 목록 높이 고정(항상 PAGE_SIZE행) */}
-                    {!loading && ungradedAll.length > 0 && (
-                      <PadRows count={ASSIGNMENTS_PAGE_SIZE - ungradedSlice.length} />
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {!loading && (
-                <Pager
-                  total={ungradedAll.length}
-                  page={ungradedPage}
-                  totalPages={ungradedTotalPages}
-                  onPage={setUngradedPage}
-                />
-              )}
-            </section>
-
-            {/* 미채점 채점 상세 — 미채점 과제 목록 바로 아래 */}
+            {/* 미채점 과제 목록 + 상세 */}
+            {renderAssignmentList("ungraded")}
             {selectedKind === "ungraded" && renderDetailSection()}
 
-            {/* 채점 과제 목록 (채점 완료) */}
-            <section className="mb-6 rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <div>
-                  <h2 className="text-base font-semibold text-slate-800">채점 과제 목록</h2>
-                  <p className="text-xs text-slate-400">채점 완료된 과제</p>
-                </div>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                  {overview?.gradedAssignments.length ?? 0}건 완료
-                </span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                      <th className="px-5 py-3 font-medium">과목</th>
-                      <th className="px-5 py-3 font-medium">분반</th>
-                      <th className="px-5 py-3 font-medium">과제명</th>
-                      <th className="px-5 py-3 font-medium">마감일</th>
-                      <th className="px-5 py-3 font-medium">제출 수</th>
-                      <th className="px-5 py-3 font-medium">채점완료</th>
-                      <th className="px-5 py-3 font-medium text-right">채점</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
-                          불러오는 중…
-                        </td>
-                      </tr>
-                    ) : gradedAll.length > 0 ? (
-                      gradedSlice.map((a) => (
-                        <tr
-                          key={a.assignmentId}
-                          className={`border-b border-slate-50 last:border-0 ${
-                            a.assignmentId === selectedId && selectedKind === "graded" ? "bg-slate-50" : ""
-                          }`}
-                        >
-                          <td className="px-5 py-3 font-medium text-slate-800">{a.courseName}</td>
-                          <td className="px-5 py-3 text-slate-600">{a.lecSection != null ? `${a.lecSection}반` : "-"}</td>
-                          <td className="px-5 py-3 text-slate-700">{a.title}</td>
-                          <td className="px-5 py-3 text-slate-500">🕓 {a.dueDate}</td>
-                          <td className="px-5 py-3 text-slate-700">{a.submittedCount}명</td>
-                          <td className="px-5 py-3">
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                              {a.gradedCount}명
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <Button variant="outline" size="sm" onClick={() => selectAssignment(a.assignmentId, "graded")}>
-                              채점 보기 ›
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="px-5 py-10 text-center text-slate-400">
-                          채점 완료된 과제가 없습니다.
-                        </td>
-                      </tr>
-                    )}
-                    {/* 행이 부족하면(마지막 페이지 등) 빈 행으로 채워 목록 높이 고정(항상 PAGE_SIZE행) */}
-                    {!loading && gradedAll.length > 0 && (
-                      <PadRows count={ASSIGNMENTS_PAGE_SIZE - gradedSlice.length} />
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {!loading && (
-                <Pager
-                  total={gradedAll.length}
-                  page={gradedPage}
-                  totalPages={gradedTotalPages}
-                  onPage={setGradedPage}
-                />
-              )}
-            </section>
-
-            {/* 채점 채점 상세 — 채점 과제 목록 바로 아래 */}
+            {/* 채점 과제 목록 + 상세 */}
+            {renderAssignmentList("graded")}
             {selectedKind === "graded" && renderDetailSection()}
           </>
         )}
@@ -826,18 +740,17 @@ export default function ProfessorGradingPage() {
 const selectClass =
   "shrink-0 truncate rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:bg-slate-50";
 
-// 과제 목록 페이지당 건수 (클라이언트 슬라이싱). 과제는 보통 적어 5건이면 대개 1페이지.
+// 과제 목록 페이지당 건수 (서버 페이지네이션 size). 과제는 보통 적어 5건이면 대개 1페이지.
 const ASSIGNMENTS_PAGE_SIZE = 5;
 
 // 마지막 페이지 등 행이 부족할 때 목록 높이를 고정(항상 PAGE_SIZE행)하기 위한 빈 행.
-// 데이터 행 높이 = Button(sm, h-7=28px) + py-3 → 동일하게 h-7 스페이서로 맞춤.
 function PadRows({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
         <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-          <td colSpan={6} className="px-5 py-3">
+          <td colSpan={7} className="px-5 py-3">
             <div className="h-7" />
           </td>
         </tr>

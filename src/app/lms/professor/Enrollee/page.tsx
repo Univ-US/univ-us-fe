@@ -2,7 +2,7 @@
 
 // PLM-003 — 교수 "수강생 현황" (강의별 수강생 목록 + 출석·과제 현황)
 // BE 공식 명세 연동(2026-06-10): 서버 페이지네이션/검색/필터/정렬 + Excel 내보내기.
-// - 상단: 학기(기본 '전체')/강의 드롭다운 + 이름·학번 검색 + 필터(제출/정렬) + 명단 내보내기
+// - 상단: 년도/학기(기본 둘 다 '전체')/강의 드롭다운 + 이름·학번 검색 + 필터(제출/정렬) + 명단 내보내기
 // - 통계 카드 3개(summary: 검색 전체 기준, 필터·정렬·페이지엔 안 바뀜)
 // - 목록 테이블 + 서버 페이지네이션(page 0-based)
 // - '상세' 클릭 → PLM-003-01 상세 리포트 모달
@@ -43,29 +43,6 @@ const matchLectures = (
   lecs.filter(
     (l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term)
   );
-
-// 담당 강의 중 '데이터(강의) 있는 가장 나중 학기' = max(year), 그 해 안 시간상 max(term: SM1<SMR<SM2<WNT).
-// 기본 필터값으로 사용(빈 화면 회피). 강의가 없거나 학기정보 없으면 전체/전체.
-const latestLectureSem = (
-  lecs: Lecture[]
-): { year: number | "all"; term: string | "all" } => {
-  let bestYear: number | null = null;
-  let bestTerm: string | null = null;
-  for (const l of lecs) {
-    if (l.year == null || !l.termCode) continue;
-    const better =
-      bestYear == null ||
-      l.year > bestYear ||
-      (l.year === bestYear && TERM_ORDER.indexOf(l.termCode) > TERM_ORDER.indexOf(bestTerm!));
-    if (better) {
-      bestYear = l.year;
-      bestTerm = l.termCode;
-    }
-  }
-  return bestYear != null && bestTerm != null
-    ? { year: bestYear, term: bestTerm }
-    : { year: "all", term: "all" };
-};
 
 type Submission = "" | "complete" | "incomplete";
 type Sort = "name" | "studentNo" | "attendance" | "score"; // 기본 name
@@ -121,11 +98,8 @@ export default function ProfessorStudentsPage() {
         setTermMap(tMap);
         setStatusMap(stMap);
         setLectures(lecs);
-        // 기본값 = 데이터 있는 최신 학기 + 그 학기 첫 강의 (전체/전체 아님)
-        const { year, term } = latestLectureSem(lecs);
-        setYearFilter(year);
-        setTermFilter(term);
-        const lecId = matchLectures(year, term, lecs)[0]?.lecId ?? null;
+        // 기본값 = 년도/학기 둘 다 '전체'(전 화면 공통 규칙) + 전체 강의 중 첫 강의 선택
+        const lecId = matchLectures("all", "all", lecs)[0]?.lecId ?? null;
         setSelectedLecId(lecId);
         if (lecId == null) {
           setData(EMPTY_LECTURE_STUDENTS);
@@ -312,7 +286,7 @@ export default function ProfessorStudentsPage() {
       <div className="mx-auto max-w-5xl">
         {/* 헤더 */}
         <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-slate-900">수강생 현황</h1>
             {/* 강의명만 CSS 폭 기준 말줄임(긴 강의명에 레이아웃 안 깨지게), '· N명'은 유지 */}
             <p className="flex items-center gap-1 text-sm text-slate-500" title={selectedLectureName}>
@@ -321,13 +295,14 @@ export default function ProfessorStudentsPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* 년도·학기 분리 필터 — '전체' 옵션 없음(항상 특정 년도·학기 선택). 담당 강의를 클라이언트에서 좁힘 */}
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* 년도·학기 분리 필터 — 기본값 둘 다 '전체'(전 화면 공통 규칙). 담당 강의를 클라이언트에서 좁힘 */}
             <select
               value={yearFilter === "all" ? "" : String(yearFilter)}
-              onChange={(e) => handleYearChange(Number(e.target.value))}
+              onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
               className={`${selectClass} w-28`}
             >
+              <option value="">전체 년도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년
@@ -336,9 +311,10 @@ export default function ProfessorStudentsPage() {
             </select>
             <select
               value={termFilter === "all" ? "" : termFilter}
-              onChange={(e) => handleTermChange(e.target.value)}
+              onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
               className={`${selectClass} w-32`}
             >
+              <option value="">전체 학기</option>
               {termOptions.map((t) => (
                 <option key={t} value={t}>
                   {termMap[t] ?? t}
