@@ -38,16 +38,51 @@ export const getUniversities = async (): Promise<University[]> => {
     return res.data;
 };
 
-export async function* streamChatMessage(message: string): AsyncGenerator<string> {
-    const accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    const res = await fetch(`${API_BASE_URL}/api/ai/stream`, {
+async function refreshAccessToken(): Promise<string> {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) throw new Error("No refresh token");
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+    });
+    if (!res.ok) throw new Error("Refresh failed");
+
+    const data = await res.json();
+    localStorage.setItem("accessToken", data.accessToken);
+    if (data.memberId) localStorage.setItem("memberId", String(data.memberId));
+    if (data.role) localStorage.setItem("role", data.role);
+    return data.accessToken;
+}
+
+function buildStreamRequest(token: string | null, message: string): Request {
+    return new Request(`${API_BASE_URL}/api/ai/stream`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ message }),
     });
+}
+
+export async function* streamChatMessage(message: string): AsyncGenerator<string> {
+    let accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    let res = await fetch(buildStreamRequest(accessToken, message));
+
+    if (res.status === 401) {
+        try {
+            accessToken = await refreshAccessToken();
+            res = await fetch(buildStreamRequest(accessToken, message));
+        } catch {
+            throw new Error("UNAUTHORIZED");
+        }
+    }
+
+    if (res.status === 401) {
+        throw new Error("UNAUTHORIZED");
+    }
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     if (!res.body) throw new Error("body is null");
@@ -63,7 +98,7 @@ export async function* streamChatMessage(message: string): AsyncGenerator<string
         for (const line of chunk.split("\n")) {
             if (!line.startsWith("data:")) continue;
             const content = line.slice(5);
-            if (content) yield content;
+            if (content && content !== "[DONE]") yield content;
         }
     }
 }
