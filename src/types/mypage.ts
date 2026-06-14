@@ -1,5 +1,6 @@
 export interface MyPost {
   postId: number;
+  boardId: number;
   title: string;
   board: string;
   createdAt: string;
@@ -9,14 +10,19 @@ export interface MyPost {
 
 export interface MyComment {
   commentId: number;
+  postId: number;
+  boardId: number;
   content: string;
   postTitle: string;
   board: string;
+  boardName?: string;
   createdAt: string;
 }
 
 export interface MyTrade {
   tradeId: number;
+  productId?: number;
+  roomId?: number | null;
   productName: string;
   price: number;
   status: string;

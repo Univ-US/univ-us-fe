@@ -1,5 +1,21 @@
 import React from 'react';
 
+const BOARD_META_BY_ID: Record<number, { label: string; path: string }> = {
+  1: { label: '자유', path: '/community/free' },
+  2: { label: '익명', path: '/community/secret' },
+  3: { label: '공지', path: '/community/notice' },
+};
+
+export function getBoardLabel(boardId?: number, fallback = '기타') {
+  if (!boardId) return fallback;
+  return BOARD_META_BY_ID[boardId]?.label ?? fallback;
+}
+
+export function getPostDetailHref(boardId: number | undefined, postId: number) {
+  const boardPath = boardId ? BOARD_META_BY_ID[boardId]?.path : undefined;
+  return `${boardPath ?? '/community'}?postId=${postId}`;
+}
+
 export function formatPrice(price: number) {
   return price === 0 ? '나눔' : price.toLocaleString('ko-KR') + '원';
 }
@@ -22,6 +38,7 @@ export function BoardBadge({ board }: { board: string }) {
 export function StatusBadge({ status }: { status: string }) {
   const labelMap: Record<string, string> = {
     SALE: '판매중',
+    RESERVE: '예약중',
     RESERVED: '예약중',
     DONE: '거래완료',
     판매중: '판매중',
