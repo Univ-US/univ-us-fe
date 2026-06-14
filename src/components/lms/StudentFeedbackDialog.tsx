@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 // [학생 LMS 모달] SLM-004-02 채점 피드백 보기
 // - SLM-004(과제 내역) '채점완료' 행의 '피드백' 클릭 시 표시
-// - 점수 + 교수 피드백 + 평가 항목(루브릭) 표시
+// - 점수 + 교수 피드백 표시 (평가 항목/루브릭은 서비스 미구현 — 제외)
 // - 학생 화면 = 에메랄드 톤(§13). 데이터(assignment)는 부모(페이지)가 주입 — 표시만 담당
 // ─────────────────────────────────────────────────────────────
 import useEscapeClose from "@/components/lms/useEscapeClose";
@@ -34,19 +34,11 @@ export default function StudentFeedbackDialog({
       aria-label="채점 피드백 보기"
     >
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        {/* 헤더 — ✕ 제거(닫기는 푸터 버튼 / ESC로 처리) */}
+        <div className="flex items-center border-b border-slate-100 px-6 py-4">
           <h3 className="text-base font-semibold text-slate-800">
             피드백 보기 <span className="text-slate-400">—</span> {assignment.title}
           </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          >
-            ✕
-          </button>
         </div>
 
         {/* 본문 */}
@@ -76,22 +68,6 @@ export default function StudentFeedbackDialog({
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
                   {fb.comment}
                 </p>
-              </section>
-
-              {/* 평가 항목(루브릭) */}
-              <section className="mt-5">
-                <h4 className="mb-2 text-sm font-semibold text-slate-700">평가 항목</h4>
-                <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
-                  {fb.rubric.map((r) => (
-                    <li key={r.label} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                      <span className="text-slate-600">{r.label}</span>
-                      <span className="font-semibold text-slate-900">
-                        {r.score}
-                        <span className="text-slate-400">/{r.max}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
               </section>
             </>
           )}

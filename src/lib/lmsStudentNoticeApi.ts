@@ -2,9 +2,10 @@
 // SLM-009 공지사항 — 수강 과목 교수가 작성한 강의 공지 확인 (좌 목록 선택 → 우 상세)
 // ─────────────────────────────────────────────────────────────
 // 🧪 mock-first 단계(§15): BE 연동 전이라 명시적 샘플 데이터로 동작. 화면 상단 앰버 배너 표기.
-// BE 연동 예정: GET /api/lms/student/notices?semesterId= (수강 과목 교수 공지)
-//   · 안읽은 공지는 굵게 + 점 표시 / 첨부파일 다운로드(인증 blob) / 학기 드롭다운(특정 학기)
-//   · 작성자 = 수강 과목 교수. (질문은 채팅 SLM-008)
+// BE 연동 예정: GET /api/lms/student/notices (수강 과목 교수 공지 — 전체 반환, FE가 좁힘)
+//   · 화면 = 년도/학기(기본 둘 다 '전체') + 과목 드롭다운(첫 과목 자동 선택, SLM-006/PLM-006 패턴) → 선택 '한 과목'의 공지만 표시
+//   · 첨부파일 다운로드(인증 blob) — 읽음 유무(안읽음 표시) 기능 없음
+//   · 작성자 = 수강 과목 교수(프로필 사진 = LMS_PROFILE_IMAGE → authorImageUrl, 없으면 기본 프로필사진). (질문은 채팅 SLM-008)
 // ⚠️ 연동 시 이 mock 블록 + delay 삭제, axios 실호출로 교체(시그니처 유지) + describeApiError 에러 표기.
 // ─────────────────────────────────────────────────────────────
 
@@ -26,26 +27,27 @@ export interface Notice {
   year: number;
   termCode: string;
   semesterLabel: string;
+  lecId: number; // 과목(강의) 식별 — 과목 드롭다운/필터 기준 (BE: LECTURE.LEC_ID)
+  lecSection?: number; // 분반 (BE: LECTURE.LEC_SECTION)
   courseName: string; // 좌측 배지(짧은 이름)
-  courseFullName: string; // 상세 배지(전체 이름)
+  courseFullName: string; // 과목 드롭다운(전체 이름)
   title: string;
   author: string; // "이민준 교수"
-  date: string; // "2026.05.15"
+  authorImageUrl?: string | null; // 작성 교수 프로필 사진(BE: LMS_PROFILE_IMAGE) — 없으면 기본 프로필사진
+  date: string; // 등록일시 "2026-05-15 14:30" (BE: REG_DATE — 상세에 날짜+시간)
   listDate: string; // 좌측 목록 날짜(예: "05.15")
-  views: number;
-  unread: boolean;
   featured?: boolean; // 기본 선택(설계서 스크린샷 기준)
   content: NoticeBlock[];
   attachment?: NoticeAttachment | null;
 }
 
-// ── mock 데이터 (설계서 SLM-009 기준, 안읽음 먼저 정렬) — BE 연동 시 이 블록 + delay 삭제 ──
+// ── mock 데이터 (설계서 SLM-009 기준, 최신순 정렬) — BE 연동 시 이 블록 + delay 삭제 ──
 const MOCK_NOTICES: Notice[] = [
   {
-    id: 1, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 1, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 101, lecSection: 1,
     courseName: "데이터구조", courseFullName: "데이터구조 및 알고리즘",
     title: "기말 프로젝트 발표 일정 및 평가 기준 안내", author: "이민준 교수",
-    date: "2026-05-24", listDate: "05.24", views: 96, unread: true,
+    date: "2026-05-24 16:20", listDate: "05.24",
     content: [
       { type: "paragraph", text: "기말 프로젝트 발표 일정과 평가 기준을 안내드립니다." },
       { type: "heading", text: "발표 일정" },
@@ -57,10 +59,10 @@ const MOCK_NOTICES: Notice[] = [
     attachment: { fileName: "기말프로젝트_평가기준.pdf", size: "0.5 MB" },
   },
   {
-    id: 2, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 2, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 102, lecSection: 1,
     courseName: "운영체제", courseFullName: "운영체제",
     title: "보강 수업 안내 (6/3 18:00, 공학관 401)", author: "박성훈 교수",
-    date: "2026-05-20", listDate: "05.20", views: 73, unread: true,
+    date: "2026-05-20 10:05", listDate: "05.20",
     content: [
       { type: "paragraph", text: "공휴일로 휴강했던 수업의 보강을 아래와 같이 진행합니다." },
       { type: "list", items: ["일시: 6월 3일(수) 18:00 ~ 19:30", "장소: 공학관 401호", "범위: 페이지 교체 알고리즘 (LRU·Clock)"] },
@@ -69,10 +71,10 @@ const MOCK_NOTICES: Notice[] = [
     attachment: null,
   },
   {
-    id: 3, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 3, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 101, lecSection: 1,
     courseName: "데이터구조", courseFullName: "데이터구조 및 알고리즘",
     title: "기말고사 범위 및 준비 안내", author: "이민준 교수",
-    date: "2026-05-15", listDate: "05.15", views: 128, unread: true, featured: true,
+    date: "2026-05-15 14:30", listDate: "05.15", featured: true,
     content: [
       { type: "paragraph", text: "안녕하세요, 데이터구조 및 알고리즘 수강생 여러분." },
       { type: "paragraph", text: "기말고사 범위와 준비 사항을 아래와 같이 안내드립니다." },
@@ -85,10 +87,10 @@ const MOCK_NOTICES: Notice[] = [
     attachment: { fileName: "기말고사_안내_데이터구조.pdf", size: "0.8 MB" },
   },
   {
-    id: 4, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 4, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 101, lecSection: 1,
     courseName: "데이터구조", courseFullName: "데이터구조 및 알고리즘",
     title: "7주차 강의 자료 및 과제 #3 안내", author: "이민준 교수",
-    date: "2026-05-25", listDate: "05.25", views: 142, unread: false,
+    date: "2026-05-25 09:15", listDate: "05.25",
     content: [
       { type: "paragraph", text: "7주차 강의 자료를 강의 자료실에 업로드했습니다." },
       { type: "paragraph", text: "과제 #3은 정렬 알고리즘 직접 구현 과제이며, 마감은 5월 25일 23:59입니다." },
@@ -97,10 +99,10 @@ const MOCK_NOTICES: Notice[] = [
     attachment: { fileName: "week7_slides.pdf", size: "4.2 MB" },
   },
   {
-    id: 5, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 5, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 102, lecSection: 1,
     courseName: "운영체제", courseFullName: "운영체제",
     title: "중간고사 일정 변경 공지", author: "박성훈 교수",
-    date: "2026-05-23", listDate: "05.23", views: 88, unread: false,
+    date: "2026-05-23 11:40", listDate: "05.23",
     content: [
       { type: "paragraph", text: "학사 일정 조정으로 중간고사 일정이 변경되었습니다." },
       { type: "list", items: ["변경 전: 4월 22일(수)", "변경 후: 4월 24일(금) 13:00", "장소·범위는 동일"] },
@@ -108,10 +110,10 @@ const MOCK_NOTICES: Notice[] = [
     attachment: null,
   },
   {
-    id: 6, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기",
+    id: 6, year: 2026, termCode: "SM1", semesterLabel: "2026년 1학기", lecId: 103, lecSection: 1,
     courseName: "SW공학", courseFullName: "소프트웨어공학",
     title: "과제 마감 연장 안내 (5/22 → 5/28)", author: "김태경 교수",
-    date: "2026-05-18", listDate: "05.18", views: 61, unread: false,
+    date: "2026-05-18 17:50", listDate: "05.18",
     content: [
       { type: "paragraph", text: "다수의 요청을 반영하여 UML 다이어그램 작성 과제의 마감을 연장합니다." },
       { type: "list", items: ["변경 전 마감: 5월 22일(목) 23:59", "변경 후 마감: 5월 28일(수) 23:59"] },
@@ -121,10 +123,10 @@ const MOCK_NOTICES: Notice[] = [
   },
   // 학기 드롭다운 동작 확인용(이전 학기)
   {
-    id: 11, year: 2025, termCode: "SM2", semesterLabel: "2025년 2학기",
+    id: 11, year: 2025, termCode: "SM2", semesterLabel: "2025년 2학기", lecId: 104, lecSection: 1,
     courseName: "알고리즘 설계", courseFullName: "알고리즘 설계",
     title: "기말 성적 이의신청 안내", author: "이민준 교수",
-    date: "2025-12-18", listDate: "12.18", views: 154, unread: false,
+    date: "2025-12-18 13:00", listDate: "12.18",
     content: [
       { type: "paragraph", text: "기말 성적 확인 및 이의신청 기간을 안내드립니다." },
       { type: "list", items: ["확인 기간: 12월 19일 ~ 12월 21일", "이의신청: 채팅 또는 이메일"] },

@@ -14,7 +14,7 @@ export interface ChatRoom {
   professorName: string;
   courseName: string;
   lastMessage: string;
-  lastTime: string; // "11:12" / "어제" / "05.22"
+  lastAt: string; // 마지막 메시지 시각 ISO (BE: CHAT_ROOM_MESSAGES.MSG_DATE 최신). 표시=formatChatListTime()
   unread: number;
   avatarInitial: string;
   avatarColor: string; // tailwind bg 클래스
@@ -36,13 +36,43 @@ export interface ChatThread {
   messages: ChatMessage[];
 }
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * 채팅 목록 시각 표시 규칙 (사용자 확정 2026-06-14):
+ *  · 당일(같은 날)       → "HH:mm"     (예: 11:12)
+ *  · 올해·당일 아님      → "MM.DD"     (예: 05.22) — 상대표현 '어제'/'오늘' 안 씀
+ *  · 작년 이전(연도 다름) → "YYYY.MM.DD"(예: 2025.05.18)
+ * BE 연동 시 CHAT_ROOM_MESSAGES.MSG_DATE(ISO)를 그대로 넘기면 됨.
+ */
+export function formatChatListTime(at: string | Date, now: Date = new Date()): string {
+  const d = typeof at === "string" ? new Date(at) : at;
+  if (Number.isNaN(d.getTime())) return "";
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (d.getFullYear() === now.getFullYear()) return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+}
+
+// mock 전용 — 현재 시각 기준 상대 ISO (당일/지난날/작년 케이스 시연용). BE 연동 시 삭제.
+const ago = (days: number, hour: number, minute: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+
 // ── mock 데이터 (설계서 SLM-008 기준) — BE 연동 시 이 블록 + delay 삭제 ──
 const MOCK_ROOMS: ChatRoom[] = [
-  { roomId: 1, professorName: "이민준", courseName: "데이터구조 및 알고리즘", lastMessage: "O(n log n) 이하가 기준입니다. 슬라이드 7페이지 참고해 주세요!", lastTime: "11:12", unread: 1, avatarInitial: "이", avatarColor: "bg-emerald-600" },
-  { roomId: 2, professorName: "박성훈", courseName: "운영체제", lastMessage: "다음 주 강의 자료 올려드렸어요. 미리 확인 부탁드립니다.", lastTime: "어제", unread: 1, avatarInitial: "박", avatarColor: "bg-blue-500" },
-  { roomId: 3, professorName: "김태경", courseName: "소프트웨어공학", lastMessage: "UML 제출 마감 꼭 지켜주세요.", lastTime: "05.22", unread: 0, avatarInitial: "김", avatarColor: "bg-orange-500" },
-  { roomId: 4, professorName: "최영수", courseName: "데이터베이스", lastMessage: "ERD 과제 질문은 언제든 환영입니다.", lastTime: "05.19", unread: 0, avatarInitial: "최", avatarColor: "bg-purple-500" },
-  { roomId: 5, professorName: "이수진", courseName: "웹프로그래밍", lastMessage: "React 과제 잘 봤습니다. 수고했어요.", lastTime: "05.18", unread: 0, avatarInitial: "이", avatarColor: "bg-emerald-600" },
+  // lastAt = 상대 시각(시연): 당일 → HH:mm / 지난날 → MM.DD / 작년 → YYYY.MM.DD
+  { roomId: 1, professorName: "이민준", courseName: "데이터구조 및 알고리즘", lastMessage: "O(n log n) 이하가 기준입니다. 슬라이드 7페이지 참고해 주세요!", lastAt: ago(0, 11, 12), unread: 1, avatarInitial: "이", avatarColor: "bg-emerald-600" },
+  { roomId: 2, professorName: "박성훈", courseName: "운영체제", lastMessage: "다음 주 강의 자료 올려드렸어요. 미리 확인 부탁드립니다.", lastAt: ago(1, 16, 20), unread: 1, avatarInitial: "박", avatarColor: "bg-blue-500" },
+  { roomId: 3, professorName: "김태경", courseName: "소프트웨어공학", lastMessage: "UML 제출 마감 꼭 지켜주세요.", lastAt: ago(23, 13, 30), unread: 0, avatarInitial: "김", avatarColor: "bg-orange-500" },
+  { roomId: 4, professorName: "최영수", courseName: "데이터베이스", lastMessage: "ERD 과제 질문은 언제든 환영입니다.", lastAt: ago(26, 9, 48), unread: 0, avatarInitial: "최", avatarColor: "bg-purple-500" },
+  { roomId: 5, professorName: "이수진", courseName: "웹프로그래밍", lastMessage: "React 과제 잘 봤습니다. 수고했어요.", lastAt: ago(395, 18, 10), unread: 0, avatarInitial: "이", avatarColor: "bg-emerald-600" },
 ];
 
 const MOCK_THREADS: Record<number, ChatThread> = {

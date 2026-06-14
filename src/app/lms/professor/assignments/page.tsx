@@ -12,7 +12,7 @@
 // - ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useEscapeClose from "@/components/lms/useEscapeClose";
-import LmsRichTextEditor from "@/components/lms/LmsRichTextEditor";
+import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import {
@@ -518,7 +518,7 @@ export default function ProfessorAssignmentsPage() {
                 <label className={labelClass}>과제 설명</label>
                 {/* Tiptap 에디터 (PLM-005와 동일 공용 컴포넌트) — HTML 저장, 텍스트 4000자 제한 */}
                 <div className="mt-2">
-                  <LmsRichTextEditor
+                  <ProfessorRichTextEditor
                     value={form.description}
                     onChange={(html) => setForm((p) => ({ ...p, description: html }))}
                     placeholder="과제 내용, 제출 형식, 유의사항을 상세히 작성하세요."

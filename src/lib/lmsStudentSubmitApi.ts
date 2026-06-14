@@ -1,9 +1,9 @@
 // src/lib/lmsStudentSubmitApi.ts
-// SLM-007 과제 제출 — 미제출 과제 선택 → 파일 업로드(S3)·메모 작성하여 제출 (이력은 SLM-004)
+// SLM-007 과제 제출 — 미제출 과제 선택 → 파일 업로드·메모 작성하여 제출 (이력은 SLM-004)
 // ─────────────────────────────────────────────────────────────
 // 🧪 mock-first 단계(§15): BE 연동 전이라 명시적 샘플 데이터로 동작. 화면 상단 앰버 배너 표기.
 // BE 연동 예정: GET /api/lms/student/assignments/submittable (제출 대상 목록)
-//   · POST /api/lms/student/assignments/{id}/submit (multipart — 파일 S3 업로드 + 메모)
+//   · POST /api/lms/student/assignments/{id}/submit (multipart — 파일 업로드 + 메모)
 //   · 종료(CLOSED) 과제는 제출 불가, 교수 연장 승인(EXTENDED)은 연장 마감으로 제출 가능.
 // ⚠️ 연동 시 이 mock 블록 + delay 삭제, axios 실호출로 교체(시그니처 유지) + describeApiError 에러 표기.
 // ─────────────────────────────────────────────────────────────
@@ -36,14 +36,11 @@ export interface SubmitItem {
   note?: string; // "05.20 마감 경과" / "교수 연장 승인 (05.22→06.01)"
   badge?: string; // 좌측 목록 배지(예: "제출", "마감 종료")
   dotColor: string; // 좌측 목록 점 색
-  acceptHint: string; // 업로드 안내(예: "PDF, ZIP, DOCX, PY, JAVA 등 · 최대 100MB")
   guide: SubmitGuide;
   draft?: SubmitDraft; // 선택 시 프리필(설계서 예시 재현용)
 }
 
 // ── mock 데이터 (설계서 SLM-007 기준) — BE 연동 시 이 블록 + delay 삭제 ──
-const ACCEPT_HINT = "PDF, ZIP, DOCX, PY, JAVA 등 · 최대 100MB";
-
 const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
   {
     id: 101,
@@ -53,7 +50,6 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
     status: "OPEN",
     dDay: "D-0 · 05.25",
     dotColor: "bg-emerald-500",
-    acceptHint: ACCEPT_HINT,
     guide: {
       courseName: "데이터구조 및 알고리즘",
       professor: "이민준",
@@ -76,7 +72,6 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
     status: "OPEN",
     dDay: "D-3 · 05.28",
     dotColor: "bg-orange-500",
-    acceptHint: ACCEPT_HINT,
     guide: {
       courseName: "소프트웨어공학",
       professor: "김태경",
@@ -94,7 +89,6 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
     status: "OPEN",
     dDay: "D-5 · 05.30",
     dotColor: "bg-purple-500",
-    acceptHint: ACCEPT_HINT,
     guide: {
       courseName: "데이터베이스",
       professor: "최영수",
@@ -114,7 +108,6 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
     note: "05.20 마감 경과",
     badge: "마감 종료",
     dotColor: "bg-slate-300",
-    acceptHint: ACCEPT_HINT,
     guide: {
       courseName: "운영체제",
       professor: "박성훈",
@@ -131,7 +124,6 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
     note: "교수 연장 승인 (05.22→06.01)",
     badge: "제출",
     dotColor: "bg-emerald-500",
-    acceptHint: ACCEPT_HINT,
     guide: {
       courseName: "웹프로그래밍",
       professor: "이수진",
@@ -146,5 +138,10 @@ const MOCK_SUBMIT_ITEMS: SubmitItem[] = [
 const delay = <T,>(value: T): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(value), 200));
 
-/** GET /api/lms/student/assignments/submittable — 제출 대상 목록 (현재 mock) */
-export const getSubmittableAssignments = (): Promise<SubmitItem[]> => delay(MOCK_SUBMIT_ITEMS);
+/**
+ * GET /api/lms/student/assignments/submittable — 제출 대상(미제출) 목록 (현재 mock)
+ * '미제출 과제 목록' 계약 = 아직 제출하지 않았고(NSB) 제출 가능한 과제만 → 제출 완료(badge "제출")·마감 종료(CLOSED) 제외.
+ * (MOCK_SUBMIT_ITEMS엔 종료·제출 예시 항목도 두지만 여기서 걸러 반환 — BE도 미제출만 내려줌.)
+ */
+export const getSubmittableAssignments = (): Promise<SubmitItem[]> =>
+  delay(MOCK_SUBMIT_ITEMS.filter((it) => it.status !== "CLOSED" && it.badge !== "제출"));

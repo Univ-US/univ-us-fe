@@ -32,7 +32,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "대시보드", icon: "🏠", href: "/lms/student/dashboard" },
       { label: "수강 내역", icon: "📖", href: "/lms/student/courses" },
-      { label: "과제 내역", icon: "📄", href: "/lms/student/assignments/history", badge: 3 },
+      { label: "과제 내역", icon: "📄", href: "/lms/student/assignments/history" },
       { label: "출석 내역", icon: "🗓️", href: "/lms/student/attendance" },
     ],
   },
@@ -40,7 +40,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "학습",
     items: [
       { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
-      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
+      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit", badge: 3 },
       { label: "채팅", icon: "💬", href: "/lms/student/chat", badge: 2 },
       { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
       { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },

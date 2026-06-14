@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// [폼] PLM-005-01 강의 자료 등록·수정 폼 — MaterialUploadDialog(모달) 본문
+// [폼] PLM-005-01 강의 자료 등록·수정 폼 — ProfessorMaterialUploadDialog(모달) 본문
 // - 등록 폼은 상시 노출하지 않음: '새 자료 업로드' 버튼 → 모달로만 표시(2026-06-11 확정)
 // - ✅ BE 실연동: 폼이 직접 createUpload/updateUpload 호출(진행률 = axios onUploadProgress),
 //   성공 시 onSubmit(저장된 Material) 콜백 → 페이지가 목록 재조회. 실패 시 describeApiError 표기.
@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import LmsRichTextEditor from "@/components/lms/LmsRichTextEditor";
+import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import {
   UPLOAD_ACCEPT,
   UPLOAD_ALLOWED_EXTS,
@@ -31,7 +31,7 @@ import {
 import { describeApiError } from "@/lib/lmsApiError";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 
-interface MaterialUploadFormProps {
+interface ProfessorMaterialUploadFormProps {
   lectures: Lecture[];
   termMap: Record<string, string>; // SEM_TERM 공통코드 (codeVal→라벨) — 드롭다운 학기 표기
   mode?: "create" | "edit";
@@ -49,7 +49,7 @@ const inputClass =
 // 빈 에디터 문서("<p></p>")는 빈 문자열로 정규화 — BE가 null(CLOB)로 저장
 const normalizeContent = (html: string) => (!html || html === "<p></p>" ? "" : html);
 
-export default function MaterialUploadForm({
+export default function ProfessorMaterialUploadForm({
   lectures,
   termMap,
   mode = "create",
@@ -58,7 +58,7 @@ export default function MaterialUploadForm({
   editUploadId,
   onSubmit,
   onCancel,
-}: MaterialUploadFormProps) {
+}: ProfessorMaterialUploadFormProps) {
   const [lecId, setLecId] = useState<number>(initial?.lecId ?? lectures[0]?.lecId ?? 0);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
@@ -241,7 +241,7 @@ export default function MaterialUploadForm({
       {/* 강의 설명 — Tiptap 리치텍스트 (트라이얼). 값은 HTML 문자열(DB CLOB 저장) */}
       <div className="mt-4">
         <label className="mb-1.5 block text-sm font-medium text-slate-700">강의 설명</label>
-        <LmsRichTextEditor
+        <ProfessorRichTextEditor
           value={content}
           onChange={setContent}
           placeholder="강의 내용 및 학습 목표를 입력하세요."

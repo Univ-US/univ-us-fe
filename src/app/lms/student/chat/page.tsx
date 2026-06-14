@@ -6,12 +6,17 @@
 // - 보낸 메시지는 화면에만 추가(로컬) — 실제 전송 없음. BE 연동 시 WebSocket/STOMP.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  formatChatListTime,
   getChatRooms,
   getChatThread,
   type ChatMessage,
   type ChatRoom,
   type ChatThread,
 } from "@/lib/lmsStudentChatApi";
+
+// 인수인계용 안내 박스의 테이블명/코드 칩 스타일(모노스페이스)
+const TBL_CLS =
+  "rounded bg-white px-1 py-0.5 font-mono text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200";
 
 export default function StudentChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -82,6 +87,44 @@ export default function StudentChatPage() {
         🧪 샘플 데이터(BE 연동 전) — 실제 채팅이 아닙니다(보낸 메시지는 화면에만 추가됨).
       </div>
 
+      {/* 인수인계용 — 이 화면 구현에 필요한 BE 테이블·규칙(정본=CLAUDE-DB.md). BE 연동 후 이 박스 삭제. */}
+      <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
+        <p className="mb-1.5 font-semibold text-slate-700">🗄 BE 연동 테이블 (이 화면 구현 시 필요)</p>
+        <ul className="space-y-1">
+          <li>
+            <code className={TBL_CLS}>CHAT_ROOM</code> — 채팅방(<code className={TBL_CLS}>LEC_ID</code>→<code className={TBL_CLS}>LECTURE</code> · <code className={TBL_CLS}>LMS_PRF_ID</code>→교수, 수강 과목별 1:1 · <code className={TBL_CLS}>CHT_ROM_VAL_STATUS</code>)
+          </li>
+          <li>
+            <code className={TBL_CLS}>CHAT_ROOM_MESSAGES</code> — 메시지(<code className={TBL_CLS}>CONTENT</code> VARCHAR2(1000) · 발신자 <code className={TBL_CLS}>LMS_PRF_ID</code> · <code className={TBL_CLS}>MSG_DATE</code> · <code className={TBL_CLS}>STATUS</code>=MSG_STS[SNT전송완료/FAL전송실패/DEL삭제됨])
+          </li>
+          <li>
+            <code className={TBL_CLS}>ROOM_MESSAGES_READ</code> — 읽음 여부(<code className={TBL_CLS}>RED_YN</code> 0/1 · <code className={TBL_CLS}>RED_REG_DATE</code>)
+          </li>
+        </ul>
+
+        <p className="mt-3 mb-1.5 font-semibold text-slate-700">📐 구현 규칙 · 특이사항</p>
+        <ul className="space-y-1">
+          <li>
+            · <b>채팅 대상 = 수강 과목 교수 1:1</b>(수강 강의별 방). 좌측 목록 = 최근 메시지순 + 안읽은 수(<code className={TBL_CLS}>RED_YN=0</code> 카운트).
+          </li>
+          <li>
+            · <b>실시간 = WebSocket/STOMP</b>(<code className={TBL_CLS}>/ws-univus</code>) 송수신·읽음 갱신. (현재 mock: 보낸 메시지 화면 로컬 추가만)
+          </li>
+          <li>
+            · <b>메시지 상태 = MSG_STS</b>(SNT/FAL/DEL) → <code className={TBL_CLS}>CHAT_ROOM_MESSAGES.STATUS</code>. 본문 ≤ 1000자.
+          </li>
+          <li>
+            · ⭐ <b>첨부 없음 — 텍스트 채팅만</b>(첨부 버튼 제거, 2026-06-14). 첨부 필요 시 BE 정책·첨부 테이블 추가 결정.
+          </li>
+          <li>
+            · ⭐ <b>목록 시각 표시</b>: 당일 <b>HH:mm</b> / 올해(당일 아님) <b>MM.DD</b> / 작년 이전 <b>YYYY.MM.DD</b> — 상대표현(&apos;어제&apos;·&apos;오늘&apos;) 안 씀. BE는 <code className={TBL_CLS}>MSG_DATE</code> 그대로 → FE <code className={TBL_CLS}>formatChatListTime()</code>.
+          </li>
+          <li>
+            · ⭐ <b>방 안 시각 위치</b>: 수신 메시지 = 말풍선 <b>오른쪽</b> / 발송 메시지 = 말풍선 <b>왼쪽</b>(읽음 표시 포함, 카톡식). 메시지별 시각 = <code className={TBL_CLS}>MSG_DATE</code>.
+          </li>
+        </ul>
+      </div>
+
       {error ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
           <p className="text-sm text-slate-500">채팅 목록을 불러오지 못했습니다.</p>
@@ -127,7 +170,7 @@ export default function StudentChatPage() {
                           <span className="truncate text-sm font-semibold text-slate-800">
                             {r.professorName} 교수
                           </span>
-                          <span className="shrink-0 text-[11px] text-slate-400">{r.lastTime}</span>
+                          <span className="shrink-0 text-[11px] text-slate-400">{formatChatListTime(r.lastAt)}</span>
                         </span>
                         <span className="block truncate text-xs text-slate-500">{r.courseName}</span>
                         <span className="mt-0.5 flex items-center justify-between gap-2">
@@ -165,13 +208,6 @@ export default function StudentChatPage() {
                     <p className="text-sm font-bold text-slate-800">{selectedRoom.professorName} 교수</p>
                     <p className="truncate text-xs text-slate-500">{selectedRoom.courseName}</p>
                   </div>
-                  <button
-                    type="button"
-                    aria-label="프로필"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50"
-                  >
-                    👤
-                  </button>
                 </div>
 
                 {/* 메시지 */}
@@ -185,25 +221,27 @@ export default function StudentChatPage() {
                         <span className="mb-1 text-[11px] text-slate-400">
                           {selectedRoom.professorName} 교수
                         </span>
-                        <div className="max-w-[75%] rounded-2xl rounded-tl-sm bg-white px-3.5 py-2 text-sm text-slate-700 shadow-sm">
-                          {m.text}
+                        <div className="flex max-w-[85%] items-end gap-2">
+                          <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2 text-sm text-slate-700 shadow-sm">
+                            {m.text}
+                          </div>
+                          <span className="shrink-0 text-[11px] text-slate-400">{m.time}</span>
                         </div>
-                        <span className="mt-1 text-[11px] text-slate-400">{m.time}</span>
                       </div>
                     ) : (
-                      <div key={m.id} className="flex flex-col items-end">
-                        <div className="flex items-end gap-2">
-                          <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-sm text-white">
+                      <div key={m.id} className="flex justify-end">
+                        <div className="flex max-w-[85%] items-end gap-2">
+                          <span className="shrink-0 text-[11px] text-slate-400">
+                            {m.read ? "읽음 " : ""}
+                            {m.time}
+                          </span>
+                          <div className="rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-sm text-white">
                             {m.text}
                           </div>
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-700 text-xs font-semibold text-white">
                             김
                           </span>
                         </div>
-                        <span className="mt-1 mr-9 text-[11px] text-slate-400">
-                          {m.read ? "읽음 " : ""}
-                          {m.time}
-                        </span>
                       </div>
                     )
                   )}
@@ -211,13 +249,6 @@ export default function StudentChatPage() {
 
                 {/* 입력 */}
                 <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3">
-                  <button
-                    type="button"
-                    aria-label="파일 첨부"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-                  >
-                    📎
-                  </button>
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}

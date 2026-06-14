@@ -1,18 +1,24 @@
 "use client";
 
-// LmsCalendar — PLM-010(교수) / SLM-010(학생) 공용 월별 캘린더 그리드
-// - 강의 일정 + 과제 마감 이벤트를 날짜 셀에 표시. 색상만 역할별 theme로 주입(슬레이트/에메랄드).
+// ProfessorCalendar — PLM-010 교수 월별 캘린더 그리드 (학생 StudentCalendar와 소유경계 분리)
+// - 강의 일정 + 과제 마감 이벤트를 날짜 셀에 표시. 색상만 역할 theme로 주입(슬레이트).
 // - 한 셀의 정렬: 강의(빠른 시간순) 먼저 → 과제 마감 아래 (설계서 규칙)
 // - 인접 월 날짜는 회색 비활성 + 이벤트 미표시 / 일요일 빨강·토요일 파랑 / 오늘 강조
 // - 월 이동은 부모가 onPrev/onNext로 처리(데이터 재조회) — 그리드는 표시 전용
 import { cn } from "@/lib/utils";
-import type { CalendarEvent } from "@/lib/lmsCalendarApi";
+import type { CalendarEvent } from "@/lib/lmsProfessorCalendarApi";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const pad = (n: number) => String(n).padStart(2, "0");
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-/** 역할별 색상 — 교수=슬레이트(§13 네이비 계열) / 학생=에메랄드 */
+// 캘린더 칩 이름(과목명/과제명) 길이 제한 — 좁은 셀 전용(lmsLectureName 20자보다 짧게).
+// 초과 시 … 표기, 전체명은 칩 호버(title)로 노출. CSS truncate는 폭 기준 추가 안전망.
+const CALENDAR_NAME_MAX = 10;
+const truncateName = (name: string) =>
+  name.length > CALENDAR_NAME_MAX ? `${name.slice(0, CALENDAR_NAME_MAX)}…` : name;
+
+/** 역할별 색상 — 교수=슬레이트(§13 네이비 계열) */
 export interface CalendarTheme {
   lectureDot: string; // 범례 점(강의)
   lectureChip: string; // 강의 일정 칩
@@ -32,7 +38,7 @@ interface Props {
   onNext: () => void;
 }
 
-export default function LmsCalendar({ year, month, events, theme, loading, onPrev, onNext }: Props) {
+export default function ProfessorCalendar({ year, month, events, theme, loading, onPrev, onNext }: Props) {
   // 그리드 셀 42칸: 해당 월 1일이 속한 주의 일요일부터 6주
   const gridStart = new Date(year, month - 1, 1 - new Date(year, month - 1, 1).getDay());
   const cells = Array.from({ length: 42 }, (_, i) => {
@@ -134,24 +140,34 @@ export default function LmsCalendar({ year, month, events, theme, loading, onPre
 
               {dayEvents.length > 0 && (
                 <div className="mt-1 space-y-1">
-                  {dayEvents.map((e, j) => (
-                    <div
-                      key={j}
-                      title={
-                        e.type === "LECTURE"
-                          ? `${e.title} ${e.time ?? ""}`.trim()
-                          : `${e.title} 마감`
-                      }
-                      className={cn(
-                        "truncate rounded px-1.5 py-0.5 text-[11px]",
-                        e.type === "LECTURE" ? theme.lectureChip : theme.assignmentChip
-                      )}
-                    >
-                      {e.type === "LECTURE"
-                        ? `${e.title} ${e.time ?? ""}`.trim()
-                        : `${e.title} 마감`}
-                    </div>
-                  ))}
+                  {dayEvents.map((e, j) => {
+                    const sec = e.lecSection != null ? ` ${e.lecSection}반` : "";
+                    const nameLine = `${truncateName(e.title)}${sec}`; // 윗줄: 과목명(길이 제한) + 분반
+                    // 아랫줄: 강의=시작~종료 / 과제=마감시각(시각 없으면 "마감")
+                    const timeLine =
+                      e.type === "LECTURE"
+                        ? e.time
+                          ? `${e.time}${e.endTime ? `~${e.endTime}` : ""}`
+                          : ""
+                        : e.time != null
+                          ? e.time
+                          : "마감";
+                    return (
+                      <div
+                        key={j}
+                        title={`${e.title}${sec}${timeLine ? ` ${timeLine}` : ""}`.trim()}
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[11px] leading-tight",
+                          e.type === "LECTURE" ? theme.lectureChip : theme.assignmentChip
+                        )}
+                      >
+                        <div className="truncate font-medium">{nameLine}</div>
+                        {timeLine && (
+                          <div className="truncate text-[10px] opacity-70">{timeLine}</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// [공용] LMS 리치텍스트 에디터 — Tiptap 래퍼 (트라이얼 2026-06-11)
+// [교수] LMS 리치텍스트 에디터 — Tiptap 래퍼 (트라이얼 2026-06-11)
 // - 제공 기능 5종 한정(사용자 확정): 굵게 · 기울임 · 밑줄 · 글자 크기 · 글자 색상
 //   (StarterKit의 나머지 확장은 configure로 비활성 — 마크다운 단축키로도 헤딩/목록 안 생김)
 // - 인터페이스 textarea 호환(value/onChange = HTML 문자열) → 원복 시 textarea로 한 줄 교체
@@ -18,7 +18,7 @@ import { Color, FontSize, TextStyle } from "@tiptap/extension-text-style";
 import { CharacterCount } from "@tiptap/extensions";
 import "./lms-content.css";
 
-interface LmsRichTextEditorProps {
+interface ProfessorRichTextEditorProps {
   value: string; // HTML
   onChange: (html: string) => void;
   placeholder?: string;
@@ -44,13 +44,13 @@ const FONT_COLORS = [
   "#7c3aed", // violet-600
 ];
 
-export default function LmsRichTextEditor({
+export default function ProfessorRichTextEditor({
   value,
   onChange,
   placeholder,
   disabled = false,
   maxLength,
-}: LmsRichTextEditorProps) {
+}: ProfessorRichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       // 필요 기능 외 확장 비활성(굵게·기울임·밑줄만 유지 + 문단/줄바꿈/실행취소)

@@ -1,11 +1,11 @@
 "use client";
 
 // PLM-010 교수 캘린더 — 담당 강의 일정 + 과제 마감 자동 연동 월별 캘린더
-// 🧪 mock-first(§15): BE 연동 전 샘플 데이터. 그리드는 공용 컴포넌트(LmsCalendar) — 학생 화면과 공유.
+// ✅ BE 실연동: GET /api/lms/professor/calendar?from=&to= (lmsProfessorCalendarApi.getProfessorCalendar). 그리드=교수 전용 ProfessorCalendar(학생과 소유경계 분리).
 // 색상 = 교수 슬레이트 계열(§13). 월 이동 시 해당 월 범위로 재조회.
 import { useCallback, useEffect, useState } from "react";
-import LmsCalendar, { type CalendarTheme } from "@/components/lms/LmsCalendar";
-import { getProfessorCalendar, type CalendarEvent } from "@/lib/lmsCalendarApi";
+import ProfessorCalendar, { type CalendarTheme } from "@/components/lms/ProfessorCalendar";
+import { getProfessorCalendar, type CalendarEvent } from "@/lib/lmsProfessorCalendarApi";
 
 // 교수 = 슬레이트(강의) + 앰버(과제 마감) — §13 교수 화면 teal/green 금지(설계서 green은 슬레이트/앰버로 치환, PLM-005 선례)
 const THEME: CalendarTheme = {
@@ -60,11 +60,6 @@ export default function ProfessorCalendarPage() {
         </p>
       </header>
 
-      {/* mock 단계 안내 (§15 — BE 연동 전) */}
-      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-        🧪 샘플 데이터(BE 연동 전) — 실제 강의·과제 데이터가 아닙니다.
-      </div>
-
       {error ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
           <p className="text-sm text-slate-500">캘린더를 불러오지 못했습니다.</p>
@@ -77,7 +72,7 @@ export default function ProfessorCalendarPage() {
           </button>
         </div>
       ) : (
-        <LmsCalendar
+        <ProfessorCalendar
           year={view.year}
           month={view.month}
           events={events}
