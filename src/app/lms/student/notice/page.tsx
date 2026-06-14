@@ -258,9 +258,6 @@ export default function StudentNoticePage() {
           <li>
             <code className={TBL_CLS}>SEMESTERS</code> — 학기(SEM_YEAR·SEM_TERM — 년도/학기 필터·과목 라벨)
           </li>
-          <li>
-            ⚠️ <code className={TBL_CLS}>LECTURE_ANNOUNCEMENT_READ_LOG</code> — 읽음 로그 테이블이나 <b>이 화면은 읽음 기능 미사용 → 안 씀</b>
-          </li>
         </ul>
 
         <p className="mt-3 mb-1.5 font-semibold text-slate-700">📐 구현 규칙 · 특이사항</p>
@@ -275,7 +272,7 @@ export default function StudentNoticePage() {
             · <b>정렬</b> = 등록일시(<code className={TBL_CLS}>REG_DATE</code>) 내림차순(최신순).
           </li>
           <li>
-            · ⚠️ <b>읽음/안읽음 기능 없음</b>(사용자 결정) — <code className={TBL_CLS}>READ_LOG</code>·안읽음 카운트·제목 앞 점 전부 제외.
+            · ⚠️ <b>읽음/안읽음 기능 없음</b>(사용자 결정) — <code className={TBL_CLS}>LECTURE_ANNOUNCEMENT_READ_LOG</code> 테이블 <b>2026-06-14 DB DROP</b>(읽음 기능 폐기)·안읽음 카운트·제목 앞 점 전부 제외.
           </li>
           <li>
             · ⚠️ <b>조회수 없음</b> — DB에 조회수 컬럼/테이블 없음.

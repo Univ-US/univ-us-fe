@@ -145,7 +145,7 @@ export default function StudentAttendancePage() {
             · <b>SLM-005-01: 지각·결석 수치(&gt;0) 클릭 → 날짜(YYYY-MM-DD) 팝오버.</b> 날짜는 <code className={TBL_CLS}>STD_ENR_ATD_REG_DATE</code>. (교시는 표기 안 함 → 교시 컬럼/LECTURE_TIME 의존 없음)
           </li>
           <li>
-            · <b>년도·학기 분리 2필터</b>, 기본 둘 다 '전체'(§21). <b>페이지네이션 = 학기별 독립</b>(페이지당 <code className={TBL_CLS}>ATTENDANCE_PAGE_SIZE=5</code>건, 빈 행 패딩으로 카드 높이 고정·페이저 상시) — 수강 내역(SLM-003)과 동형, BE 연동 시 §21 서버 페이지네이션 전환 대상.
+            · <b>년도·학기 분리 2필터</b>, 기본 둘 다 ‘전체’(§21). <b>페이지네이션 = 학기별 독립</b>(페이지당 <code className={TBL_CLS}>ATTENDANCE_PAGE_SIZE=5</code>건, 빈 행 패딩으로 카드 높이 고정·페이저 상시) — 수강 내역(SLM-003)과 동형, BE 연동 시 §21 서버 페이지네이션 전환 대상.
           </li>
           <li>
             · <b>수강 범위 = 신청한 전부</b>(폐강 CNCL·철회 DRP 포함 — 수강 내역과 동일 정책) · 학기 카드 최신순.

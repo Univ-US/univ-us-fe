@@ -198,16 +198,16 @@ export default function StudentAssignmentsHistoryPage() {
             · <b>페이지네이션 = 서버 사이드</b>(§21/§9-11) — 클라 <code className={TBL_CLS}>slice</code> 금지. ⚠️ 학기-중첩-과제 구조라 학기별 분리 조회 등 BE 설계 재검토(현 목업은 클라 slice).
           </li>
           <li>
-            · <b>학기 테이블 = 페이지당 10건 고정</b>(<code className={TBL_CLS}>ASSIGNMENT_PAGE_SIZE=10</code>, 빈 행 패딩·페이저 상시). 상태 필터(미제출/제출/채점완료)=주 필터 + 년도/학기 분리 필터(기본 '전체').
+            · <b>학기 테이블 = 페이지당 10건 고정</b>(<code className={TBL_CLS}>ASSIGNMENT_PAGE_SIZE=10</code>, 빈 행 패딩·페이저 상시). 상태 필터(미제출/제출/채점완료)=주 필터 + 년도/학기 분리 필터(기본 ‘전체’).
           </li>
           <li>
             · <b>점수 = 채점완료(GRD)만 표기</b>, 제출(SBM)·미제출(NSB)은 <code className={TBL_CLS}>-</code>(DB에 점수 없음). 제출 판정 = status≠NSB.
           </li>
           <li>
-            · <b>부제 '미제출 N건'</b> = FE가 status로 계산(BE 집계 불필요, 사이드바 배지와 동일 의미).
+            · <b>부제 ‘미제출 N건’</b> = FE가 status로 계산(BE 집계 불필요, 사이드바 배지와 동일 의미).
           </li>
           <li>
-            · <b>'제출하러 가기' = SLM-007 과제 제출 페이지로 이동</b>(모달 아님).
+            · <b>‘제출하러 가기’ = SLM-007 과제 제출 페이지로 이동</b>(모달 아님).
           </li>
           <li>
             · <b>&apos;수정&apos; 모달(SLM-004-01) = 제출 메모 편집 + 기존 첨부 삭제(✕) + 새 파일 업로드 + 다운로드</b>. BE: 수정/재제출 = <code className={TBL_CLS}>LECTURE_ASSIGNMENT_SUBMISSION</code> UPDATE(메모·제출일시) + <code className={TBL_CLS}>ASSIGNMENT_SUBMISSION_ATTACHMENT</code> 추가/소프트삭제(ATT_VAL_STATUS=DEL). <b>마감 전까지만 수정</b>(서버 시각 기준) · 첨부 다운로드 인증(blob).
