@@ -14,7 +14,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import MaterialUploadDialog from "@/components/lms/MaterialUploadDialog";
+import ProfessorMaterialUploadDialog from "@/components/lms/ProfessorMaterialUploadDialog";
 import {
   deleteUpload,
   formatFileSize,
@@ -402,7 +402,7 @@ export default function LectureUploadPage() {
       </div>
 
       {/* PLM-005-01 새 자료 등록 모달 (수정 모드 겸용) — 폼이 BE 호출 수행 */}
-      <MaterialUploadDialog
+      <ProfessorMaterialUploadDialog
         open={dialogOpen}
         lectures={lectures}
         termMap={termMap}

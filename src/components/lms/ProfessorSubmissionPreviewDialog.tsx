@@ -1,7 +1,7 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// [공용 모달 컴포넌트] PLM-004-01 제출 파일 미리보기 다이얼로그
+// [교수 모달] PLM-004-01 제출 파일 미리보기 다이얼로그
 // - PLM-004(채점 현황) 채점 행의 '보기' 클릭 시 표시
 // - ⭐ 설계 변경(2026-06-10): 파일 상세 내용 미리보기 영역 제거 → 파일 정보 + 원본 다운로드만 제공.
 // - 다운로드는 인증 필요 → axios(blob)로 받아 저장(<a download>는 토큰을 못 실음).
@@ -18,17 +18,17 @@ import {
 import { describeApiError } from "@/lib/lmsApiError";
 
 // 사이드바(w-60=240px) 제외 본문 영역 기준 중앙
-interface SubmissionPreviewDialogProps {
+interface ProfessorSubmissionPreviewDialogProps {
   open: boolean;
   submission: Submission | null;
   onClose: () => void;
 }
 
-export default function SubmissionPreviewDialog({
+export default function ProfessorSubmissionPreviewDialog({
   open,
   submission,
   onClose,
-}: SubmissionPreviewDialogProps) {
+}: ProfessorSubmissionPreviewDialogProps) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 

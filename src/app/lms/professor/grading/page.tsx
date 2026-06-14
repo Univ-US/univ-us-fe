@@ -12,7 +12,7 @@
 // ⚠️ 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import SubmissionPreviewDialog from "@/components/lms/SubmissionPreviewDialog";
+import ProfessorSubmissionPreviewDialog from "@/components/lms/ProfessorSubmissionPreviewDialog";
 import {
   getGradingOverview,
   getGradingAssignments,
@@ -728,7 +728,7 @@ export default function ProfessorGradingPage() {
       </div>
 
       {/* PLM-004-01 제출 파일 미리보기 모달 */}
-      <SubmissionPreviewDialog
+      <ProfessorSubmissionPreviewDialog
         open={previewOpen}
         submission={previewSub}
         onClose={() => setPreviewOpen(false)}

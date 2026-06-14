@@ -49,7 +49,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "커뮤니케이션",
     items: [
       { label: "채팅", icon: "💬", badge: 2 },
-      { label: "캘린더", icon: "📅" },
+      { label: "캘린더", icon: "📅", href: "/lms/professor/calendar" },
     ],
   },
 ];
