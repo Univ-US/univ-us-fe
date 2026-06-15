@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
+import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { ROLE, type Role } from "@/lib/rolecode";
@@ -41,7 +42,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "학습",
     items: [
       { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
-      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit", badge: 3 },
+      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
       { label: "채팅", icon: "💬", href: "/lms/student/chat", badge: 2 },
       { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
       { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },
@@ -56,6 +57,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   // 사이드바 헤더(학교/이름/학과/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useStudentProfileStore((s) => s.profile);
   const loadProfile = useStudentProfileStore((s) => s.load);
+  const submittableAssignmentCount = useLmsStudentAssignmentStore((s) => s.submittableCount);
+  const loadSubmittableAssignmentCount = useLmsStudentAssignmentStore((s) => s.loadSubmittableCount);
   const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
   const [logoutOpen, setLogoutOpen] = useState(false); // SLM-011 로그아웃 확인 모달
@@ -83,8 +86,9 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (accessChecked) {
       loadProfile().catch(() => setLoadFailed(true));
+      void loadSubmittableAssignmentCount();
     }
-  }, [accessChecked, loadProfile]);
+  }, [accessChecked, loadProfile, loadSubmittableAssignmentCount]);
 
   // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
   const handleLogout = async () => {
@@ -170,13 +174,17 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               {section.items.map((item) => {
                 const active =
                   item.href && stripSlash(pathname) === stripSlash(item.href);
+                const badge =
+                  item.href === "/lms/student/assignments/submit"
+                    ? submittableAssignmentCount
+                    : item.badge;
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
                     <span className="flex-1">{item.label}</span>
-                    {item.badge != null && (
+                    {badge != null && badge > 0 && (
                       <span className="rounded-full bg-orange-500 px-1.5 text-[11px] font-semibold text-white">
-                        {item.badge}
+                        {badge}
                       </span>
                     )}
                   </>

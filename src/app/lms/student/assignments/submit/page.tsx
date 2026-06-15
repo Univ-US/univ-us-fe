@@ -15,6 +15,7 @@ import {
 } from "@/lib/lmsStudentSubmitApi";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
+import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 
 const CHECKLIST = [
   "파일명에 학번 포함 여부 확인",
@@ -40,6 +41,7 @@ export default function StudentSubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [queryReady, setQueryReady] = useState(false);
   const [preferredAssignmentId, setPreferredAssignmentId] = useState<number | null>(null);
+  const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
 
   const selectItem = useCallback((item: SubmitItem) => {
     setSelectedId(item.id);
@@ -56,6 +58,7 @@ export default function StudentSubmitPage() {
       try {
         const data = await getSubmittableAssignments();
         setItems(data);
+        setSubmittableCount(data.length);
         const next = data.find((item) => item.id === preferredId) ?? data[0] ?? null;
         if (next) {
           selectItem(next);
@@ -70,7 +73,7 @@ export default function StudentSubmitPage() {
         setLoading(false);
       }
     },
-    [selectItem],
+    [selectItem, setSubmittableCount],
   );
 
   useEffect(() => {
