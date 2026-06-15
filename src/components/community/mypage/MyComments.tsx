@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BoardBadge, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
+import { BoardBadge, formatDate, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
 import type { MyComment } from '@/types/mypage';
 import { getMyComments } from '@/lib/cmypageApi';
 import Link from 'next/link';
@@ -79,7 +79,7 @@ export default function MyComments() {
                   <ChevronRight className={S.chevron} />
                   <span className={S.postTitle}>{comment.postTitle}</span>
                   <span>·</span>
-                  <span className={S.date}>{comment.createdAt}</span>
+                  <span className={S.date}>{formatDate(comment.createdAt)}</span>
                 </div>
               </Link>
             ))}

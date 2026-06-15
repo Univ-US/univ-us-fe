@@ -24,14 +24,15 @@ export default function CommunityHomePage() {
           getProductList({ page: 0, size: 6 }),
         ]);
 
-        const free: Post[]   = freeData.postList   ?? [];
-        const secret: Post[] = secretData.postList ?? [];
-        const notice: Post[] = noticeData.postList ?? [];
+        const free: Post[]   = (freeData.postList   ?? []).filter((post) => !post.isBlind);
+        const secret: Post[] = (secretData.postList ?? []).filter((post) => !post.isBlind);
+        const notice: Post[] = (noticeData.postList ?? []).filter((post) => !post.isBlind);
+        const products: Product[] = (productData.list ?? []).filter((product) => !product.isBlind);
 
         setFreePosts(free);
         setSecretPosts(secret);
         setNoticePosts(notice);
-        setLatestProducts(productData.list ?? []);
+        setLatestProducts(products);
 
         // 전체 게시글 합쳐서 좋아요*3 + 댓글*2 + 조회수 합산 TOP 5 인기글
         const boardLabel: Record<number, string> = { 1: '자유', 2: '익명', 3: '공지' };
