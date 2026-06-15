@@ -16,13 +16,11 @@ import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import {
-  ASN_STATUS_LABEL,
   ASSIGNMENT_ACCEPT,
   ASSIGNMENT_ALLOWED_EXTS,
   ASSIGNMENT_MAX_DESC,
   ASSIGNMENT_MAX_FILENAME,
   ASSIGNMENT_MAX_TITLE,
-  TERM_LABEL,
   createAssignment,
   deleteAssignment,
   fileExtOf,
@@ -32,6 +30,7 @@ import {
   type Assignment,
   type AssignmentLecture,
 } from "@/lib/lmsProfessorAssignmentsApi";
+import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 
 const selectClass =
   "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
@@ -49,9 +48,6 @@ const formatDue = (v: string) => {
   const [d, t] = v.split("T");
   return d && t ? `${d.replaceAll("-", ".")} ${t}` : v;
 };
-
-const semLabelOf = (year: number, termCode: string) =>
-  `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
 
 /** 빈 에디터 문서("<p></p>")는 ""로 정규화 — BE가 null 저장 (PLM-005 관례) */
 const normalizeHtml = (html: string) => (html === "<p></p>" ? "" : html);
@@ -97,6 +93,12 @@ export default function ProfessorAssignmentsPage() {
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
 
+  // 공통코드 라벨 맵 (PLM-003/004/005 패턴) — SEM_TERM 학기 · LEC_ASN_VAL_STATUS 과제 상태. 실패 시 {}(원본 코드 표시).
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
+  const semLabelOf = (year: number, termCode: string) =>
+    `${year}년 ${termMap[termCode] ?? termCode}`;
+
   // 선택 과목의 과제(서버 페이지)
   const [content, setContent] = useState<Assignment[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -135,6 +137,18 @@ export default function ProfessorAssignmentsPage() {
         setError("과제 목록을 불러오지 못했습니다.");
         setLoading(false);
       }
+    })();
+  }, []);
+
+  // 공통코드 라벨 맵 로드 (SEM_TERM · LEC_ASN_VAL_STATUS) — 실패해도 {}라 화면은 동작(원본 코드 표시)
+  useEffect(() => {
+    (async () => {
+      const [t, s] = await Promise.all([
+        getCommonCodeMap("SEM_TERM"),
+        getCommonCodeMap("LEC_ASN_VAL_STATUS"),
+      ]);
+      setTermMap(t);
+      setStatusMap(s);
     })();
   }, []);
 
@@ -396,7 +410,7 @@ export default function ProfessorAssignmentsPage() {
               <option value="">전체 학기</option>
               {termOptions.map((t) => (
                 <option key={t} value={t}>
-                  {TERM_LABEL[t] ?? t}
+                  {termMap[t] ?? t}
                 </option>
               ))}
             </select>
@@ -697,7 +711,7 @@ export default function ProfessorAssignmentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadgeClass(a.valStatus)}`}>
-                        {ASN_STATUS_LABEL[a.valStatus] ?? a.valStatus}
+                        {statusMap[a.valStatus] ?? a.valStatus}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">

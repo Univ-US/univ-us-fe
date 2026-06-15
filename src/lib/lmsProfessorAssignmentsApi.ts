@@ -77,22 +77,9 @@ export const fileExtOf = (name: string): string => {
   return i < 0 ? "" : name.slice(i + 1).toLowerCase();
 };
 
-/** ⚠️ 임시 라벨 — TODO: GET /api/common-codes/LEC_ASN_VAL_STATUS 정본 라벨로 교체(PLM-003/004 termMap 패턴) */
-export const ASN_STATUS_LABEL: Record<string, string> = {
-  AVL: "진행 중",
-  MOD: "수정됨",
-  LAT: "지각 허용",
-  CLS: "마감",
-  NOP: "비공개",
-};
-
-/** ⚠️ 임시 라벨 — TODO: 공통코드 SEM_TERM 매핑으로 교체 */
-export const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절학기",
-  SM2: "2학기",
-  WNT: "겨울 계절학기",
-};
+// 학기(SEM_TERM)·과제 상태(LEC_ASN_VAL_STATUS) 라벨 = 공통코드 API(getCommonCodeMap)로 런타임 매핑(PLM-003/004/005 패턴).
+//   페이지에서 getCommonCodeMap("SEM_TERM")·getCommonCodeMap("LEC_ASN_VAL_STATUS") 조회 → map[code] ?? code.
+//   2026-06-15: 하드코딩 임시 라벨(ASN_STATUS_LABEL·TERM_LABEL) 제거 — 정본 라벨은 COMMON_CODE(가짜 라벨 안 만듦).
 
 /* multipart 진행률(0~100) 콜백 — total 미상이면 호출 생략 */
 const progressConfig = (onProgress?: (pct: number) => void) => ({
