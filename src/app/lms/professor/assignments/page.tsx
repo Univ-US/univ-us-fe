@@ -464,7 +464,7 @@ export default function ProfessorAssignmentsPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pl-64 pr-4">
             <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-800">
+                <h2 className="min-w-0 truncate text-base font-bold text-slate-800">
                   {editing ? `과제 수정 — ${editing.title}` : "과제 등록"}
                 </h2>
                 <button
@@ -472,7 +472,7 @@ export default function ProfessorAssignmentsPage() {
                   onClick={closeForm}
                   disabled={saving}
                   aria-label="닫기"
-                  className="text-lg leading-none text-slate-400 hover:text-slate-600 disabled:opacity-40"
+                  className="shrink-0 text-lg leading-none text-slate-400 hover:text-slate-600 disabled:opacity-40"
                 >
                   ✕
                 </button>
@@ -567,12 +567,15 @@ export default function ProfessorAssignmentsPage() {
                       const removed = form.removeAttachmentIds.includes(att.attachmentId);
                       return (
                         <li key={att.attachmentId} className="flex items-center gap-2 text-sm">
-                          <span className={removed ? "text-rose-500 line-through" : "text-slate-600"}>
+                          <span
+                            className={`min-w-0 flex-1 truncate ${removed ? "text-rose-500 line-through" : "text-slate-600"}`}
+                            title={att.fileName}
+                          >
                             {att.fileName}
                           </span>
                           <button
                             type="button"
-                            className="text-xs text-slate-400 hover:text-rose-500"
+                            className="shrink-0 text-xs text-slate-400 hover:text-rose-500"
                             onClick={() =>
                               setForm((p) => ({
                                 ...p,
@@ -589,10 +592,10 @@ export default function ProfessorAssignmentsPage() {
                     })}
                     {form.files.map((f, i) => (
                       <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
-                        <span className="text-emerald-700">{f.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-emerald-700" title={f.name}>{f.name}</span>
                         <button
                           type="button"
-                          className="text-xs text-slate-400 hover:text-rose-500"
+                          className="shrink-0 text-xs text-slate-400 hover:text-rose-500"
                           onClick={() => setForm((p) => ({ ...p, files: p.files.filter((_, j) => j !== i) }))}
                         >
                           ✕

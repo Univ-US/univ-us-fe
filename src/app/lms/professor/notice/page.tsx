@@ -1,7 +1,7 @@
 "use client";
 
 // PLM-007 교수 공지사항 관리 — 담당 강의 공지 작성·수정·삭제 (좌 목록 선택 → 우 상세)
-// 🧪 mock-first(§15): 인메모리 CRUD(lmsProfessorNoticeApi). 교수 슬레이트 톤(§13).
+// BE 연동 완료(2026-06-15): lmsProfessorNoticeApi가 /api/lms/professor/notices 실호출. 교수 슬레이트 톤(§13).
 //   - 구성(§21) = 상단 년도/학기(기본 둘 다 '전체') + 과목 드롭다운(첫 과목 자동 선택)
 //     → 선택한 '한 과목'의 공지만 좌측 목록·클릭 시 우측 상세(SLM-009/PLM-006 패턴).
 //   - 작성/수정 = 모달(PLM-005/006 관례). 본문 = Tiptap HTML → sanitizeLmsHtml 렌더(학생 SLM-009와 동일 형식).
@@ -26,7 +26,9 @@ import {
   createNotice,
   updateNotice,
   deleteNotice,
+  downloadNoticeAttachment,
   type Notice,
+  type NoticeAttachment,
   type NoticeLecture,
 } from "@/lib/lmsProfessorNoticeApi";
 import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
@@ -439,11 +441,6 @@ export default function ProfessorNoticePage() {
           </div>
         </header>
 
-        {/* mock 단계 안내 (§15) — 인메모리라 새로고침 시 작성/수정/삭제 초기화 */}
-        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          🧪 샘플 데이터(BE 연동 전) — 작성·수정·삭제는 화면에 반영되나 새로고침하면 초기화됩니다.
-        </div>
-
         {/* 액션 에러 */}
         {actionError && (
           <p className="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-600">
@@ -497,12 +494,13 @@ export default function ProfessorNoticePage() {
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-                              {n.courseShort}
+                              {truncateLectureName(n.courseName)}
+                              {n.lecSection != null ? ` · ${n.lecSection}반` : ""}
                             </span>
                             <span className="shrink-0 text-xs text-slate-400">{n.listDate}</span>
                           </div>
                           <div className="mt-1.5">
-                            <span className="block text-[15px] font-bold leading-snug text-slate-900">
+                            <span className="block break-words text-[15px] font-bold leading-snug text-slate-900">
                               {n.title}
                             </span>
                             {preview && (
@@ -525,7 +523,7 @@ export default function ProfessorNoticePage() {
             </section>
 
             {/* 우: 공지 상세 */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-6">
+            <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
               {!selected ? (
                 <p className="py-16 text-center text-sm text-slate-400">공지를 선택하세요.</p>
               ) : (
@@ -547,7 +545,7 @@ export default function ProfessorNoticePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pl-64 pr-4">
           <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-800">
+              <h2 className="min-w-0 truncate text-base font-bold text-slate-800">
                 {editing ? `공지 수정 — ${editing.title}` : "공지 작성"}
               </h2>
               <button
@@ -555,7 +553,7 @@ export default function ProfessorNoticePage() {
                 onClick={closeForm}
                 disabled={saving}
                 aria-label="닫기"
-                className="text-lg leading-none text-slate-400 hover:text-slate-600 disabled:opacity-40"
+                className="shrink-0 text-lg leading-none text-slate-400 hover:text-slate-600 disabled:opacity-40"
               >
                 ✕
               </button>
@@ -590,9 +588,15 @@ export default function ProfessorNoticePage() {
               </div>
 
               <div>
-                <label className={labelClass}>
-                  제목 <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className={labelClass}>
+                    제목 <span className="text-rose-500">*</span>
+                  </label>
+                  {/* 글자수 카운터 — LEC_ANN_TITLE VARCHAR2(200) (내용 에디터 카운터와 동일 스타일) */}
+                  <span className="text-xs text-slate-400">
+                    {form.title.length}/{NOTICE_MAX_TITLE}
+                  </span>
+                </div>
                 <input
                   className={`${inputClass} mt-2`}
                   value={form.title}
@@ -648,13 +652,16 @@ export default function ProfessorNoticePage() {
                       const removed = form.removeAttachmentIds.includes(att.attachmentId);
                       return (
                         <li key={att.attachmentId} className="flex items-center gap-2 text-sm">
-                          <span className={removed ? "text-rose-500 line-through" : "text-slate-600"}>
+                          <span
+                            className={`min-w-0 flex-1 truncate ${removed ? "text-rose-500 line-through" : "text-slate-600"}`}
+                            title={att.fileName}
+                          >
                             {att.fileName}
                           </span>
-                          <span className="text-xs text-slate-400">{formatFileSize(att.fileSize)}</span>
+                          <span className="shrink-0 text-xs text-slate-400">{formatFileSize(att.fileSize)}</span>
                           <button
                             type="button"
-                            className="text-xs text-slate-400 hover:text-rose-500"
+                            className="shrink-0 text-xs text-slate-400 hover:text-rose-500"
                             onClick={() =>
                               setForm((p) => ({
                                 ...p,
@@ -671,11 +678,11 @@ export default function ProfessorNoticePage() {
                     })}
                     {form.files.map((f, i) => (
                       <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
-                        <span className="text-slate-700">{f.name}</span>
-                        <span className="text-xs text-slate-400">{formatFileSize(f.size)}</span>
+                        <span className="min-w-0 flex-1 truncate text-slate-700" title={f.name}>{f.name}</span>
+                        <span className="shrink-0 text-xs text-slate-400">{formatFileSize(f.size)}</span>
                         <button
                           type="button"
-                          className="text-xs text-slate-400 hover:text-rose-500"
+                          className="shrink-0 text-xs text-slate-400 hover:text-rose-500"
                           onClick={() => setForm((p) => ({ ...p, files: p.files.filter((_, j) => j !== i) }))}
                         >
                           ✕
@@ -725,9 +732,12 @@ function NoticeDetail({
   onDelete: () => void;
 }) {
   const contentHtml = notice.content?.trim() ? sanitizeLmsHtml(notice.content) : "";
-  const handleDownload = () => {
-    // 🧪 mock 단계 — BE 연동 시 인증 blob 다운로드로 교체.
-    window.alert("샘플 데이터입니다 (BE 연동 전) — 실제 파일 다운로드는 연동 후 동작합니다.");
+  const handleDownload = async (att: NoticeAttachment) => {
+    try {
+      await downloadNoticeAttachment(att.attachmentId, att.fileName);
+    } catch {
+      window.alert("파일 다운로드에 실패했습니다.");
+    }
   };
 
   return (
@@ -735,16 +745,17 @@ function NoticeDetail({
       {/* 과목·공지 배지 */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-          {notice.courseShort}
+          {truncateLectureName(notice.courseName)}
+          {notice.lecSection != null ? ` · ${notice.lecSection}반` : ""}
         </span>
         <span className="rounded-md bg-slate-700 px-2 py-0.5 text-[11px] font-semibold text-white">
           공지
         </span>
       </div>
 
-      <h3 className="mt-2 text-xl font-bold text-slate-900">{notice.title}</h3>
+      <h3 className="mt-2 break-words text-xl font-bold text-slate-900">{notice.title}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
-        <span>👤 {notice.author}</span>
+        <span>👤 {notice.author} 교수</span>
         <span>📅 {notice.date}</span>
       </div>
 
@@ -773,7 +784,7 @@ function NoticeDetail({
               <span className="shrink-0 text-xs text-slate-400">{formatFileSize(a.fileSize)}</span>
               <button
                 type="button"
-                onClick={handleDownload}
+                onClick={() => handleDownload(a)}
                 className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
               >
                 ⤓ 다운로드

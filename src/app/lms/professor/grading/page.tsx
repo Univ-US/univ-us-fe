@@ -700,11 +700,11 @@ export default function ProfessorGradingPage() {
               <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-5 py-4">
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 text-lg">⚠️</span>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-slate-800">
                       미채점 과제 {overview.totalUngraded}건이 대기 중입니다
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="break-words text-xs text-slate-500">
                       {overview.byCourse.map((c) => `${c.courseName} ${c.count}건`).join(" · ")}
                     </p>
                   </div>
