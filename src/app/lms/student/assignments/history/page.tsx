@@ -14,6 +14,7 @@ import {
   type StudentAssignmentsResult,
   type SemesterAssignments,
 } from "@/lib/lmsStudentAssignmentsApi";
+import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 
 type StatusFilter = "all" | StudentAssignmentStatus;
 
@@ -51,6 +52,7 @@ export default function StudentAssignmentsHistoryPage() {
 
   const [fileTarget, setFileTarget] = useState<StudentAssignment | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<StudentAssignment | null>(null);
+  const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,12 +60,19 @@ export default function StudentAssignmentsHistoryPage() {
     try {
       const result = await getStudentAssignments();
       setData(result);
+      setSubmittableCount(
+        result.semesters.reduce(
+          (n, s) =>
+            n + s.assignments.filter((a) => a.status === "NSB" && !a.overdue).length,
+          0,
+        ),
+      );
     } catch (err) {
       setError(describeApiError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setSubmittableCount]);
 
   useEffect(() => {
     void load();
