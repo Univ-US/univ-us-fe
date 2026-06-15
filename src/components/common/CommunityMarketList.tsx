@@ -70,6 +70,7 @@ function ProductCard({
   onOpen: () => void;
 }) {
   const sold = product.productStatus === 'DONE';
+  const blind = Boolean(product.isBlind);
   const thumbnailUrl = product.images?.[0]?.imageUrl;
 
   return (
@@ -83,7 +84,7 @@ function ProductCard({
           <div
             className={cn(
               'absolute inset-0 z-0 overflow-hidden bg-slate-100',
-              sold && 'opacity-40',
+              (sold || blind) && 'opacity-40',
             )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,14 +99,20 @@ function ProductCard({
           className={cn(
             'flex size-full items-center justify-center bg-slate-100 text-primary transition-transform duration-300 group-hover/card:scale-105',
             thumbnailUrl && 'opacity-0',
-            sold && 'opacity-40',
+            (sold || blind) && 'opacity-40',
           )}
         >
           <PackageOpen className="size-10" />
         </div>
 
         <span className="absolute left-2.5 top-2.5">
-          <StatusBadge status={product.productStatus} />
+          {blind ? (
+            <span className="rounded-md bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+              블라인드
+            </span>
+          ) : (
+            <StatusBadge status={product.productStatus} />
+          )}
         </span>
 
         {/* 찜 버튼 */}
@@ -128,18 +135,18 @@ function ProductCard({
         <div
           className={cn(
             'h-[40px] overflow-hidden text-[13px] font-semibold leading-snug text-slate-800 transition-colors duration-200 group-hover/card:text-slate-950',
-            sold && 'text-slate-400',
+            (sold || blind) && 'text-slate-400',
           )}
         >
-          {product.productName}
+          {blind ? '신고 누적으로 블라인드 처리된 상품입니다.' : product.productName}
         </div>
         <div
           className={cn(
             'mt-1.5 text-[16px] font-extrabold tracking-tight text-slate-900 transition-colors duration-200 group-hover/card:text-primary',
-            sold && 'text-slate-400',
+            (sold || blind) && 'text-slate-400',
           )}
         >
-          {formatPrice(product.price)}
+          {blind ? `신고 ${product.reportCount ?? 5}회 누적` : formatPrice(product.price)}
         </div>
         <div className="mt-2 flex min-w-0 items-center gap-1 text-[11px] text-slate-400">
           <MapPin className="size-3" />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BoardBadge, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
+import { BoardBadge, formatDate, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
 import type { MyPost } from '@/types/mypage';
 import type { Post } from '@/types/community';
 import { getLikedPosts } from '@/lib/cmypageApi';
@@ -22,7 +22,7 @@ const S = {
   metaGroup: 'flex shrink-0 items-center gap-3 text-[12px] text-slate-400',
   metaItem: 'flex items-center gap-1',
   metaIcon: 'size-3.5',
-  date: 'w-[46px] text-right',
+  date: 'w-[72px] text-right',
   moreWrap: 'mt-4 flex justify-center',
   moreButton: 'rounded-xl border border-border bg-white px-5 py-2 text-[13px] font-bold text-slate-500 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0',
 };
@@ -78,7 +78,7 @@ export default function LikedPosts() {
                     <Heart className={S.metaIcon} />
                     {post.likeCount}
                   </span>
-                  <span className={S.date}>{post.createdAt}</span>
+                  <span className={S.date}>{formatDate(post.createdAt)}</span>
                 </div>
               </Link>
             ))}

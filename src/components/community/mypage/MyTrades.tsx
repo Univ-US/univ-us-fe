@@ -126,6 +126,7 @@ export default function MyTrades() {
       <div className={S.listContainer}>
         {visibleTrades.map((trade, index) => {
           const productId = getProductId(trade);
+          const blind = Boolean(trade.isBlind);
 
           return (
             <div
@@ -140,10 +141,19 @@ export default function MyTrades() {
                   >
                     {trade.role}
                   </span>
-                  <span className={S.productName}>{trade.productName}</span>
+                  {blind && (
+                    <span className="rounded-lg bg-red-100 px-2.5 py-1 text-[12px] font-bold text-red-600">
+                      블라인드
+                    </span>
+                  )}
+                  <span className={cn(S.productName, blind && 'text-slate-400')}>
+                    {blind ? '신고 누적으로 블라인드 처리된 상품입니다.' : trade.productName}
+                  </span>
                 </div>
                 <div className={S.itemBottomRow}>
-                  <span className={S.price}>{formatPrice(trade.price)}</span>
+                  <span className={cn(S.price, blind && 'text-slate-400')}>
+                    {blind ? `신고 ${trade.reportCount ?? 5}회 누적` : formatPrice(trade.price)}
+                  </span>
                   <span className={S.divider}>|</span>
                   <span className={S.date}>{formatDate(trade.createdAt)}</span>
                 </div>
