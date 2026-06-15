@@ -41,7 +41,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "강의 업로드", icon: "🎬", href: "/lms/professor/upload" },
       { label: "과제 관리", icon: "📄", href: "/lms/professor/assignments" },
-      { label: "공지사항", icon: "📢" },
+      { label: "공지사항", icon: "📢", href: "/lms/professor/notice" },
       { label: "출결 확인", icon: "🗓️" },
     ],
   },

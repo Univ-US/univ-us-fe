@@ -8,6 +8,10 @@
   font-size: 0.875rem;
   line-height: 1.65;
   color: #1e293b; /* slate-800 */
+  /* 긴 무공백 문자열(특히 한글 연속 — word-break:normal에선 안 끊김)이 컨테이너 폭에서
+     자동 줄바꿈되도록. 미설정 시 에디터/뷰가 가로로 늘어나 모달·레이아웃이 잘림. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .lms-content p {
   margin: 0.25rem 0;

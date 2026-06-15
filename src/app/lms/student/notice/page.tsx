@@ -7,11 +7,9 @@
 // - 공지 정렬: 최신순(날짜 내림차순) / 첨부파일 다운로드 (읽음 유무 기능 없음)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
-import {
-  getStudentNotices,
-  type Notice,
-  type NoticeBlock,
-} from "@/lib/lmsStudentNoticeApi";
+import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
+import { getStudentNotices, type Notice } from "@/lib/lmsStudentNoticeApi";
+import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -68,13 +66,9 @@ const matchCourses = (
 
 const NOTICE_PREVIEW_MAX = 20; // 목록 카드 제목 아래 공지 내용 미리보기 글자 수
 
-// 공지 본문 블록(NoticeBlock[]) → 한 줄 plain text 요약(목록 미리보기용)
-function noticeSummary(blocks: NoticeBlock[]): string {
-  const text = blocks
-    .map((b) => (b.type === "list" ? b.items.join(" ") : b.text))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
+// 공지 본문 HTML → 한 줄 plain text 요약(목록 미리보기용)
+function noticeSummary(html: string): string {
+  const text = htmlToPlainText(html);
   return text.length > NOTICE_PREVIEW_MAX ? `${text.slice(0, NOTICE_PREVIEW_MAX)}…` : text;
 }
 
@@ -287,7 +281,7 @@ export default function StudentNoticePage() {
             · <b>목록 카드</b> = 과목 배지 + 날짜 / 굵은 제목 / 본문 미리보기 <b>20자</b>(<code className={TBL_CLS}>NOTICE_PREVIEW_MAX</code>).
           </li>
           <li>
-            · <b>본문</b>(CONTENT) = 현재 mock은 구조화 블록(<code className={TBL_CLS}>NoticeBlock[]</code>)으로 레이아웃 시연. ⚠️ 실제 저장 형식(블록 JSON vs 교수 에디터 HTML)은 BE·교수 공지 작성 화면(PLM, 미구현) 결정 — HTML이면 <code className={TBL_CLS}>sanitizeLmsHtml</code> 정화 후 렌더(PLM-005 패턴).
+            · <b>본문</b>(CONTENT) = 교수 Tiptap <b>HTML</b>(PLM-007 공지 작성 화면에서 확정 — 작성=읽기 형식 일치). <code className={TBL_CLS}>LECTURE_ANNOUNCEMENT.CONTENT</code> CLOB에 HTML 저장 → 표시 직전 <code className={TBL_CLS}>sanitizeLmsHtml</code> 정화 후 <code className={TBL_CLS}>.lms-content</code>로 렌더(PLM-005 패턴, XSS 방지).
           </li>
           <li>
             · <b>첨부 = 인증 다운로드 필수</b>(permitAll 아님) → BE 다운로드 엔드포인트(PLM-004-01 <code className={TBL_CLS}>downloadFile</code> 패턴). <code className={TBL_CLS}>&lt;a download&gt;</code>는 JWT 못 실어 blob fetch. 표시 첨부 = <code className={TBL_CLS}>ATT_VAL_STATUS=ACT</code>만.
@@ -387,12 +381,15 @@ function NoticeDetail({ notice }: { notice: Notice }) {
         <span>📅 {notice.date}</span>
       </div>
 
-      {/* 본문 */}
-      <div className="space-y-3 py-5">
-        {notice.content.map((b, i) => (
-          <NoticeBlockView key={i} block={b} />
-        ))}
-      </div>
+      {/* 본문 — 교수 Tiptap HTML → sanitizeLmsHtml 정화 후 .lms-content 렌더 (PLM-007과 동일 형식) */}
+      {notice.content?.trim() ? (
+        <div
+          className="lms-content py-5"
+          dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(notice.content) }}
+        />
+      ) : (
+        <p className="py-10 text-center text-sm text-slate-400">작성된 내용이 없습니다.</p>
+      )}
 
       {/* 첨부 */}
       {notice.attachment && (
@@ -431,21 +428,3 @@ function AuthorAvatar({ src, name }: { src?: string | null; name: string }) {
   );
 }
 
-function NoticeBlockView({ block }: { block: NoticeBlock }) {
-  if (block.type === "heading") {
-    return <h4 className="pt-1 text-sm font-bold text-slate-800">{block.text}</h4>;
-  }
-  if (block.type === "list") {
-    return (
-      <ul className="space-y-1.5 pl-1">
-        {block.items.map((it, i) => (
-          <li key={i} className="flex gap-2 text-sm leading-relaxed text-slate-600">
-            <span className="text-slate-400">•</span>
-            <span>{it}</span>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  return <p className="text-sm leading-relaxed text-slate-600">{block.text}</p>;
-}

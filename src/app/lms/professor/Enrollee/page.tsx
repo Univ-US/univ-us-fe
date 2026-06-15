@@ -524,9 +524,9 @@ export default function ProfessorStudentsPage() {
                               (s.studentName.trim()[0] ?? "?")
                             )}
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-900">{s.studentName}</p>
-                            <p className="text-xs text-slate-400">{s.studentNo}</p>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-slate-900" title={s.studentName}>{s.studentName}</p>
+                            <p className="truncate text-xs text-slate-400">{s.studentNo}</p>
                           </div>
                         </div>
                       </td>
