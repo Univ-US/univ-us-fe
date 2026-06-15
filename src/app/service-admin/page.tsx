@@ -44,7 +44,6 @@ import {
     SERVICE_SUBSCRIPTION_PLANS,
 } from "./_mockData";
 import type {
-    AdminPaymentStatus,
     InquiryStatus,
     MemberStatus,
     ServiceAdminView,
@@ -298,23 +297,6 @@ function ServiceAdminDashboardContent() {
         );
     };
 
-    const changePaymentStatus = (
-        paymentId: number,
-        status: AdminPaymentStatus,
-    ) => {
-        setPayments((current) =>
-            current.map((payment) =>
-                payment.id === paymentId
-                    ? {
-                        ...payment,
-                        status,
-                        failureReason: status === "PENDING" ? null : payment.failureReason,
-                    }
-                    : payment,
-            ),
-        );
-    };
-
     const readInquiry = useCallback((inquiryId: number) => {
         setInquiries((current) => {
             const target = current.find((inquiry) => inquiry.id === inquiryId);
@@ -545,9 +527,7 @@ function ServiceAdminDashboardContent() {
                         )}
                         {view === "payments" && (
                             <PaymentsView
-                                schools={schools}
-                                payments={payments}
-                                onChangeStatus={changePaymentStatus}
+                                onOpenSchool={openSchoolById}
                             />
                         )}
                         {view === "plans" && (

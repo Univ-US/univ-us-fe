@@ -138,6 +138,75 @@ export interface ServiceAdminMemberQuery {
     sort?: "SCHOOL_ASC" | "NAME_ASC" | "JOINED_DESC";
 }
 
+export type ServiceAdminPaymentStatus =
+    | "READY"
+    | "PAID"
+    | "FAILED"
+    | "CANCELED"
+    | "REFUNDED";
+export type ServiceAdminPaymentMethod = "CARD" | "KAKAO_PAY";
+export type ServiceAdminPaymentType = "INITIAL" | "RECURRING";
+
+export interface ServiceAdminPayment {
+    historyId: number;
+    subscriptionId: number;
+    univId: number | null;
+    univName: string;
+    memberId: number;
+    billingKeyId: number | null;
+    planId: number | null;
+    planName: string | null;
+    billingCycle: "MONTHLY" | "YEARLY" | null;
+    amount: number;
+    status: ServiceAdminPaymentStatus;
+    paymentMethod: ServiceAdminPaymentMethod;
+    paymentType: ServiceAdminPaymentType;
+    merchantUid: string;
+    portonePaymentId: string | null;
+    portoneScheduleId: string | null;
+    createdAt: string;
+    paidAt: string | null;
+    failReason: string | null;
+    nextBillingAt: string | null;
+    subscriptionStatus: string;
+    pendingAction: "PLAN_CHANGE" | "CANCEL" | null;
+    cancellationEffectiveAt: string | null;
+    refundedAt: string | null;
+    refundAmount: number | null;
+    refundReason: string | null;
+    portoneCancellationId: string | null;
+}
+
+export interface ServiceAdminPaymentPlan {
+    planId: number;
+    planName: string;
+}
+
+export interface ServiceAdminPaymentPage {
+    content: ServiceAdminPayment[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+    currentMonthRevenue: number;
+    currentMonthPaidCount: number;
+    currentMonthFailedCount: number;
+    currentMonthReadyCount: number;
+    readyPaymentAmount: number;
+    plans: ServiceAdminPaymentPlan[];
+}
+
+export interface ServiceAdminPaymentQuery {
+    page: number;
+    keyword?: string;
+    status?: ServiceAdminPaymentStatus;
+    planId?: number;
+    method?: ServiceAdminPaymentMethod;
+    sort?: "RECENT" | "AMOUNT_DESC" | "AMOUNT_ASC" | "SCHOOL_ASC";
+}
+
 export interface ServiceAdminSchoolQuery {
     page: number;
     keyword?: string;
@@ -208,6 +277,41 @@ export async function changeServiceAdminMemberStatus(
     const response = await api.patch<ServiceAdminMember>(
         `/api/service-admin/members/${memberId}/status`,
         { status },
+    );
+    return response.data;
+}
+
+export async function getServiceAdminPayments(
+    params: ServiceAdminPaymentQuery,
+) {
+    const response = await api.get<ServiceAdminPaymentPage>(
+        "/api/service-admin/payments",
+        { params },
+    );
+    return response.data;
+}
+
+export async function refundServiceAdminPayment(
+    historyId: number,
+    reason: string,
+) {
+    const response = await api.patch<ServiceAdminPayment>(
+        `/api/service-admin/payments/${historyId}/refund`,
+        { reason },
+    );
+    return response.data;
+}
+
+export async function retryServiceAdminPayment(historyId: number) {
+    const response = await api.patch<ServiceAdminPayment>(
+        `/api/service-admin/payments/${historyId}/retry`,
+    );
+    return response.data;
+}
+
+export async function cancelServiceAdminScheduledPayment(historyId: number) {
+    const response = await api.patch<ServiceAdminPayment>(
+        `/api/service-admin/payments/${historyId}/cancel`,
     );
     return response.data;
 }
