@@ -335,8 +335,8 @@ function SemesterAssignmentTable({
     safePage * ASSIGNMENT_PAGE_SIZE,
     safePage * ASSIGNMENT_PAGE_SIZE + ASSIGNMENT_PAGE_SIZE
   );
-  // 영역 고정 — 과제 수·현재 페이지와 무관하게 항상 ASSIGNMENT_PAGE_SIZE행(부족분은 빈 행으로 채움)
-  const padCount = ASSIGNMENT_PAGE_SIZE - pageRows.length;
+  // 여러 페이지일 때만 마지막 페이지 높이를 맞춘다. 한 페이지짜리 필터는 빈 행 공백을 만들지 않는다.
+  const padCount = totalPages > 1 ? ASSIGNMENT_PAGE_SIZE - pageRows.length : 0;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
