@@ -57,6 +57,7 @@ export default function StudentSubmissionPreviewDialog({
 
   if (!open || !assignment) return null;
   const file = assignment.file;
+  const willRevertToNotSubmitted = !!file && !keepExisting && newFile === null;
 
   const dirty =
     memo !== (assignment.submissionMemo ?? "") || (!!file && !keepExisting) || newFile !== null;
@@ -157,7 +158,9 @@ export default function StudentSubmissionPreviewDialog({
           {!keepExisting && file && (
             <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-rose-50 px-4 py-3">
               <p className="min-w-0 flex-1 truncate text-xs text-rose-600">
-                &apos;{file.fileName}&apos; 첨부가 삭제됩니다 — &apos;수정 완료&apos; 시 적용
+                {willRevertToNotSubmitted
+                  ? ` '${file.fileName}' 첨부가 삭제되고 새 파일이 없어 미제출 상태로 변경됩니다.`
+                  : ` '${file.fileName}' 첨부가 삭제됩니다. 수정 완료 시 적용됩니다.`}
               </p>
               <button
                 type="button"
@@ -254,9 +257,13 @@ export default function StudentSubmissionPreviewDialog({
             type="button"
             onClick={() => void handleSave()}
             disabled={!dirty || saving || !assignment.submissionId}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-emerald-700"
+            className={`inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+              willRevertToNotSubmitted
+                ? "bg-rose-600 hover:bg-rose-700 disabled:hover:bg-rose-600"
+                : "bg-emerald-700 hover:bg-emerald-800 disabled:hover:bg-emerald-700"
+            }`}
           >
-            {saving ? "저장 중..." : "수정 완료"}
+            {saving ? "저장 중..." : willRevertToNotSubmitted ? "미제출로 변경" : "수정 완료"}
           </button>
         </div>
       </div>
