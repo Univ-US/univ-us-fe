@@ -26,6 +26,7 @@ export interface AssignmentFeedback {
 export interface StudentAssignment {
   id: number;
   submissionId?: number | null;
+  lecId?: number | null;
   courseName: string;
   lecSection?: number | null;
   title: string;
