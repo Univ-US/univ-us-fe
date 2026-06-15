@@ -1,23 +1,30 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import {
+    AlertTriangle,
     Ban,
     CheckCircle2,
     CircleDollarSign,
     Pencil,
     Plus,
     RotateCcw,
+    RefreshCw,
     Search,
     UsersRound,
     X,
 } from "lucide-react";
+import {
+    changeServiceAdminPlanStatus,
+    createServiceAdminPlan,
+    getServiceAdminPlans,
+    updateServiceAdminPlan,
+    type ServiceAdminPlan,
+    type ServiceAdminPlanResponse,
+    type ServiceAdminPlanStatus,
+} from "@/lib/serviceAdminApi";
 import { formatCurrency } from "../_components";
-import type {
-    ServiceSchool,
-    ServiceSubscriptionPlan,
-    SubscriptionPlanStatus,
-} from "../_types";
 
 type PlanForm = {
     name: string;
@@ -26,14 +33,6 @@ type PlanForm = {
     description: string;
 };
 
-interface SubscriptionPlansViewProps {
-    plans: ServiceSubscriptionPlan[];
-    schools: ServiceSchool[];
-    onCreate: (plan: PlanForm) => void;
-    onUpdate: (planId: number, plan: PlanForm) => void;
-    onToggleStatus: (planId: number) => void;
-}
-
 const EMPTY_FORM: PlanForm = {
     name: "",
     price: "",
@@ -41,7 +40,7 @@ const EMPTY_FORM: PlanForm = {
     description: "",
 };
 
-function PlanStatusBadge({ status }: { status: SubscriptionPlanStatus }) {
+function PlanStatusBadge({ status }: { status: ServiceAdminPlanStatus }) {
     return (
         <span
             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-extrabold ${
@@ -55,46 +54,56 @@ function PlanStatusBadge({ status }: { status: SubscriptionPlanStatus }) {
     );
 }
 
-export default function SubscriptionPlansView({
-    plans,
-    schools,
-    onCreate,
-    onUpdate,
-    onToggleStatus,
-}: SubscriptionPlansViewProps) {
+function getErrorMessage(error: unknown) {
+    if (axios.isAxiosError<{ message?: string; detail?: string }>(error)) {
+        return error.response?.data?.message ?? error.response?.data?.detail;
+    }
+    return undefined;
+}
+
+export default function SubscriptionPlansView() {
     const [search, setSearch] = useState("");
-    const [status, setStatus] = useState<"ALL" | SubscriptionPlanStatus>("ALL");
+    const [status, setStatus] = useState<"ALL" | ServiceAdminPlanStatus>("ALL");
+    const [result, setResult] = useState<ServiceAdminPlanResponse | null>(null);
     const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
     const [form, setForm] = useState<PlanForm>(EMPTY_FORM);
     const [formError, setFormError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const plans = useMemo(() => result?.plans ?? [], [result?.plans]);
     const isFormOpen = editingPlanId !== null || form !== EMPTY_FORM;
-    const editingPlan = plans.find((plan) => plan.id === editingPlanId) ?? null;
+    const editingPlan =
+        plans.find((plan) => plan.planId === editingPlanId) ?? null;
 
-    const subscriberCountByPlan = useMemo(() => {
-        const counts = new Map<string, number>();
-        schools.forEach((school) => {
-            if (!school.plan) return;
-            counts.set(school.plan, (counts.get(school.plan) ?? 0) + 1);
-        });
-        return counts;
-    }, [schools]);
+    const loadPlans = useCallback(async () => {
+        setLoading(true);
+        setError("");
+        try {
+            setResult(await getServiceAdminPlans());
+        } catch (loadError) {
+            console.error("Failed to load service admin plans.", loadError);
+            setError("구독 플랜을 불러오지 못했습니다.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadPlans();
+    }, [loadPlans]);
 
     const filteredPlans = useMemo(() => {
         const keyword = search.trim().toLocaleLowerCase("ko-KR");
         return plans.filter((plan) => {
             const matchesSearch =
                 !keyword ||
-                plan.name.toLocaleLowerCase("ko-KR").includes(keyword) ||
+                plan.planName.toLocaleLowerCase("ko-KR").includes(keyword) ||
                 plan.description.toLocaleLowerCase("ko-KR").includes(keyword);
             const matchesStatus = status === "ALL" || plan.status === status;
             return matchesSearch && matchesStatus;
         });
     }, [plans, search, status]);
-
-    const activePlans = plans.filter((plan) => plan.status === "ACTIVE");
-    const activeRevenue = schools
-        .filter((school) => school.subscriptionStatus === "ACTIVE")
-        .reduce((sum, school) => sum + school.monthlyRevenue, 0);
 
     useEffect(() => {
         if (!isFormOpen) return;
@@ -120,13 +129,12 @@ export default function SubscriptionPlansView({
         setFormError("");
     };
 
-    const openEditForm = (plan: ServiceSubscriptionPlan) => {
-        setEditingPlanId(plan.id);
+    const openEditForm = (plan: ServiceAdminPlan) => {
+        setEditingPlanId(plan.planId);
         setForm({
-            name: plan.name,
+            name: plan.planName,
             price: String(plan.price),
-            maxMemberCount:
-                plan.maxMemberCount === null ? "" : String(plan.maxMemberCount),
+            maxMemberCount: String(plan.maxMemberCount),
             description: plan.description,
         });
         setFormError("");
@@ -138,17 +146,15 @@ export default function SubscriptionPlansView({
         setFormError("");
     };
 
-    const submitForm = (event: FormEvent<HTMLFormElement>) => {
+    const submitForm = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const name = form.name.trim();
         const price = Number(form.price);
-        const maxMemberCount = form.maxMemberCount
-            ? Number(form.maxMemberCount)
-            : null;
+        const maxMemberCount = Number(form.maxMemberCount);
         const duplicate = plans.some(
             (plan) =>
-                plan.id !== editingPlanId &&
-                plan.name.toLocaleLowerCase("ko-KR") ===
+                plan.planId !== editingPlanId &&
+                plan.planName.toLocaleLowerCase("ko-KR") ===
                     name.toLocaleLowerCase("ko-KR"),
         );
 
@@ -156,14 +162,15 @@ export default function SubscriptionPlansView({
             setFormError("플랜명을 입력해주세요.");
             return;
         }
+        if (name.length > 10) {
+            setFormError("플랜명은 10자 이내로 입력해주세요.");
+            return;
+        }
         if (!Number.isInteger(price) || price <= 0) {
             setFormError("월 요금은 1원 이상의 정수로 입력해주세요.");
             return;
         }
-        if (
-            maxMemberCount !== null &&
-            (!Number.isInteger(maxMemberCount) || maxMemberCount <= 0)
-        ) {
+        if (!Number.isInteger(maxMemberCount) || maxMemberCount <= 0) {
             setFormError("최대 이용자 수는 1명 이상의 정수로 입력해주세요.");
             return;
         }
@@ -173,31 +180,62 @@ export default function SubscriptionPlansView({
         }
 
         const payload = {
-            name,
-            price: String(price),
-            maxMemberCount:
-                maxMemberCount === null ? "" : String(maxMemberCount),
+            planName: name,
+            price,
+            maxMemberCount,
             description: form.description.trim(),
         };
-        if (editingPlanId === null) {
-            onCreate(payload);
-        } else {
-            onUpdate(editingPlanId, payload);
+        if (!payload.description) {
+            setFormError("플랜 설명을 입력해주세요.");
+            return;
         }
-        closeForm();
+
+        setSaving(true);
+        setFormError("");
+        try {
+            if (editingPlanId === null) {
+                await createServiceAdminPlan(payload);
+            } else {
+                await updateServiceAdminPlan(editingPlanId, payload);
+            }
+            closeForm();
+            await loadPlans();
+        } catch (saveError) {
+            console.error("Failed to save service admin plan.", saveError);
+            setFormError(
+                getErrorMessage(saveError) ?? "구독 플랜을 저장하지 못했습니다.",
+            );
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const toggleStatus = (plan: ServiceSubscriptionPlan) => {
-        const subscriberCount = subscriberCountByPlan.get(plan.name) ?? 0;
+    const toggleStatus = async (plan: ServiceAdminPlan) => {
         if (
             plan.status === "ACTIVE" &&
             !window.confirm(
-                `${plan.name} 플랜을 비활성화하시겠습니까?\n현재 이용 중인 ${subscriberCount}개 학교의 구독은 유지됩니다.`,
+                `${plan.planName} 플랜을 비활성화하시겠습니까?\n현재 이용 중인 ${plan.subscriberCount}개 학교의 구독과 예약 결제는 유지됩니다.`,
             )
         ) {
             return;
         }
-        onToggleStatus(plan.id);
+
+        setSaving(true);
+        setError("");
+        try {
+            await changeServiceAdminPlanStatus(
+                plan.planId,
+                plan.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+            );
+            await loadPlans();
+        } catch (statusError) {
+            console.error("Failed to change service admin plan status.", statusError);
+            setError(
+                getErrorMessage(statusError) ?? "플랜 상태를 변경하지 못했습니다.",
+            );
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -211,6 +249,7 @@ export default function SubscriptionPlansView({
                 </div>
                 <button
                     onClick={openCreateForm}
+                    disabled={saving}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white hover:bg-emerald-800"
                 >
                     <Plus className="size-4" />
@@ -222,19 +261,19 @@ export default function SubscriptionPlansView({
                 {[
                     {
                         label: "전체 플랜",
-                        value: `${plans.length}개`,
+                        value: `${result?.totalCount ?? 0}개`,
                         icon: CheckCircle2,
                         color: "text-slate-700",
                     },
                     {
                         label: "활성 플랜",
-                        value: `${activePlans.length}개`,
+                        value: `${result?.activeCount ?? 0}개`,
                         icon: UsersRound,
                         color: "text-emerald-700",
                     },
                     {
                         label: "월 구독 매출",
-                        value: formatCurrency(activeRevenue),
+                        value: formatCurrency(result?.currentMonthRevenue ?? 0),
                         icon: CircleDollarSign,
                         color: "text-sky-700",
                     },
@@ -251,6 +290,22 @@ export default function SubscriptionPlansView({
                     </section>
                 ))}
             </div>
+
+            {error && (
+                <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                    <span className="inline-flex items-center gap-2">
+                        <AlertTriangle className="size-4" />
+                        {error}
+                    </span>
+                    <button
+                        onClick={() => void loadPlans()}
+                        className="inline-flex items-center gap-2 text-rose-700"
+                    >
+                        <RefreshCw className="size-4" />
+                        다시 시도
+                    </button>
+                </div>
+            )}
 
             <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 md:grid-cols-[1fr_180px]">
@@ -269,7 +324,7 @@ export default function SubscriptionPlansView({
                             setStatus(
                                 event.target.value as
                                     | "ALL"
-                                    | SubscriptionPlanStatus,
+                                    | ServiceAdminPlanStatus,
                             )
                         }
                         className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
@@ -305,11 +360,18 @@ export default function SubscriptionPlansView({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredPlans.map((plan) => (
-                                <tr key={plan.id} className="font-semibold text-slate-700">
+                            {loading && (
+                                <tr>
+                                    <td colSpan={7} className="px-5 py-16 text-center">
+                                        <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && filteredPlans.map((plan) => (
+                                <tr key={plan.planId} className="font-semibold text-slate-700">
                                     <td className="px-5 py-4">
-                                        <p className="truncate font-black text-slate-950" title={plan.name}>
-                                            {plan.name}
+                                        <p className="truncate font-black text-slate-950" title={plan.planName}>
+                                            {plan.planName}
                                         </p>
                                         <p className="mt-1 truncate text-xs text-slate-400" title={plan.description}>
                                             {plan.description || "설명 없음"}
@@ -319,37 +381,37 @@ export default function SubscriptionPlansView({
                                         {formatCurrency(plan.price)}
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
-                                        {plan.maxMemberCount === null
-                                            ? "제한 없음"
-                                            : `${plan.maxMemberCount.toLocaleString()}명`}
+                                        {plan.maxMemberCount.toLocaleString()}명
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
-                                        {(subscriberCountByPlan.get(plan.name) ?? 0).toLocaleString()}개
+                                        {plan.subscriberCount.toLocaleString()}개
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4">
                                         <PlanStatusBadge status={plan.status} />
                                     </td>
                                     <td className="whitespace-nowrap px-5 py-4 text-slate-500">
-                                        {plan.updatedAt}
+                                        {new Date(plan.updateAt).toLocaleString("ko-KR")}
                                     </td>
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => openEditForm(plan)}
-                                                className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-                                                aria-label={`${plan.name} 수정`}
-                                                title="수정"
+                                                disabled={plan.status === "INACTIVE" || saving}
+                                                className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300"
+                                                aria-label={`${plan.planName} 수정`}
+                                                title={plan.status === "INACTIVE" ? "비활성 플랜은 수정할 수 없습니다." : "수정"}
                                             >
                                                 <Pencil className="size-4" />
                                             </button>
                                             <button
                                                 onClick={() => toggleStatus(plan)}
+                                                disabled={saving}
                                                 className={`flex size-9 items-center justify-center rounded-lg border ${
                                                     plan.status === "ACTIVE"
                                                         ? "border-rose-200 text-rose-600 hover:bg-rose-50"
                                                         : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                                                 }`}
-                                                aria-label={`${plan.name} ${plan.status === "ACTIVE" ? "비활성화" : "활성화"}`}
+                                                aria-label={`${plan.planName} ${plan.status === "ACTIVE" ? "비활성화" : "활성화"}`}
                                                 title={plan.status === "ACTIVE" ? "비활성화" : "활성화"}
                                             >
                                                 {plan.status === "ACTIVE" ? (
@@ -362,7 +424,7 @@ export default function SubscriptionPlansView({
                                     </td>
                                 </tr>
                             ))}
-                            {filteredPlans.length === 0 && (
+                            {!loading && filteredPlans.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-16 text-center font-bold text-slate-400">
                                         조건에 맞는 구독 플랜이 없습니다.
@@ -415,10 +477,13 @@ export default function SubscriptionPlansView({
                                             name: event.target.value,
                                         }))
                                     }
-                                    placeholder="예: Campus Plus"
-                                    maxLength={40}
+                                    placeholder="예: BASIC (최대 10자)"
+                                    maxLength={10}
                                     className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-emerald-500"
                                 />
+                                <span className="mt-1.5 block text-xs font-semibold text-slate-400">
+                                    최대 10자까지 입력할 수 있습니다.
+                                </span>
                             </label>
 
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -457,7 +522,8 @@ export default function SubscriptionPlansView({
                                                 maxMemberCount: event.target.value,
                                             }))
                                         }
-                                        placeholder="비우면 제한 없음"
+                                        placeholder="1명 이상"
+                                        required
                                         className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-emerald-500"
                                     />
                                 </label>
@@ -497,9 +563,14 @@ export default function SubscriptionPlansView({
                             </button>
                             <button
                                 type="submit"
-                                className="h-10 rounded-lg bg-emerald-700 px-5 text-sm font-black text-white hover:bg-emerald-800"
+                                disabled={saving}
+                                className="h-10 rounded-lg bg-emerald-700 px-5 text-sm font-black text-white hover:bg-emerald-800 disabled:bg-slate-300"
                             >
-                                {editingPlan ? "수정 저장" : "플랜 생성"}
+                                {saving
+                                    ? "저장 중"
+                                    : editingPlan
+                                        ? "수정 저장"
+                                        : "플랜 생성"}
                             </button>
                         </div>
                     </form>
@@ -508,5 +579,3 @@ export default function SubscriptionPlansView({
         </div>
     );
 }
-
-export type { PlanForm };

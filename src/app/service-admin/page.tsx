@@ -32,16 +32,13 @@ import OperationsLogsView from "./_views/OperationsLogsView";
 import PaymentsView from "./_views/PaymentsView";
 import SchoolDetailView from "./_views/SchoolDetailView";
 import SchoolsView from "./_views/SchoolsView";
-import SubscriptionPlansView, {
-    type PlanForm,
-} from "./_views/SubscriptionPlansView";
+import SubscriptionPlansView from "./_views/SubscriptionPlansView";
 import UsersView from "./_views/UsersView";
 import {
     getMockMembersForSchool,
     SERVICE_INQUIRIES,
     SERVICE_PAYMENTS,
     SERVICE_SCHOOLS,
-    SERVICE_SUBSCRIPTION_PLANS,
 } from "./_mockData";
 import type {
     InquiryStatus,
@@ -51,7 +48,6 @@ import type {
     ServiceMember,
     ServicePayment,
     ServiceSchool,
-    ServiceSubscriptionPlan,
 } from "./_types";
 
 interface NavItem {
@@ -121,14 +117,11 @@ function ServiceAdminDashboardContent() {
         isLoggedIn,
         role,
     } = useAuthStore();
-    const [schools, setSchools] = useState<ServiceSchool[]>(SERVICE_SCHOOLS);
+    const [schools] = useState<ServiceSchool[]>(SERVICE_SCHOOLS);
     const [members, setMembers] = useState<ServiceMember[]>(() =>
         SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
     );
-    const [payments, setPayments] = useState<ServicePayment[]>(SERVICE_PAYMENTS);
-    const [plans, setPlans] = useState<ServiceSubscriptionPlan[]>(
-        SERVICE_SUBSCRIPTION_PLANS,
-    );
+    const [payments] = useState<ServicePayment[]>(SERVICE_PAYMENTS);
     const [inquiries, setInquiries] =
         useState<ServiceInquiry[]>(SERVICE_INQUIRIES);
     const [dashboard, setDashboard] =
@@ -205,87 +198,6 @@ function ServiceAdminDashboardContent() {
     const openSchoolById = (schoolId: number) => {
         router.push(
             `/service-admin?view=school-detail&schoolId=${schoolId}`,
-        );
-    };
-
-    const createPlan = (form: PlanForm) => {
-        const today = new Date().toLocaleDateString("en-CA");
-        setPlans((current) => [
-            ...current,
-            {
-                id: Math.max(0, ...current.map((plan) => plan.id)) + 1,
-                name: form.name,
-                price: Number(form.price),
-                description: form.description,
-                maxMemberCount: form.maxMemberCount
-                    ? Number(form.maxMemberCount)
-                    : null,
-                status: "ACTIVE",
-                createdAt: today,
-                updatedAt: today,
-            },
-        ]);
-    };
-
-    const updatePlan = (planId: number, form: PlanForm) => {
-        const currentPlan = plans.find((plan) => plan.id === planId);
-        if (!currentPlan) return;
-
-        const today = new Date().toLocaleDateString("en-CA");
-        const price = Number(form.price);
-        setPlans((current) =>
-            current.map((plan) =>
-                plan.id === planId
-                    ? {
-                        ...plan,
-                        name: form.name,
-                        price,
-                        description: form.description,
-                        maxMemberCount: form.maxMemberCount
-                            ? Number(form.maxMemberCount)
-                            : null,
-                        updatedAt: today,
-                    }
-                    : plan,
-            ),
-        );
-        setSchools((current) =>
-            current.map((school) =>
-                school.plan === currentPlan.name
-                    ? {
-                        ...school,
-                        plan: form.name,
-                        monthlyRevenue:
-                            school.subscriptionStatus === "UNSUBSCRIBED" ||
-                            school.subscriptionStatus === "CANCELED"
-                                ? 0
-                                : price,
-                    }
-                    : school,
-            ),
-        );
-        setPayments((current) =>
-            current.map((payment) =>
-                payment.plan === currentPlan.name
-                    ? { ...payment, plan: form.name, amount: price }
-                    : payment,
-            ),
-        );
-    };
-
-    const togglePlanStatus = (planId: number) => {
-        const today = new Date().toLocaleDateString("en-CA");
-        setPlans((current) =>
-            current.map((plan) =>
-                plan.id === planId
-                    ? {
-                        ...plan,
-                        status:
-                            plan.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                        updatedAt: today,
-                    }
-                    : plan,
-            ),
         );
     };
 
@@ -531,13 +443,7 @@ function ServiceAdminDashboardContent() {
                             />
                         )}
                         {view === "plans" && (
-                            <SubscriptionPlansView
-                                plans={plans}
-                                schools={schools}
-                                onCreate={createPlan}
-                                onUpdate={updatePlan}
-                                onToggleStatus={togglePlanStatus}
-                            />
+                            <SubscriptionPlansView />
                         )}
                         {view === "inquiries" && (
                             <InquiriesView

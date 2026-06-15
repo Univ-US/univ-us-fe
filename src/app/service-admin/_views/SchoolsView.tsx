@@ -12,12 +12,12 @@ import {
 } from "lucide-react";
 import {
     getServiceAdminSchools,
+    getServiceAdminPlans,
+    type ServiceAdminPlan,
     type ServiceAdminSchool,
     type ServiceAdminSchoolPage,
     type ServiceAdminSchoolQuery,
 } from "@/lib/serviceAdminApi";
-import { getSubscriptionPlans } from "@/lib/subscriptionApi";
-import type { SubscriptionPlan } from "@/types/subscription";
 import {
     formatCurrency,
     PaymentBadge,
@@ -52,7 +52,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
     const [planId, setPlanId] = useState<"ALL" | number>("ALL");
     const [sort, setSort] = useState<SortOption>("NAME_ASC");
     const [page, setPage] = useState(0);
-    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [plans, setPlans] = useState<ServiceAdminPlan[]>([]);
     const [result, setResult] = useState<ServiceAdminSchoolPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -66,8 +66,8 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
     }, [search]);
 
     useEffect(() => {
-        void getSubscriptionPlans()
-            .then(setPlans)
+        void getServiceAdminPlans()
+            .then((response) => setPlans(response.plans))
             .catch((planError) => {
                 console.error("Failed to load subscription plans.", planError);
             });
@@ -188,6 +188,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                         {plans.map((plan) => (
                             <option key={plan.planId} value={plan.planId}>
                                 {plan.planName}
+                                {plan.status === "INACTIVE" ? " (비활성)" : ""}
                             </option>
                         ))}
                     </select>

@@ -182,6 +182,36 @@ export interface ServiceAdminPaymentPlan {
     planName: string;
 }
 
+export type ServiceAdminPlanStatus = "ACTIVE" | "INACTIVE";
+
+export interface ServiceAdminPlan {
+    planId: number;
+    planName: string;
+    price: number;
+    description: string;
+    billingCycle: "MONTHLY";
+    maxMemberCount: number;
+    createdAt: string;
+    updateAt: string;
+    deletedAt: string | null;
+    subscriberCount: number;
+    status: ServiceAdminPlanStatus;
+}
+
+export interface ServiceAdminPlanResponse {
+    plans: ServiceAdminPlan[];
+    totalCount: number;
+    activeCount: number;
+    currentMonthRevenue: number;
+}
+
+export interface ServiceAdminPlanInput {
+    planName: string;
+    price: number;
+    description: string;
+    maxMemberCount: number;
+}
+
 export interface ServiceAdminPaymentPage {
     content: ServiceAdminPayment[];
     page: number;
@@ -312,6 +342,43 @@ export async function retryServiceAdminPayment(historyId: number) {
 export async function cancelServiceAdminScheduledPayment(historyId: number) {
     const response = await api.patch<ServiceAdminPayment>(
         `/api/service-admin/payments/${historyId}/cancel`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminPlans() {
+    const response = await api.get<ServiceAdminPlanResponse>(
+        "/api/service-admin/plans",
+    );
+    return response.data;
+}
+
+export async function createServiceAdminPlan(payload: ServiceAdminPlanInput) {
+    const response = await api.post<ServiceAdminPlan>(
+        "/api/service-admin/plans",
+        payload,
+    );
+    return response.data;
+}
+
+export async function updateServiceAdminPlan(
+    planId: number,
+    payload: ServiceAdminPlanInput,
+) {
+    const response = await api.patch<ServiceAdminPlan>(
+        `/api/service-admin/plans/${planId}`,
+        payload,
+    );
+    return response.data;
+}
+
+export async function changeServiceAdminPlanStatus(
+    planId: number,
+    status: ServiceAdminPlanStatus,
+) {
+    const response = await api.patch<ServiceAdminPlan>(
+        `/api/service-admin/plans/${planId}/status`,
+        { status },
     );
     return response.data;
 }
