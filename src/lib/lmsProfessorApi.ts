@@ -57,11 +57,6 @@ export const updateProfessorProfile = async (
   return res.data;
 };
 
-/** DELETE /api/lms/professor/profile — 회원탈퇴 요청 (PLM-012, 관리자 처리) */
-export const requestProfessorSecession = async () => {
-  await api.delete("/api/lms/professor/profile");
-};
-
 // 이미지 제약 (BE와 동일: JPG/JPEG/PNG, 최대 30MB)
 export const PROFILE_IMAGE_MAX_SIZE = 30 * 1024 * 1024; // 30MB
 export const PROFILE_IMAGE_ALLOWED_TYPES = ["image/jpeg", "image/png"];

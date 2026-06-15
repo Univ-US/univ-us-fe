@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Heart, MessageSquare, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BoardBadge, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
+import { BoardBadge, formatDate, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
 import type { MyPost } from '@/types/mypage';
 import { getMyPosts } from '@/lib/cmypageApi';
 import type { Post } from '@/types/community';
@@ -23,7 +23,7 @@ const S = {
   metaGroup: 'flex shrink-0 items-center gap-3 text-[12px] text-slate-400',
   metaItem: 'flex items-center gap-1',
   metaIcon: 'size-3.5',
-  date: 'w-[46px] text-right',
+  date: 'w-[72px] text-right',
   moreWrap: 'mt-4 flex justify-center',
   moreButton: 'rounded-xl border border-border bg-white px-5 py-2 text-[13px] font-bold text-slate-500 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0',
 };
@@ -44,6 +44,8 @@ export default function MyPosts() {
           createdAt: String(p.createdAt),
           likeCount: p.likeCount,
           commentCount: p.commentCount,
+          reportCount: p.reportCount,
+          isBlind: p.isBlind,
         })));
       } catch (e) {
         console.error(e);
@@ -73,27 +75,42 @@ export default function MyPosts() {
       ) : (
         <>
           <div className={S.listContainer}>
-            {visiblePosts.map((post, i) => (
-              <Link
-                key={post.postId}
-                href={getPostDetailHref(post.boardId, post.postId)}
-                className={cn(S.listItem, i < visiblePosts.length - 1 && S.listBorder)}
-              >
-                <BoardBadge board={post.board} />
-                <span className={S.title}>{post.title}</span>
-                <div className={S.metaGroup}>
-                  <span className={S.metaItem}>
-                    <Heart className={S.metaIcon} />
-                    {post.likeCount}
+            {visiblePosts.map((post, i) => {
+              const blind = Boolean(post.isBlind);
+
+              return (
+                <Link
+                  key={post.postId}
+                  href={getPostDetailHref(post.boardId, post.postId)}
+                  className={cn(
+                    S.listItem,
+                    blind && 'bg-slate-50 text-slate-400 hover:bg-slate-100',
+                    i < visiblePosts.length - 1 && S.listBorder,
+                  )}
+                >
+                  <BoardBadge board={post.board} />
+                  {blind && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                      블라인드
+                    </span>
+                  )}
+                  <span className={cn(S.title, blind && 'text-slate-400')}>
+                    {blind ? '신고 누적으로 블라인드 처리된 게시글입니다.' : post.title}
                   </span>
-                  <span className={S.metaItem}>
-                    <MessageSquare className={S.metaIcon} />
-                    {post.commentCount}
-                  </span>
-                  <span className={S.date}>{post.createdAt}</span>
-                </div>
-              </Link>
-            ))}
+                  <div className={S.metaGroup}>
+                    <span className={S.metaItem}>
+                      <Heart className={S.metaIcon} />
+                      {blind ? `신고 ${post.reportCount ?? 5}` : post.likeCount}
+                    </span>
+                    <span className={S.metaItem}>
+                      <MessageSquare className={S.metaIcon} />
+                      {post.commentCount}
+                    </span>
+                    <span className={S.date}>{formatDate(post.createdAt)}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
           {hasMore && (
             <div className={S.moreWrap}>
