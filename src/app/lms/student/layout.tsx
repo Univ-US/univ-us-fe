@@ -12,6 +12,7 @@ import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { ROLE, type Role } from "@/lib/rolecode";
+import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
 // SLM(학생 LMS) 접근 허용 역할: 학생 + 졸업생 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
 const STUDENT_LMS_ROLES: Role[] = [ROLE.STU, ROLE.ALU];
@@ -55,12 +56,35 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   // 사이드바 헤더(학교/이름/학과/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useStudentProfileStore((s) => s.profile);
   const loadProfile = useStudentProfileStore((s) => s.load);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
   const [logoutOpen, setLogoutOpen] = useState(false); // SLM-011 로그아웃 확인 모달
 
   useEffect(() => {
-    loadProfile().catch(() => setLoadFailed(true));
-  }, [loadProfile]);
+    let active = true;
+    void getSubscriptionStatus()
+      .then((status) => {
+        if (!active) return;
+        if (!status.serviceAccessible) {
+          router.replace("/landing?subscription=expired");
+          return;
+        }
+        setAccessChecked(true);
+      })
+      .catch(() => {
+        if (active) setAccessChecked(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (accessChecked) {
+      loadProfile().catch(() => setLoadFailed(true));
+    }
+  }, [accessChecked, loadProfile]);
 
   // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
   const handleLogout = async () => {
@@ -77,6 +101,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   const avatar = resolveImg(profile?.lmsStudentProfileImageUrl ?? null);
   const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
+
+  if (!accessChecked) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50">

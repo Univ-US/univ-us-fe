@@ -12,6 +12,7 @@ import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import { ROLE, type Role } from "@/lib/rolecode";
+import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
 // PLM(교수 LMS) 접근 허용 역할: 교수 전용 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
 const PROFESSOR_LMS_ROLES: Role[] = [ROLE.PROF];
@@ -62,6 +63,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   // 사이드바 헤더(학교/이름/소속/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useProfessorProfileStore((s) => s.profile);
   const loadProfile = useProfessorProfileStore((s) => s.load);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
 
   // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
@@ -69,8 +71,30 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const loadUngradedCount = useLmsGradingStore((s) => s.loadUngradedCount);
 
   useEffect(() => {
-    loadProfile().catch(() => setLoadFailed(true));
-  }, [loadProfile]);
+    let active = true;
+    void getSubscriptionStatus()
+      .then((status) => {
+        if (!active) return;
+        if (!status.serviceAccessible) {
+          router.replace("/landing?subscription=expired");
+          return;
+        }
+        setAccessChecked(true);
+      })
+      .catch(() => {
+        if (active) setAccessChecked(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (accessChecked) {
+      loadProfile().catch(() => setLoadFailed(true));
+    }
+  }, [accessChecked, loadProfile]);
 
   // 미채점 건수 조회 — 가드가 PROF 전용이라 role 체크는 이중 안전장치
   useEffect(() => {
@@ -89,6 +113,8 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
 
   const avatar = resolveImg(profile?.lmsProfessorProfileImageUrl ?? null);
   const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
+
+  if (!accessChecked) return null;
 
   return (
     <div className="flex min-h-screen bg-slate-50">

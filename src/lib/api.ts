@@ -25,6 +25,11 @@ interface RefreshTokenResponse {
     role: string;
 }
 
+// BE가 구독 만료로 API 접근을 차단했는지 식별하기 위한 응답 형식입니다.
+interface SubscriptionAccessErrorResponse {
+    code?: string;
+}
+
 // #    여기서 NEXT_PUBLIC_API_BASE_URL 주입이 이 FE의 "prod 설정"의 핵심.
 // #    - "" (빈 문자열) = 상대경로 → 배포 시 같은 도메인(Traefik)의 /api 호출 → CORS 불필요
 // #    - 로컬 개발(npm run dev)엔 이 env가 없어 api.ts 기본값(localhost:9090) 사용
@@ -110,6 +115,25 @@ api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as RetryableRequestConfig | undefined;
+        const responseData =
+            error.response?.data as SubscriptionAccessErrorResponse | undefined;
+
+        // 구독이 종료된 사용자는 권한에 따라 재구독 화면 또는 만료 안내 화면으로 이동시킵니다.
+        if (
+            error.response?.status === 403 &&
+            responseData?.code === "SUBSCRIPTION_EXPIRED"
+        ) {
+            if (
+                typeof window !== "undefined" &&
+                !window.location.pathname.startsWith("/subscribe")
+            ) {
+                window.location.href =
+                    localStorage.getItem("role") === "ADM"
+                        ? "/subscribe"
+                        : "/landing?subscription=expired";
+            }
+            return Promise.reject(error);
+        }
 
         // 401이 아닌 에러는 토큰 만료와 무관하므로 기존처럼 그대로 넘깁니다.
         // 원본 요청 정보가 없는 경우에도 재시도할 수 없으므로 그대로 실패 처리합니다.

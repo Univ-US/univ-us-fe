@@ -2,7 +2,10 @@
 
 import { create } from "zustand";
 import { login, logout } from "@/lib/authApi";
-import type { SubscriptionPaymentVerifyResponse } from "@/types/subscription";
+import type {
+    SubscriptionAccessState,
+    SubscriptionPaymentVerifyResponse,
+} from "@/types/subscription";
 
 interface AuthState {
     accessToken: string | null;
@@ -27,6 +30,11 @@ interface AuthState {
     ) => void;
     updateStatus: (status: string) => void;
     updateCommunityNickname: (communityNickname: string) => void;
+    // 구독에 따른 서비스 접근 상태를 Zustand 전역 상태와 localStorage에서 공유합니다.
+    subscriptionAccessStatus: SubscriptionAccessState | null;
+    updateSubscriptionAccessStatus: (
+        status: SubscriptionAccessState | null,
+    ) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -42,6 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     isLoggedIn: false,
     // 앱이 처음 뜬 직후에는 아직 localStorage를 읽기 전입니다.
     isInitialized: false,
+    subscriptionAccessStatus: null,
 
     loadFromStorage: () => {
         const accessToken = localStorage.getItem("accessToken");
@@ -53,6 +62,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const univName = localStorage.getItem("univName");
         const communityNickname = localStorage.getItem("communityNickname");
         const status = localStorage.getItem("status");
+        // 새로고침 후에도 저장된 구독 접근 상태를 전역 상태로 복원합니다.
+        const subscriptionAccessStatus = localStorage.getItem(
+            "subscriptionAccessStatus",
+        ) as SubscriptionAccessState | null;
 
         set({
             accessToken,
@@ -67,6 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isLoggedIn: !!accessToken,
             // localStorage 복원이 끝났다는 표시입니다.
             isInitialized: true,
+            subscriptionAccessStatus,
         });
     },
 
@@ -107,6 +121,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem("role", verification.role);
         localStorage.setItem("univId", String(verification.univId));
         localStorage.setItem("univName", univName);
+        // 구독 결제 검증이 끝나면 즉시 접근 가능 상태로 갱신합니다.
+        localStorage.setItem("subscriptionAccessStatus", "ACTIVE");
 
         set({
             accessToken: verification.accessToken,
@@ -116,6 +132,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             univName,
             isLoggedIn: true,
             isInitialized: true,
+            subscriptionAccessStatus: "ACTIVE",
         });
     },
 
@@ -127,6 +144,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     updateCommunityNickname: (communityNickname: string) => {
         localStorage.setItem("communityNickname", communityNickname);
         set({ communityNickname: communityNickname || null });
+    },
+
+    updateSubscriptionAccessStatus: (status) => {
+        // 화면 간 이동과 새로고침에서도 같은 구독 접근 상태를 사용하도록 함께 저장합니다.
+        if (status) {
+            localStorage.setItem("subscriptionAccessStatus", status);
+        } else {
+            localStorage.removeItem("subscriptionAccessStatus");
+        }
+
+        set({ subscriptionAccessStatus: status });
     },
 
     logoutAction: async () => {
@@ -148,6 +176,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             localStorage.removeItem("univId");
             localStorage.removeItem("univName");
             localStorage.removeItem("status");
+            localStorage.removeItem("subscriptionAccessStatus");
 
             set({
                 accessToken: null,
@@ -161,6 +190,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 status: null,
                 isLoggedIn: false,
                 isInitialized: true,
+                subscriptionAccessStatus: null,
             });
         }
     },
