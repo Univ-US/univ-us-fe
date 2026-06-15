@@ -6,6 +6,8 @@ export interface MyPost {
   createdAt: string;
   likeCount: number;
   commentCount: number;
+  reportCount?: number;
+  isBlind?: number;
 }
 
 export interface MyComment {
@@ -27,6 +29,8 @@ export interface MyTrade {
   price: number;
   status: string;
   role: '판매' | '구매';
+  reportCount?: number;
+  isBlind?: number;
   createdAt: string;
 }
 
