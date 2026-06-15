@@ -106,6 +106,38 @@ export interface ServiceAdminSchoolPage {
     last: boolean;
 }
 
+export interface ServiceAdminMember {
+    memberId: number;
+    univId: number;
+    univName: string;
+    loginId: string;
+    memberName: string;
+    phoneNumber: number | null;
+    status: MemberStatus;
+    createdAt: string;
+    logtimeAt: string | null;
+}
+
+export interface ServiceAdminMemberPage {
+    content: ServiceAdminMember[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+    totalCount: number;
+    activeCount: number;
+    suspendedCount: number;
+}
+
+export interface ServiceAdminMemberQuery {
+    page: number;
+    keyword?: string;
+    status?: MemberStatus;
+    sort?: "SCHOOL_ASC" | "NAME_ASC" | "JOINED_DESC";
+}
+
 export interface ServiceAdminSchoolQuery {
     page: number;
     keyword?: string;
@@ -155,6 +187,27 @@ export async function changeServiceAdminSchoolPlan(
 export async function scheduleServiceAdminSchoolCancellation(univId: number) {
     const response = await api.patch<ServiceAdminSchool>(
         `/api/service-admin/schools/${univId}/cancel`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminMembers(
+    params: ServiceAdminMemberQuery,
+) {
+    const response = await api.get<ServiceAdminMemberPage>(
+        "/api/service-admin/members",
+        { params },
+    );
+    return response.data;
+}
+
+export async function changeServiceAdminMemberStatus(
+    memberId: number,
+    status: "ACTIVE" | "SUSPENDED",
+) {
+    const response = await api.patch<ServiceAdminMember>(
+        `/api/service-admin/members/${memberId}/status`,
+        { status },
     );
     return response.data;
 }

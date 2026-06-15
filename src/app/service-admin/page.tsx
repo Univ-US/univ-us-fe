@@ -532,10 +532,7 @@ function ServiceAdminDashboardContent() {
                         )}
                         {view === "members" && (
                             <MembersView
-                                schools={schools}
-                                members={members}
-                                onChangeStatus={changeMemberStatus}
-                                onOpenSchool={openSchool}
+                                onOpenSchool={openSchoolById}
                             />
                         )}
                         {view === "users" && (
