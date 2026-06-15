@@ -26,6 +26,7 @@ const CHECKLIST = [
 const FILE_ACCEPT_HINT =
   "영상(MP4·AVI·MOV·WMV) · 음성(MP3·M4A·WAV) · 문서(PDF·HWP·DOC·PPT·XLS·TXT) · 이미지(JPG·PNG·GIF) · ZIP — 최대 5GB";
 const MEMO_MAX = 1000;
+const SUBMIT_LIST_PAGE_SIZE = 6;
 
 export default function StudentSubmitPage() {
   const [items, setItems] = useState<SubmitItem[]>([]);
@@ -41,6 +42,7 @@ export default function StudentSubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [queryReady, setQueryReady] = useState(false);
   const [preferredAssignmentId, setPreferredAssignmentId] = useState<number | null>(null);
+  const [listPage, setListPage] = useState(0);
   const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
 
   const selectItem = useCallback((item: SubmitItem) => {
@@ -59,7 +61,12 @@ export default function StudentSubmitPage() {
         const data = await getSubmittableAssignments();
         setItems(data);
         setSubmittableCount(data.length);
-        const next = data.find((item) => item.id === preferredId) ?? data[0] ?? null;
+        const preferredIndex =
+          preferredId == null ? -1 : data.findIndex((item) => item.id === preferredId);
+        const next = preferredIndex >= 0 ? data[preferredIndex] : data[0] ?? null;
+        setListPage(
+          preferredIndex >= 0 ? Math.floor(preferredIndex / SUBMIT_LIST_PAGE_SIZE) : 0,
+        );
         if (next) {
           selectItem(next);
         } else {
@@ -91,6 +98,31 @@ export default function StudentSubmitPage() {
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
+  );
+  const totalListPages = Math.max(1, Math.ceil(items.length / SUBMIT_LIST_PAGE_SIZE));
+  const safeListPage = Math.min(listPage, totalListPages - 1);
+  const listStartIndex = safeListPage * SUBMIT_LIST_PAGE_SIZE;
+  const pagedItems = items.slice(listStartIndex, listStartIndex + SUBMIT_LIST_PAGE_SIZE);
+  const listEndIndex = Math.min(listStartIndex + pagedItems.length, items.length);
+  const padListCount =
+    totalListPages > 1 ? SUBMIT_LIST_PAGE_SIZE - pagedItems.length : 0;
+
+  useEffect(() => {
+    if (listPage !== safeListPage) {
+      setListPage(safeListPage);
+    }
+  }, [listPage, safeListPage]);
+
+  const changeListPage = useCallback(
+    (page: number) => {
+      const nextPage = Math.max(0, Math.min(page, totalListPages - 1));
+      setListPage(nextPage);
+      const nextItem = items[nextPage * SUBMIT_LIST_PAGE_SIZE];
+      if (nextItem) {
+        selectItem(nextItem);
+      }
+    },
+    [items, selectItem, totalListPages],
   );
 
   const pickFiles = (list: FileList | null) => {
@@ -171,7 +203,7 @@ export default function StudentSubmitPage() {
               <span className="text-[11px] text-slate-400">과제 선택 후 제출</span>
             </div>
             <ul className="p-2">
-              {items.map((item) => {
+              {pagedItems.map((item) => {
                 const active = item.id === selectedId;
                 return (
                   <li key={item.id}>
@@ -209,7 +241,42 @@ export default function StudentSubmitPage() {
                   </li>
                 );
               })}
+              {Array.from({ length: padListCount }).map((_, i) => (
+                <li key={`pad-${i}`} aria-hidden>
+                  <div className="h-[58px]" />
+                </li>
+              ))}
             </ul>
+            {totalListPages > 1 && (
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
+                <span className="text-[11px] font-medium text-slate-400">
+                  {listStartIndex + 1}-{listEndIndex} / {items.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => changeListPage(safeListPage - 1)}
+                    disabled={safeListPage === 0}
+                    aria-label="이전 페이지"
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    ‹
+                  </button>
+                  <span className="min-w-10 text-center text-xs font-semibold text-slate-600">
+                    {safeListPage + 1} / {totalListPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => changeListPage(safeListPage + 1)}
+                    disabled={safeListPage >= totalListPages - 1}
+                    aria-label="다음 페이지"
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {!selected ? (
