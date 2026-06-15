@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
     Bell,
@@ -55,7 +56,34 @@ const VALID_VIEWS = new Set(Object.keys(SECTION_LABEL) as View[]);
 function SchoolAdminDashboard() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { logoutAction, memberName } = useAuthStore();
+    const { logoutAction, memberName, isInitialized, role } = useAuthStore();
+    const [accessChecked, setAccessChecked] = useState(false);
+
+    useEffect(() => {
+        if (!isInitialized) return;
+        if (role !== "ADM") {
+            setAccessChecked(true);
+            return;
+        }
+
+        let active = true;
+        void getSubscriptionStatus()
+            .then((status) => {
+                if (!active) return;
+                if (!status.serviceAccessible) {
+                    router.replace("/subscribe");
+                    return;
+                }
+                setAccessChecked(true);
+            })
+            .catch(() => {
+                if (active) setAccessChecked(true);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isInitialized, role, router]);
 
     const rawView = searchParams.get("view") as View | null;
     const view: View = rawView && VALID_VIEWS.has(rawView) ? rawView : "dashboard";
@@ -68,6 +96,10 @@ function SchoolAdminDashboard() {
         await logoutAction();
         router.push("/landing");
     };
+
+    if (!accessChecked) {
+        return null;
+    }
 
     return (
         <RoleGuard allowedRoles={["ADM"]}>

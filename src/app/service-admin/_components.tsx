@@ -47,6 +47,24 @@ export function PaymentBadge({ value }: { value: PaymentStatus }) {
     );
 }
 
+export function PendingActionBadge({
+    value,
+}: {
+    value: "PLAN_CHANGE" | "CANCEL";
+}) {
+    const label = value === "PLAN_CHANGE" ? "플랜 변경 예정" : "구독 취소 예정";
+    const style =
+        value === "PLAN_CHANGE"
+            ? "bg-sky-100 text-sky-700"
+            : "bg-amber-100 text-amber-700";
+
+    return (
+        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-extrabold ${style}`}>
+            {label}
+        </span>
+    );
+}
+
 export function formatCurrency(value: number) {
     return `${value.toLocaleString("ko-KR")}원`;
 }

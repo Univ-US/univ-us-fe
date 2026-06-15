@@ -66,3 +66,29 @@ export interface SubscriptionPaymentCancelRequest {
   merchantUid: string;
   reason: string;
 }
+
+export type SubscriptionAccessState =
+  | "ACTIVE"
+  | "CANCEL_SCHEDULED"
+  | "PENDING"
+  | "EXPIRED"
+  | "UNSUBSCRIBED";
+
+export interface SubscriptionAccessStatus {
+  memberId: number;
+  role: string;
+  univId: number | null;
+  univName: string | null;
+  sido: string | null;
+  address: string | null;
+  schoolPhone: string | null;
+  homepage: string | null;
+  subscriptionId: number | null;
+  subscriptionStatus: string | null;
+  pendingAction: string | null;
+  cancellationEffectiveAt: string | null;
+  endedAt: string | null;
+  accessStatus: SubscriptionAccessState;
+  serviceAccessible: boolean;
+  resubscribeAvailable: boolean;
+}

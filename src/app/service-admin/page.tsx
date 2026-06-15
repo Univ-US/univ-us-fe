@@ -53,7 +53,6 @@ import type {
     ServicePayment,
     ServiceSchool,
     ServiceSubscriptionPlan,
-    SubscriptionPlan,
 } from "./_types";
 
 interface NavItem {
@@ -159,19 +158,19 @@ function ServiceAdminDashboardContent() {
 
     const requestedView = searchParams.get("view");
     const requestedSchoolId = Number(searchParams.get("schoolId"));
-    const requestedSchool =
-        Number.isInteger(requestedSchoolId) && requestedSchoolId > 0
-            ? schools.find((school) => school.id === requestedSchoolId) ?? null
-            : null;
+    const hasValidRequestedSchoolId =
+        Number.isInteger(requestedSchoolId) && requestedSchoolId > 0;
     const parsedView = requestedView
         ? SERVICE_ADMIN_VIEW_BY_PARAM[requestedView]
         : "dashboard";
     const view =
-        parsedView === "schoolDetail" && !requestedSchool
+        parsedView === "schoolDetail" && !hasValidRequestedSchoolId
             ? "schools"
             : parsedView ?? "dashboard";
-    const selectedSchool = view === "schoolDetail" ? requestedSchool : null;
-    const selectedSchoolId = selectedSchool?.id ?? null;
+    const selectedSchoolId =
+        view === "schoolDetail" && hasValidRequestedSchoolId
+            ? requestedSchoolId
+            : null;
 
     useEffect(() => {
         if (requestedView && !parsedView) {
@@ -179,10 +178,10 @@ function ServiceAdminDashboardContent() {
             return;
         }
 
-        if (parsedView === "schoolDetail" && !requestedSchool) {
+        if (parsedView === "schoolDetail" && !hasValidRequestedSchoolId) {
             router.replace("/service-admin?view=schools");
         }
-    }, [parsedView, requestedSchool, requestedView, router]);
+    }, [hasValidRequestedSchoolId, parsedView, requestedView, router]);
 
     const navigateToView = (nextView: ServiceAdminView) => {
         const viewParam = SERVICE_ADMIN_PARAM_BY_VIEW[nextView];
@@ -204,38 +203,10 @@ function ServiceAdminDashboardContent() {
         );
     };
 
-    const updateSelectedSchool = (updater: (school: ServiceSchool) => ServiceSchool) => {
-        if (!selectedSchoolId) return;
-        setSchools((current) =>
-            current.map((school) => (school.id === selectedSchoolId ? updater(school) : school)),
+    const openSchoolById = (schoolId: number) => {
+        router.push(
+            `/service-admin?view=school-detail&schoolId=${schoolId}`,
         );
-    };
-
-    const changePlan = (plan: SubscriptionPlan) => {
-        const selectedPlan = plans.find(
-            (candidate) => candidate.name === plan && candidate.status === "ACTIVE",
-        );
-        if (!selectedPlan) return;
-
-        const todayDate = new Date();
-        const today = todayDate.toLocaleDateString("en-CA");
-        const nextBillingDate = new Date(todayDate);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-
-        updateSelectedSchool((school) => ({
-            ...school,
-            plan,
-            monthlyRevenue: selectedPlan.price,
-            paymentStatus: "READY",
-            subscriptionStatus: "ACTIVE",
-            firstSubscribedAt: school.firstSubscribedAt ?? today,
-            subscriptionEndedAt: null,
-            nextBillingAt:
-                school.nextBillingAt === "-"
-                    ? nextBillingDate.toLocaleDateString("en-CA")
-                    : school.nextBillingAt,
-            portoneCustomerId: school.portoneCustomerId ?? `cus_mock_${school.id}`,
-        }));
     };
 
     const createPlan = (form: PlanForm) => {
@@ -317,18 +288,6 @@ function ServiceAdminDashboardContent() {
                     : plan,
             ),
         );
-    };
-
-    const cancelSubscription = () => {
-        const today = new Date().toLocaleDateString("en-CA");
-        updateSelectedSchool((school) => ({
-            ...school,
-            subscriptionStatus: "CANCELED",
-            paymentStatus: "CANCELED",
-            subscriptionEndedAt: today,
-            monthlyRevenue: 0,
-            nextBillingAt: "-",
-        }));
     };
 
     const changeMemberStatus = (memberId: number, status: MemberStatus) => {
@@ -563,15 +522,12 @@ function ServiceAdminDashboardContent() {
                             />
                         )}
                         {view === "schools" && (
-                            <SchoolsView schools={schools} onSelectSchool={openSchool} />
+                            <SchoolsView onSelectSchool={openSchoolById} />
                         )}
-                        {view === "schoolDetail" && selectedSchool && (
+                        {view === "schoolDetail" && selectedSchoolId && (
                             <SchoolDetailView
-                                school={selectedSchool}
-                                plans={plans}
+                                schoolId={selectedSchoolId}
                                 onBack={() => navigateToView("schools")}
-                                onChangePlan={changePlan}
-                                onCancelSubscription={cancelSubscription}
                             />
                         )}
                         {view === "members" && (

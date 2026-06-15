@@ -18,12 +18,14 @@ import {
   completeSubscriptionBillingPayment,
   getSubscriptionPaymentConfig,
   getSubscriptionPlans,
+  getSubscriptionStatus,
   prepareSubscription,
 } from "@/lib/subscriptionApi";
 import { loadPortOneSdk } from "@/lib/portone";
 import { useAuthStore } from "@/store/authStore";
 import type {
   SubscriptionPaymentMethod,
+  SubscriptionAccessStatus,
   SubscriptionPaymentVerifyResponse,
   SubscriptionPlan,
   SubscriptionPrepareRequest,
@@ -94,6 +96,9 @@ export default function SubscribePage() {
     useState<SubscriptionPaymentMethod>("CARD");
   const [form, setForm] = useState(initialForm);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingAccess, setLoadingAccess] = useState(true);
+  const [accessStatus, setAccessStatus] =
+    useState<SubscriptionAccessStatus | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,14 +115,54 @@ export default function SubscribePage() {
       return;
     }
 
-    if (role === "ADM") {
-      router.replace("/dashboard/school-admin");
+    if (role === "GUEST") {
+      setLoadingAccess(false);
       return;
     }
 
-    if (role !== "GUEST") {
+    if (role !== "ADM") {
       router.replace("/landing");
+      return;
     }
+
+    let active = true;
+    void getSubscriptionStatus()
+      .then((status) => {
+        if (!active) return;
+
+        if (status.serviceAccessible) {
+          router.replace("/dashboard/school-admin");
+          return;
+        }
+
+        setAccessStatus(status);
+        setForm({
+          univName: status.univName ?? "",
+          sido: status.sido ?? "",
+          address: status.address ?? "",
+          schoolPhone: status.schoolPhone ?? "",
+          homepage: status.homepage ?? "",
+        });
+        if (!status.resubscribeAvailable) {
+          setError("진행 중인 구독 결제 요청을 먼저 정리해야 합니다.");
+        }
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(
+          getApiErrorMessage(
+            requestError,
+            "구독 상태를 확인하지 못했습니다.",
+          ),
+        );
+      })
+      .finally(() => {
+        if (active) setLoadingAccess(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [isInitialized, isLoggedIn, role, router]);
 
   useEffect(() => {
@@ -184,6 +229,11 @@ export default function SubscribePage() {
 
     if (!selectedPlan) {
       setError("구독 플랜을 선택해주세요.");
+      return;
+    }
+
+    if (role === "ADM" && !accessStatus?.resubscribeAvailable) {
+      setError("현재 상태에서는 재구독을 시작할 수 없습니다.");
       return;
     }
 
@@ -259,7 +309,10 @@ export default function SubscribePage() {
         paymentMethod,
       });
 
-      applySubscriptionVerification(verification, form.univName.trim());
+      applySubscriptionVerification(
+        verification,
+        accessStatus?.univName ?? form.univName.trim(),
+      );
       router.replace("/dashboard/school-admin");
     } catch (requestError) {
       if (merchantUid && !billingPaymentStarted) {
@@ -285,7 +338,9 @@ export default function SubscribePage() {
   if (
     !isInitialized ||
     !isLoggedIn ||
-    role !== "GUEST"
+    (role !== "GUEST" && role !== "ADM") ||
+    loadingAccess ||
+    (role === "ADM" && !accessStatus)
   ) {
     return null;
   }
@@ -307,9 +362,13 @@ export default function SubscribePage() {
               <CreditCard className="size-5" />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight">구독 신청</h1>
+              <h1 className="text-3xl font-black tracking-tight">
+                {role === "ADM" ? "구독 다시 시작" : "구독 신청"}
+              </h1>
               <p className="mt-1 text-sm text-slate-500">
-                플랜과 학교 정보를 확인한 뒤 결제를 진행해주세요.
+                {role === "ADM"
+                  ? "기존 학교로 새 구독 플랜과 결제를 진행해주세요."
+                  : "플랜과 학교 정보를 확인한 뒤 결제를 진행해주세요."}
               </p>
             </div>
           </div>
@@ -451,6 +510,7 @@ export default function SubscribePage() {
                   학교명
                   <input
                     required
+                    disabled={role === "ADM"}
                     value={form.univName}
                     onChange={(event) =>
                       updateForm("univName", event.target.value)
@@ -464,6 +524,7 @@ export default function SubscribePage() {
                   시도
                   <input
                     required
+                    disabled={role === "ADM"}
                     value={form.sido}
                     onChange={(event) =>
                       updateForm("sido", event.target.value)
@@ -477,6 +538,7 @@ export default function SubscribePage() {
                   주소
                   <input
                     required
+                    disabled={role === "ADM"}
                     value={form.address}
                     onChange={(event) =>
                       updateForm("address", event.target.value)
@@ -490,6 +552,7 @@ export default function SubscribePage() {
                   대표 전화번호
                   <input
                     required
+                    disabled={role === "ADM"}
                     value={form.schoolPhone}
                     onChange={(event) =>
                       updateForm("schoolPhone", event.target.value)
@@ -503,6 +566,7 @@ export default function SubscribePage() {
                   홈페이지
                   <input
                     required
+                    disabled={role === "ADM"}
                     type="url"
                     value={form.homepage}
                     onChange={(event) =>
@@ -577,7 +641,8 @@ export default function SubscribePage() {
                 submitting ||
                 loadingPlans ||
                 !selectedPlan ||
-                plans.length === 0
+                plans.length === 0 ||
+                (role === "ADM" && !accessStatus?.resubscribeAvailable)
               }
               className="mt-5 h-12 w-full text-base font-black"
             >

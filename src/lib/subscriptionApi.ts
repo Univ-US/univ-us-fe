@@ -1,6 +1,7 @@
 import api from "@/lib/api";
 import type {
   SubscriptionBillingPaymentRequest,
+  SubscriptionAccessStatus,
   SubscriptionPaymentCancelRequest,
   SubscriptionPaymentConfig,
   SubscriptionPaymentVerifyRequest,
@@ -9,6 +10,13 @@ import type {
   SubscriptionPrepareRequest,
   SubscriptionPrepareResponse,
 } from "@/types/subscription";
+
+export async function getSubscriptionStatus() {
+  const response = await api.get<SubscriptionAccessStatus>(
+    "/api/subscriptions/status",
+  );
+  return response.data;
+}
 
 export async function getSubscriptionPlans() {
   const response = await api.get<SubscriptionPlan[]>("/api/subscriptions/plans");
