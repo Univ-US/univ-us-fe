@@ -14,6 +14,7 @@ import {
   type SubmitItem,
 } from "@/lib/lmsStudentSubmitApi";
 import { describeApiError } from "@/lib/lmsApiError";
+import { htmlToPlainText } from "@/lib/lmsSanitize";
 
 const CHECKLIST = [
   "파일명에 학번 포함 여부 확인",
@@ -37,6 +38,8 @@ export default function StudentSubmitPage() {
   const [memo, setMemo] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [queryReady, setQueryReady] = useState(false);
+  const [preferredAssignmentId, setPreferredAssignmentId] = useState<number | null>(null);
 
   const selectItem = useCallback((item: SubmitItem) => {
     setSelectedId(item.id);
@@ -71,8 +74,16 @@ export default function StudentSubmitPage() {
   );
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    const assignmentId = new URLSearchParams(window.location.search).get("assignmentId");
+    const parsed = assignmentId == null ? NaN : Number(assignmentId);
+    setPreferredAssignmentId(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+    setQueryReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!queryReady) return;
+    void load(preferredAssignmentId ?? undefined);
+  }, [load, preferredAssignmentId, queryReady]);
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -106,8 +117,8 @@ export default function StudentSubmitPage() {
     setNotice(null);
     try {
       await submitStudentAssignment(selected.id, { file, memo });
-      setNotice("과제가 제출되었습니다.");
       await load();
+      setNotice("과제가 제출되었습니다.");
     } catch (err) {
       setSubmitError(describeApiError(err));
     } finally {
@@ -123,6 +134,12 @@ export default function StudentSubmitPage() {
           <p className="mt-1 text-sm text-slate-500">미제출 과제 {items.length}건</p>
         </div>
       </header>
+
+      {notice && (
+        <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+          {notice}
+        </p>
+      )}
 
       {loadError ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
@@ -210,11 +227,6 @@ export default function StudentSubmitPage() {
                   {submitError}
                 </p>
               )}
-              {notice && (
-                <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
-                  {notice}
-                </p>
-              )}
 
               <div className="rounded-xl bg-slate-50 px-4 py-3">
                 <p className="mb-1.5 text-sm font-bold text-slate-700">과제 설명</p>
@@ -223,7 +235,7 @@ export default function StudentSubmitPage() {
                     · 과목: {selected.guide.courseName} ({selected.guide.professor} 교수)
                   </li>
                   {selected.guide.lines.map((line, i) => (
-                    <li key={i}>· {line}</li>
+                    <li key={i}>· {htmlToPlainText(line)}</li>
                   ))}
                 </ul>
               </div>

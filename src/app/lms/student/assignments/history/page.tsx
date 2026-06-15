@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import StudentSubmissionPreviewDialog from "@/components/lms/StudentSubmissionPreviewDialog";
 import StudentFeedbackDialog from "@/components/lms/StudentFeedbackDialog";
 import { describeApiError } from "@/lib/lmsApiError";
+import { htmlToPlainText } from "@/lib/lmsSanitize";
 import {
   getStudentAssignments,
   STUDENT_ASSIGNMENT_STATUS_LABEL,
@@ -30,6 +31,7 @@ const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
 };
 
 const ASSIGNMENT_PAGE_SIZE = 10;
+const SEMESTER_PAGE_SIZE = 3;
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -45,6 +47,7 @@ export default function StudentAssignmentsHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
+  const [semesterPage, setSemesterPage] = useState(0);
 
   const [fileTarget, setFileTarget] = useState<StudentAssignment | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<StudentAssignment | null>(null);
@@ -65,6 +68,10 @@ export default function StudentAssignmentsHistoryPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setSemesterPage(0);
+  }, [statusFilter, yearFilter, termFilter]);
 
   const yearOptions = useMemo(
     () => (data ? [...new Set(data.semesters.map((s) => s.year))].sort((a, b) => b - a) : []),
@@ -96,6 +103,14 @@ export default function StudentAssignmentsHistoryPage() {
       }))
       .filter((sem) => sem.assignments.length > 0);
   }, [data, statusFilter, yearFilter, termFilter]);
+
+  const totalSemesterPages = Math.max(1, Math.ceil(visibleSemesters.length / SEMESTER_PAGE_SIZE));
+  const safeSemesterPage = Math.min(semesterPage, totalSemesterPages - 1);
+  const semesterStartIndex = safeSemesterPage * SEMESTER_PAGE_SIZE;
+  const pagedVisibleSemesters = visibleSemesters.slice(
+    semesterStartIndex,
+    semesterStartIndex + SEMESTER_PAGE_SIZE
+  );
 
   const unsubmittedCount = useMemo(
     () =>
@@ -184,18 +199,38 @@ export default function StudentAssignmentsHistoryPage() {
       ) : visibleSemesters.length === 0 ? (
         <p className="py-16 text-center text-sm text-slate-400">조건에 맞는 과제가 없습니다.</p>
       ) : (
-        <div className="space-y-6">
-          {visibleSemesters.map((sem) => (
-            // 상태 필터 변경 시 key가 바뀌어 페이지가 1로 리셋됨(년도/학기는 학기 섹션 자체를 거름)
-            <SemesterAssignmentTable
-              key={`${sem.year}-${sem.termCode}-${statusFilter}`}
-              sem={sem}
-              onViewFile={setFileTarget}
-              onViewFeedback={setFeedbackTarget}
-              // 미제출 '제출하러 가기' = 모달이 아니라 SLM-007 과제 제출 페이지로 이동
-              onSubmit={() => router.push("/lms/student/assignments/submit")}
-            />
-          ))}
+        <div className="space-y-4">
+          <SemesterPager
+            page={safeSemesterPage}
+            totalPages={totalSemesterPages}
+            totalItems={visibleSemesters.length}
+            startIndex={semesterStartIndex}
+            visibleCount={pagedVisibleSemesters.length}
+            onChange={setSemesterPage}
+          />
+
+          <div className="space-y-6">
+            {pagedVisibleSemesters.map((sem) => (
+              <SemesterAssignmentTable
+                key={`${sem.year}-${sem.termCode}-${statusFilter}`}
+                sem={sem}
+                onViewFile={setFileTarget}
+                onViewFeedback={setFeedbackTarget}
+                onSubmit={(assignment) =>
+                  router.push(`/lms/student/assignments/submit?assignmentId=${assignment.id}`)
+                }
+              />
+            ))}
+          </div>
+
+          <SemesterPager
+            page={safeSemesterPage}
+            totalPages={totalSemesterPages}
+            totalItems={visibleSemesters.length}
+            startIndex={semesterStartIndex}
+            visibleCount={pagedVisibleSemesters.length}
+            onChange={setSemesterPage}
+          />
         </div>
       )}
 
@@ -272,7 +307,7 @@ function RowAction({
   );
 }
 
-// 학기 과제 테이블 — 학기별 독립 클라이언트 페이지네이션(목업), 페이지당 ASSIGNMENT_PAGE_SIZE건
+// 학기 과제 테이블 — 학기별 독립 클라이언트 페이지네이션, 페이지당 ASSIGNMENT_PAGE_SIZE건
 function SemesterAssignmentTable({
   sem,
   onViewFile,
@@ -313,58 +348,58 @@ function SemesterAssignmentTable({
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((a) => (
-            <tr key={a.id} className="border-b border-slate-50 last:border-0">
-              <td className="px-5 py-3">
-                <span className="block truncate text-slate-600" title={a.courseName}>
-                  {a.courseName}
-                </span>
-                {/* 분반(N반) — §21, 값 없으면 '-' */}
-                <span className="mt-0.5 block text-xs text-slate-400">
-                  {a.lecSection != null ? `${a.lecSection}반` : "-"}
-                </span>
-              </td>
-              <td className="px-2 py-3">
-                <span className="block truncate font-semibold text-slate-800" title={a.title}>
-                  {a.title}
-                </span>
-                {/* 과제 내용(LEC_ASN_CONTENT) 하단 표기 */}
-                {a.content && (
-                  <span className="mt-0.5 block truncate text-xs text-slate-400" title={a.content}>
-                    {a.content}
+          {pageRows.map((a) => {
+            const contentText = a.content?.trim() ? htmlToPlainText(a.content) : "";
+            return (
+              <tr key={a.id} className="border-b border-slate-50 last:border-0">
+                <td className="px-5 py-3">
+                  <span className="block truncate text-slate-600" title={a.courseName}>
+                    {a.courseName}
                   </span>
-                )}
-              </td>
-              <td className="px-2 py-3 font-mono text-xs text-slate-600">
-                {a.dueDate}
-              </td>
-              <td className="px-2 py-3">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_PILL[a.status]}`}
-                >
-                  {STUDENT_ASSIGNMENT_STATUS_LABEL[a.status]}
-                </span>
-              </td>
-              <td className="px-2 py-3">
-                {/* 점수는 채점완료(GRD)일 때만 표기 — 제출(SBM)은 DB에 점수 없음 → 미제출과 동일하게 '-' */}
-                {a.status === "GRD" && a.score != null ? (
-                  <span className="font-semibold text-slate-900">
-                    {a.score} <span className="text-slate-400">/ {a.maxScore}</span>
+                  <span className="mt-0.5 block text-xs text-slate-400">
+                    {a.lecSection != null ? `${a.lecSection}반` : "-"}
                   </span>
-                ) : (
-                  <span className="text-slate-300">-</span>
-                )}
-              </td>
-              <td className="px-2 py-3 text-right">
-                <RowAction
-                  assignment={a}
-                  onViewFile={() => onViewFile(a)}
-                  onViewFeedback={() => onViewFeedback(a)}
-                  onSubmit={() => onSubmit(a)}
-                />
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-2 py-3">
+                  <span className="block truncate font-semibold text-slate-800" title={a.title}>
+                    {a.title}
+                  </span>
+                  {contentText && (
+                    <span className="mt-0.5 block truncate text-xs text-slate-400" title={contentText}>
+                      {contentText}
+                    </span>
+                  )}
+                </td>
+                <td className="px-2 py-3 font-mono text-xs text-slate-600">
+                  {a.dueDate}
+                </td>
+                <td className="px-2 py-3">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_PILL[a.status]}`}
+                  >
+                    {STUDENT_ASSIGNMENT_STATUS_LABEL[a.status]}
+                  </span>
+                </td>
+                <td className="px-2 py-3">
+                  {a.status === "GRD" && a.score != null ? (
+                    <span className="font-semibold text-slate-900">
+                      {a.score} <span className="text-slate-400">/ {a.maxScore}</span>
+                    </span>
+                  ) : (
+                    <span className="text-slate-300">-</span>
+                  )}
+                </td>
+                <td className="px-2 py-3 text-right">
+                  <RowAction
+                    assignment={a}
+                    onViewFile={() => onViewFile(a)}
+                    onViewFeedback={() => onViewFeedback(a)}
+                    onSubmit={() => onSubmit(a)}
+                  />
+                </td>
+              </tr>
+            );
+          })}
           {Array.from({ length: padCount }).map((_, i) => (
             <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
               <td colSpan={6} className="px-5 py-3">
@@ -378,6 +413,46 @@ function SemesterAssignmentTable({
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
       <AssignmentPager page={safePage} totalPages={totalPages} onChange={setPage} />
     </section>
+  );
+}
+
+function SemesterPager({
+  page,
+  totalPages,
+  totalItems,
+  startIndex,
+  visibleCount,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  startIndex: number;
+  visibleCount: number;
+  onChange: (p: number) => void;
+}) {
+  const rangeStart = startIndex + 1;
+  const rangeEnd = startIndex + visibleCount;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs font-medium text-slate-500">
+        총 {totalItems}개 학기 중 {rangeStart}-{rangeEnd} 표시
+      </p>
+      <div className="flex items-center justify-center gap-1">
+        <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
+          이전
+        </PageBtn>
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
+            {i + 1}
+          </PageBtn>
+        ))}
+        <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
+          다음
+        </PageBtn>
+      </div>
+    </div>
   );
 }
 
