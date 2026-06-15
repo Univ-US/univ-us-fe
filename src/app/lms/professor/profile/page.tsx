@@ -5,9 +5,9 @@
 // 회원탈퇴(PLM-012): 관리자 처리(요청만 전송)
 // 프로필 데이터는 공유 스토어(useProfessorProfileStore)에서 — 저장 시 사이드바와 동시 동기화
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
-  requestProfessorSecession,
   PROFILE_IMAGE_MAX_SIZE,
   PROFILE_IMAGE_ALLOWED_TYPES,
 } from "@/lib/lmsProfessorApi";
@@ -133,16 +133,12 @@ export default function ProfessorProfilePage() {
     }
   };
 
-  const handleSecession = async () => {
-    if (!confirm("회원탈퇴를 요청하시겠습니까? (관리자 승인 후 처리됩니다)")) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await requestProfessorSecession();
-      setNotice("회원탈퇴가 요청되었습니다. 관리자 처리를 기다려주세요.");
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, "회원탈퇴 요청에 실패했습니다."));
-    }
+  const router = useRouter();
+
+  // 회원 탈퇴(PLM-012): 직접 처리 대신 문의(/home/contact)로 이동 — 관리자가 문의로 처리
+  const handleSecession = () => {
+    if (!confirm("회원 탈퇴는 문의를 통해 처리됩니다. 문의 페이지로 이동할까요?")) return;
+    router.push("/home/contact");
   };
 
   const avatarSrc =
@@ -294,7 +290,7 @@ export default function ProfessorProfilePage() {
               onClick={handleSecession}
               className="text-sm font-semibold text-red-500 hover:underline"
             >
-              ⚠ 회원탈퇴 요청 (관리자 처리)
+              ⚠ 회원 탈퇴 (문의하기)
             </button>
           </div>
         </section>
