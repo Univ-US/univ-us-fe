@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -42,7 +41,7 @@ export default function ContactPage() {
         e.preventDefault();
         if (!memberName.trim() || !contact.trim() || !univId || !message.trim() || !schoolQuery) return;
         if (!isValidContact(contact)) {
-            setContactError("?대찓???먮뒗 ?꾪솕踰덊샇 ?뺤떇?쇰줈 ?낅젰?댁＜?몄슂.");
+            setContactError("이메일 또는 전화번호 형식으로 입력해주세요.");
             return;
         }
         setContactError("");
@@ -68,7 +67,7 @@ export default function ContactPage() {
                     <div className="w-8 h-8 bg-[#11302a] rounded-md flex items-center justify-center text-white text-sm font-black">
                         U
                     </div>
-                    <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ쨌us</span>
+                    <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ·us</span>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -77,7 +76,7 @@ export default function ContactPage() {
                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-4 transition-colors"
                     >
                         <ChevronLeft className="w-3.5 h-3.5" />
-                        ?뚯븘媛湲?
+                        돌아가기
                     </button>
 
                     {done ? (
@@ -85,33 +84,33 @@ export default function ContactPage() {
                             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Send className="w-5 h-5 text-primary" />
                             </div>
-                            <h2 className="font-extrabold text-slate-900 mb-2">臾몄쓽媛 ?묒닔?먯뼱??/h2>
+                            <h2 className="font-extrabold text-slate-900 mb-2">문의가 접수됐어요</h2>
                             <p className="text-sm text-slate-500 leading-relaxed">
-                                ?뚯냽 ?숆탳 愿由ъ옄?먭쾶 ?꾨떖???덉젙?댁뿉??<br />
-                                ?낅젰?섏떊 ?곕씫泥섎줈 ?듬? ?쒕┫寃뚯슂.
+                                소속 학교 관리자에게 전달될 예정이에요.<br />
+                                입력하신 연락처로 답변 드릴게요.
                             </p>
                             <button
                                 onClick={() => router.push("/home")}
                                 className="mt-6 text-sm font-semibold text-primary hover:underline"
                             >
-                                ?덉쑝濡??뚯븘媛湲?
+                                홈으로 돌아가기
                             </button>
                         </div>
                     ) : (
                         <>
                             <h1 className="text-xl font-extrabold tracking-tight text-slate-900 mb-1">
-                                ?숆탳 愿由ъ옄 臾몄쓽
+                                학교 관리자 문의
                             </h1>
                             <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                                怨꾩젙 諛쒓툒 ??臾몄쓽?ы빆???④꺼二쇱떆硫?br />
-                                ?뚯냽 ?숆탳 愿由ъ옄?먭쾶 ?꾨떖?쇱슂.
+                                계정 발급 등 문의사항을 남겨주시면<br />
+                                소속 학교 관리자에게 전달돼요.
                             </p>
 
                             <form onSubmit={handleSubmit} className="space-y-3">
                                 <input
                                     value={memberName}
                                     onChange={(e) => setMemberName(e.target.value)}
-                                    placeholder="?대쫫"
+                                    placeholder="이름"
                                     required
                                     className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition"
                                 />
@@ -125,7 +124,7 @@ export default function ContactPage() {
                                         }}
                                         onFocus={() => setShowSchoolList(true)}
                                         onBlur={() => setTimeout(() => setShowSchoolList(false), 150)}
-                                        placeholder="?뚯냽 ?숆탳 寃??
+                                        placeholder="소속 학교 검색"
                                         className={`h-11 w-full rounded-lg border px-3.5 text-sm outline-none focus:border-primary transition ${!univId && schoolQuery ? "border-slate-200" : univId ? "border-primary" : "border-slate-200"}`}
                                     />
                                     {showSchoolList && schoolQuery && filteredUniversities.length > 0 && (
@@ -152,7 +151,7 @@ export default function ContactPage() {
                                     <input
                                         value={contact}
                                         onChange={(e) => { setContact(e.target.value); setContactError(""); }}
-                                        placeholder="?곕씫泥?(?대찓???먮뒗 ?꾪솕踰덊샇)"
+                                        placeholder="연락처 (이메일 또는 전화번호)"
                                         required
                                         className={`h-11 w-full rounded-lg border px-3.5 text-sm outline-none focus:border-primary transition ${contactError ? "border-rose-400" : "border-slate-200"}`}
                                     />
@@ -161,7 +160,7 @@ export default function ContactPage() {
                                 <textarea
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    placeholder="臾몄쓽 ?댁슜???낅젰?댁＜?몄슂."
+                                    placeholder="문의 내용을 입력해주세요."
                                     required
                                     rows={4}
                                     className="w-full rounded-lg border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-primary transition resize-none"
@@ -169,7 +168,7 @@ export default function ContactPage() {
 
                                 <Button type="submit" className="w-full" disabled={submitting}>
                                     <Send className="size-4" />
-                                    {submitting ? "?꾩넚 以?.." : "臾몄쓽 蹂대궡湲?}
+                                    {submitting ? "전송 중..." : "문의 보내기"}
                                 </Button>
                             </form>
                         </>
@@ -179,4 +178,3 @@ export default function ContactPage() {
         </main>
     );
 }
-

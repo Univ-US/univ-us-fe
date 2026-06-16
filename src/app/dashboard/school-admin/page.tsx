@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -31,25 +30,25 @@ import LectureManageView from "./_views/LectureManageView";
 import LectureAssignView from "./_views/LectureAssignView";
 
 const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ className?: string }> }[] = [
-    { label: "??쒕낫??, view: "dashboard", icon: LayoutDashboard },
-    { label: "?뚯썝 愿由?, view: "members", icon: Users },
-    { label: "怨듭? 愿由?, view: "notices", icon: Megaphone },
-    { label: "臾몄쓽?ы빆", view: "inquiries", icon: MessageSquareText },
-    { label: "媛뺤쓽 愿由?, view: "lectureManage", icon: Library },
-    { label: "媛뺤쓽 諛곗젙", view: "lectureAssign", icon: BookPlus },
-    { label: "援щ룆쨌寃곗젣", view: "billing", icon: CreditCard },
-    { label: "?숆탳 ?ㅼ젙", view: "settings", icon: Settings },
+    { label: "대시보드", view: "dashboard", icon: LayoutDashboard },
+    { label: "회원 관리", view: "members", icon: Users },
+    { label: "공지 관리", view: "notices", icon: Megaphone },
+    { label: "문의사항", view: "inquiries", icon: MessageSquareText },
+    { label: "강의 관리", view: "lectureManage", icon: Library },
+    { label: "강의 배정", view: "lectureAssign", icon: BookPlus },
+    { label: "구독·결제", view: "billing", icon: CreditCard },
+    { label: "학교 설정", view: "settings", icon: Settings },
 ];
 
 const SECTION_LABEL: Record<View, string> = {
-    dashboard: "??쒕낫??,
-    members: "?뚯썝 愿由?,
-    notices: "怨듭? 愿由?,
-    inquiries: "臾몄쓽?ы빆",
-    lectureManage: "媛뺤쓽 愿由?,
-    lectureAssign: "媛뺤쓽 諛곗젙",
-    billing: "援щ룆쨌寃곗젣",
-    settings: "?숆탳 ?ㅼ젙",
+    dashboard: "대시보드",
+    members: "회원 관리",
+    notices: "공지 관리",
+    inquiries: "문의사항",
+    lectureManage: "강의 관리",
+    lectureAssign: "강의 배정",
+    billing: "구독·결제",
+    settings: "학교 설정",
 };
 
 const VALID_VIEWS = new Set(Object.keys(SECTION_LABEL) as View[]);
@@ -111,27 +110,27 @@ function SchoolAdminDashboard() {
                             <img src="/univusicon.png" alt="Univ us" className="w-7 h-7 rounded-lg" />
                             <span className="text-lg font-black tracking-wide">
                                 <span className="text-white">Univ</span>
-                                <span className="text-white"> 쨌 </span><span className="text-teal-300">us</span>
+                                <span className="text-white"> · </span><span className="text-teal-300">us</span>
                             </span>
                         </div>
                         <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-bold text-emerald-100">
-                            愿由ъ옄
+                            관리자
                         </span>
                     </div>
 
                     <div className="mt-6 rounded-xl bg-white/12 p-4">
                         <div className="flex items-center gap-3">
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg font-black">
-                                {memberName?.slice(0, 1) ?? "愿"}
+                                {memberName?.slice(0, 1) ?? "관"}
                             </div>
                             <div>
-                                <p className="text-sm font-extrabold">{memberName ?? "愿由ъ옄"}</p>
-                                <p className="mt-0.5 text-xs font-medium text-emerald-200">?숆탳 愿由ъ옄</p>
+                                <p className="text-sm font-extrabold">{memberName ?? "관리자"}</p>
+                                <p className="mt-0.5 text-xs font-medium text-emerald-200">학교 관리자</p>
                             </div>
                         </div>
                     </div>
 
-                    <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">?댁쁺</p>
+                    <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">운영</p>
                     <nav className="mt-2 flex-1 space-y-0.5">
                         {NAV_ITEMS.slice(0, 6).map(({ label, view: v, icon: Icon }) => (
                             <button
@@ -144,7 +143,7 @@ function SchoolAdminDashboard() {
                             </button>
                         ))}
 
-                        <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">?쒖뒪??/p>
+                        <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">시스템</p>
                         {NAV_ITEMS.slice(6).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
@@ -162,13 +161,13 @@ function SchoolAdminDashboard() {
                             onClick={() => router.push("/home")}
                             className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
                         >
-                            <Home className="size-4" /> ?숈깮 ?덉쑝濡??꾪솚
+                            <Home className="size-4" /> 학생 홈으로 전환
                         </button>
                         <button
                             onClick={handleLogout}
                             className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
                         >
-                            <LogOut className="size-4" /> 濡쒓렇?꾩썐
+                            <LogOut className="size-4" /> 로그아웃
                         </button>
                     </div>
                 </aside>
@@ -209,4 +208,3 @@ export default function SchoolAdminDashboardPage() {
         </Suspense>
     );
 }
-

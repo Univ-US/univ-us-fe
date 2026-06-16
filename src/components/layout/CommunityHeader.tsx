@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import Link from 'next/link';
@@ -28,12 +27,12 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/community', label: '??, exact: true },
-  { href: '/community/free', label: '?먯쑀寃뚯떆?? },
-  { href: '/community/secret', label: '?듬챸寃뚯떆?? },
-  { href: '/community/notice', label: '怨듭??ы빆' },
-  { href: '/community/market', label: '以묎퀬嫄곕옒' },
-  { href: '/community/reservation', label: '?쒖꽕 ?댁슜' },
+  { href: '/community', label: '홈', exact: true },
+  { href: '/community/free', label: '자유게시판' },
+  { href: '/community/secret', label: '익명게시판' },
+  { href: '/community/notice', label: '공지사항' },
+  { href: '/community/market', label: '중고거래' },
+  { href: '/community/reservation', label: '시설 이용' },
 ];
 
 export default function CommunityHeader() {
@@ -47,7 +46,7 @@ export default function CommunityHeader() {
   const notificationRef = useRef<HTMLDivElement>(null);
   const univName = useAuthStore((s) => s.univName);
   const { memberName, communityNickname, logoutAction } = useAuthStore();
-  const displayName = communityNickname || memberName || '?ъ슜??;
+  const displayName = communityNickname || memberName || '사용자';
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -91,7 +90,7 @@ export default function CommunityHeader() {
     );
   };
 
-  // ?몃? ?대┃ ???쒕∼?ㅼ슫 ?リ린
+  // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -114,7 +113,7 @@ export default function CommunityHeader() {
   return (
     <header className='sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm'>
       <div className='mx-auto flex h-16 max-w-[1300px] items-center gap-2 px-6'>
-        {/* 濡쒓퀬 */}
+        {/* 로고 */}
         <Link
           href='/community'
           className='flex shrink-0 items-center gap-2'
@@ -128,10 +127,10 @@ export default function CommunityHeader() {
           )}
         </Link>
 
-        {/* 援щ텇??*/}
+        {/* 구분선 */}
         <div className='h-5 w-px shrink-0 bg-border mx-0' />
 
-        {/* ?ㅻ퉬寃뚯씠??*/}
+        {/* 네비게이션 */}
         <nav className='hidden shrink-0 items-center gap-0.5 md:flex'>
           {navItems.map((item) => {
             const active = isActive(item.href, item.exact);
@@ -163,9 +162,9 @@ export default function CommunityHeader() {
           })}
         </nav>
 
-        {/* ?곗륫 ?≪뀡 */}
+        {/* 우측 액션 */}
         <div className='ml-auto flex shrink-0 items-center gap-3'>
-          {/* LMS 諛붾줈媛湲?踰꾪듉 */}
+          {/* LMS 바로가기 버튼 */}
 
           <Link
             href='/home'
@@ -176,13 +175,13 @@ export default function CommunityHeader() {
           </Link>
           <span className='h-6 w-px shrink-0 bg-slate-200' />
 
-          {/* 寃?됱갹 */}
+          {/* 검색창 */}
           <div className='relative hidden lg:block'>
             <Search className='pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400' />
             <input
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              placeholder='寃뚯떆湲, ?곹뭹 寃??
+              placeholder='게시글, 상품 검색'
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   submitSearch();
@@ -197,7 +196,7 @@ export default function CommunityHeader() {
             />
           </div>
 
-          {/* ?뚮┝ 踰꾪듉 */}
+          {/* 알림 버튼 */}
           <div className='hidden' ref={notificationRef}>
             <button
               type='button'
@@ -208,7 +207,7 @@ export default function CommunityHeader() {
                   ? 'border-primary text-primary'
                   : 'border-slate-200 text-slate-500 hover:border-primary hover:text-primary',
               )}
-              aria-label='?뚮┝???닿린'
+              aria-label='알림함 열기'
             >
               <Bell className='size-[18px]' />
               <span className='absolute right-2 top-2 size-[7px] rounded-full border-2 border-white bg-red-500' />
@@ -218,11 +217,11 @@ export default function CommunityHeader() {
               <div className='absolute right-0 top-[calc(100%+10px)] z-50 w-[320px] animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-xl border border-border bg-white shadow-lg duration-300'>
                 <div className='flex items-center justify-between border-b border-border px-4 py-3'>
                   <div>
-                    <div className='text-[13px] font-extrabold text-slate-900'>?뚮┝</div>
-                    <div className='text-[11px] font-medium text-slate-400'>?꾩껜 而ㅻ??덊떚 ?뚮┝??/div>
+                    <div className='text-[13px] font-extrabold text-slate-900'>알림</div>
+                    <div className='text-[11px] font-medium text-slate-400'>전체 커뮤니티 알림함</div>
                   </div>
                   <span className='rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary'>
-                    以鍮꾩쨷
+                    준비중
                   </span>
                 </div>
                 <div className='divide-y divide-slate-100'>
@@ -231,9 +230,9 @@ export default function CommunityHeader() {
                       <MessageCircle className='size-4' />
                     </span>
                     <div className='min-w-0 flex-1'>
-                      <div className='text-[12px] font-bold text-slate-800'>?볤?/?듦? ?뚮┝</div>
+                      <div className='text-[12px] font-bold text-slate-800'>댓글/답글 알림</div>
                       <p className='mt-0.5 text-[11px] leading-relaxed text-slate-400'>
-                        ??湲怨??볤????щ┛ ??諛섏쓳???ш린???쒖떆?⑸땲??
+                        내 글과 댓글에 달린 새 반응이 여기에 표시됩니다.
                       </p>
                     </div>
                   </div>
@@ -242,21 +241,21 @@ export default function CommunityHeader() {
                       <PackageOpen className='size-4' />
                     </span>
                     <div className='min-w-0 flex-1'>
-                      <div className='text-[12px] font-bold text-slate-800'>嫄곕옒/?덉빟 ?뚮┝</div>
+                      <div className='text-[12px] font-bold text-slate-800'>거래/예약 알림</div>
                       <p className='mt-0.5 text-[11px] leading-relaxed text-slate-400'>
-                        以묎퀬嫄곕옒 梨꾪똿, 寃곗젣, ?쒖꽕 ?덉빟 ?뚮┝???곌껐???덉젙?낅땲??
+                        중고거래 채팅, 결제, 시설 예약 알림을 연결할 예정입니다.
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className='bg-slate-50 px-4 py-3 text-center text-[11px] font-semibold text-slate-400'>
-                  諛깆뿏???뚮┝ API ?곌껐 ???꾩떆 ?뚮┝?⑥엯?덈떎.
+                  백엔드 알림 API 연결 전 임시 알림함입니다.
                 </div>
               </div>
             )}
           </div>
 
-          {/* ?꾨줈???쒕∼?ㅼ슫 */}
+          {/* 프로필 드롭다운 */}
           <div className='relative' ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -286,10 +285,10 @@ export default function CommunityHeader() {
               />
             </button>
 
-            {/* ?쒕∼?ㅼ슫 硫붾돱 */}
+            {/* 드롭다운 메뉴 */}
             {dropdownOpen && (
               <div className='animate-in fade-in slide-in-from-top-2 duration-500 absolute right-0 top-[calc(100%+8px)] z-50 w-[160px] overflow-hidden rounded-xl border border-border bg-white shadow-lg'>
-                {/* ?꾨줈???뺣낫 */}
+                {/* 프로필 정보 */}
                 <div className='border-b border-border px-4 py-3'>
                   <div className='text-[13px] font-bold text-slate-800'>
                     {displayName}
@@ -298,7 +297,7 @@ export default function CommunityHeader() {
                     {memberName}
                   </div>
                 </div>
-                {/* 硫붾돱 */}
+                {/* 메뉴 */}
                 <div className='py-1'>
                   <button
                     onClick={() => {
@@ -308,20 +307,20 @@ export default function CommunityHeader() {
                     className='flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-primary'
                   >
                     <UserRound className='size-4 text-slate-400' />
-                    留덉씠?섏씠吏
+                    마이페이지
                   </button>
                   <button
                     onClick={async () => {
                       setDropdownOpen(false);
                       sessionStorage.setItem('communityLogout', 'true');
                       await logoutAction();
-                      alert('濡쒓렇?꾩썐?섏뿀?듬땲??');
+                      alert('로그아웃되었습니다.');
                       router.push('/home/login');
                     }}
                     className='flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-red-500 transition-colors hover:bg-red-50'
                   >
                     <LogOut className='size-4' />
-                    濡쒓렇?꾩썐
+                    로그아웃
                   </button>
                 </div>
               </div>
@@ -332,4 +331,3 @@ export default function CommunityHeader() {
     </header>
   );
 }
-

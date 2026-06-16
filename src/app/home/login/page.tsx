@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -67,12 +66,12 @@ export default function UserLoginPage() {
         setError("");
 
         if (!memberId.trim() || !password.trim()) {
-            setError("?꾩씠?붿? 鍮꾨?踰덊샇瑜??낅젰?댁＜?몄슂.");
+            setError("아이디와 비밀번호를 입력해주세요.");
             return;
         }
 
         if (univId === null) {
-            setError("?숆탳瑜??좏깮?댁＜?몄슂.");
+            setError("학교를 선택해주세요.");
             return;
         }
 
@@ -101,7 +100,7 @@ export default function UserLoginPage() {
 
             router.push(canRedirectToCommunity ? redirectPath : getRedirectPathByRole(data.role));
         } catch {
-            setError("濡쒓렇?몄뿉 ?ㅽ뙣?덉뒿?덈떎. ?꾩씠???먮뒗 鍮꾨?踰덊샇瑜??뺤씤?댁＜?몄슂.");
+            setError("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
         } finally {
             setSubmitting(false);
         }
@@ -112,7 +111,7 @@ export default function UserLoginPage() {
             <div className="w-full max-w-[380px]">
                 <div className="flex items-center gap-2 justify-center mb-8">
                     <img src="/univusicon.png" alt="UniVUs" className="w-8 h-8 rounded-md" />
-                    <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ쨌us</span>
+                    <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ·us</span>
                 </div>
 
                 <form
@@ -120,7 +119,7 @@ export default function UserLoginPage() {
                     className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
                 >
                     <h1 className="text-xl font-extrabold tracking-tight text-slate-900 mb-6">
-                        濡쒓렇??
+                        로그인
                     </h1>
 
                     <div className="space-y-3">
@@ -133,7 +132,7 @@ export default function UserLoginPage() {
                                 }`}
                             >
                                 <span className={selectedUniv ? "text-slate-900" : "text-slate-400"}>
-                                    {selectedUniv ? selectedUniv.univName : "?숆탳瑜??좏깮?댁＜?몄슂"}
+                                    {selectedUniv ? selectedUniv.univName : "학교를 선택해주세요"}
                                 </span>
                                 <ChevronDown className={`size-4 text-slate-400 transition-transform ${univOpen ? "rotate-180" : ""}`} />
                             </button>
@@ -146,7 +145,7 @@ export default function UserLoginPage() {
                                             autoFocus
                                             value={univSearch}
                                             onChange={(e) => setUnivSearch(e.target.value)}
-                                            placeholder="?숆탳 寃??
+                                            placeholder="학교 검색"
                                             className="w-full text-sm outline-none placeholder:text-slate-400"
                                         />
                                     </div>
@@ -163,7 +162,7 @@ export default function UserLoginPage() {
                                                 </button>
                                             </li>
                                         )) : (
-                                            <li className="px-3.5 py-3 text-sm text-slate-400">寃??寃곌낵媛 ?놁뼱??/li>
+                                            <li className="px-3.5 py-3 text-sm text-slate-400">검색 결과가 없어요</li>
                                         )}
                                     </ul>
                                 </div>
@@ -173,14 +172,14 @@ export default function UserLoginPage() {
                         <input
                             value={memberId}
                             onChange={(e) => setMemberId(e.target.value)}
-                            placeholder="?숇쾲 / 援먮쾲"
+                            placeholder="학번 / 교번"
                             className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition"
                         />
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="鍮꾨?踰덊샇"
+                            placeholder="비밀번호"
                             className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm outline-none focus:border-primary transition"
                         />
                     </div>
@@ -191,13 +190,13 @@ export default function UserLoginPage() {
 
                     <Button type="submit" className="mt-5 w-full" disabled={submitting}>
                         <LogIn className="size-4" />
-                        {submitting ? "濡쒓렇??以?.." : "濡쒓렇??}
+                        {submitting ? "로그인 중..." : "로그인"}
                     </Button>
 
                     <div className="mt-5 text-center text-xs text-slate-400">
-                        怨꾩젙???놁쑝?좉???{" "}
+                        계정이 없으신가요?{" "}
                         <Link href="/home/contact" className="font-semibold text-primary hover:underline">
-                            ?숆탳 愿由ъ옄?먭쾶 臾몄쓽
+                            학교 관리자에게 문의
                         </Link>
                     </div>
                 </form>
@@ -205,4 +204,3 @@ export default function UserLoginPage() {
         </main>
     );
 }
-

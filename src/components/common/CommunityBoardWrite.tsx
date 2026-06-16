@@ -1,4 +1,3 @@
-/* eslint-disable */
 'use client';
 
 import { useState, useEffect, useId, type ChangeEvent } from 'react';
@@ -11,21 +10,21 @@ import { getUniversities, type University } from '@/lib/homeApi';
 import { useAuthStore } from '@/store/authStore';
 import type { BoardType } from '@/types/community';
 
-// ?? 寃뚯떆?먮퀎 移댄뀒怨좊━ ??????????????????????????????????
+// ── 게시판별 카테고리 ──────────────────────────────────
 const CATEGORIES: Record<BoardType, string[]> = {
-  free: ['?쇱긽', '?뺣낫', '吏덈Ц', '?〓떞', '紐⑥엫'],
-  secret: ['怨좊?', '?〓떞', '吏덈Ц'],
-  notice: ['?숈궗', '?쒖꽕', '?앺솢', '?ν븰'],
+  free: ['일상', '정보', '질문', '잡담', '모임'],
+  secret: ['고민', '잡담', '질문'],
+  notice: ['학사', '시설', '생활', '장학'],
 };
 
-// ?? 寃뚯떆?먮퀎 ?쒓? ?대쫫 ?????????????????????????????????
+// ── 게시판별 한글 이름 ─────────────────────────────────
 const BOARD_LABEL: Record<BoardType, string> = {
-  free: '?먯쑀寃뚯떆??,
-  secret: '?듬챸寃뚯떆??,
-  notice: '怨듭??ы빆',
+  free: '자유게시판',
+  secret: '익명게시판',
+  notice: '공지사항',
 };
 
-// ?? 移?踰꾪듉 (移댄뀒怨좊━ ?좏깮) ????????????????????????????
+// ── 칩 버튼 (카테고리 선택) ────────────────────────────
 function Chip({
   label,
   active,
@@ -50,7 +49,7 @@ function Chip({
   );
 }
 
-// ?? ?낅젰 ?꾨뱶 ?섑띁 ?????????????????????????????????????
+// ── 입력 필드 래퍼 ─────────────────────────────────────
 function Field({
   label,
   hint,
@@ -69,7 +68,7 @@ function Field({
   );
 }
 
-// ?? 硫붿씤 而댄룷?뚰듃 ??????????????????????????????????????
+// ── 메인 컴포넌트 ──────────────────────────────────────
 interface CommunityBoardWriteProps {
   board: BoardType;
 }
@@ -97,7 +96,7 @@ export default function CommunityBoardWrite({
   const isNotice = board === 'notice';
   const isSuperAdmin = role === 'SUA';
 
-  // ?섏젙 紐⑤뱶????湲곗〈 ?곗씠??遺덈윭?ㅺ린
+  // 수정 모드일 때 기존 데이터 불러오기
   useEffect(() => {
     if (!isEdit) return;
     const fetchPost = async () => {
@@ -107,7 +106,7 @@ export default function CommunityBoardWrite({
         setContent(post.content ?? '');
         if (post.category) setCategory(post.category);
       } catch {
-        alert('寃뚯떆湲??遺덈윭?ㅻ뒗 ???ㅽ뙣?덉뒿?덈떎.');
+        alert('게시글을 불러오는 데 실패했습니다.');
         router.back();
       }
     };
@@ -142,7 +141,7 @@ export default function CommunityBoardWrite({
     );
 
     if (validImages.length !== selectedFiles.length) {
-      alert('JPG, PNG, WEBP ?대?吏留?泥⑤??????덉뒿?덈떎.');
+      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
     setImages((prev) => [...prev, ...validImages].slice(0, 10));
@@ -151,23 +150,23 @@ export default function CommunityBoardWrite({
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      alert('?쒕ぉ???낅젰??二쇱꽭??');
+      alert('제목을 입력해 주세요.');
       return;
     }
     if (!content.trim()) {
-      alert('?댁슜???낅젰??二쇱꽭??');
+      alert('내용을 입력해 주세요.');
       return;
     }
 
     if (isSuperAdmin && !isEdit && targetUnivId == null) {
-      alert('寃뚯떆湲???깅줉???숆탳瑜??좏깮?댁쨾.');
+      alert('게시글을 등록할 학교를 선택해줘.');
       return;
     }
 
     const BOARD_ID_MAP: Record<BoardType, number> = {
       free:   1,
       secret: 2,
-      notice: 3, // DB BOARD_TYPE ?뚯씠釉?湲곗?
+      notice: 3, // DB BOARD_TYPE 테이블 기준
     };
 
     const selectedUnivId = isSuperAdmin ? targetUnivId ?? undefined : authUnivId ?? undefined;
@@ -189,36 +188,36 @@ export default function CommunityBoardWrite({
         if (images.length > 0) {
           await uploadPostImages(Number(postId), images);
         }
-        alert('?섏젙?섏뿀?듬땲??');
+        alert('수정되었습니다.');
       } else {
         if (images.length > 0) {
           await createPostWithImages(postPayload, images);
         } else {
           await createPost(postPayload);
         }
-        alert('?깅줉?섏뿀?듬땲??');
+        alert('등록되었습니다.');
       }
       handleBack();
     } catch (err) {
       console.error('writePost error:', err);
-      alert(isEdit ? '?섏젙???ㅽ뙣?덉뒿?덈떎. ?ㅼ떆 ?쒕룄??二쇱꽭??' : '寃뚯떆湲 ?깅줉???ㅽ뙣?덉뒿?덈떎. ?ㅼ떆 ?쒕룄??二쇱꽭??');
+      alert(isEdit ? '수정에 실패했습니다. 다시 시도해 주세요.' : '게시글 등록에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 
   return (
     <div className='px-[30px] py-7'>
       <div className='mx-auto max-w-[760px]'>
-        {/* ?ㅻ줈媛湲?*/}
+        {/* 뒤로가기 */}
         <button
           onClick={handleBack}
           className='mb-3.5 flex items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground'
         >
           <ArrowLeft className='size-4' />
-          痍⑥냼?섍퀬 ?뚯븘媛湲?
+          취소하고 돌아가기
         </button>
 
         {isSuperAdmin && !isEdit && (
-          <Field label='????숆탳'>
+          <Field label='대상 학교'>
             <select
               value={targetUnivId ?? ''}
               onChange={(event) => setTargetUnivId(Number(event.target.value))}
@@ -234,26 +233,26 @@ export default function CommunityBoardWrite({
         )}
 
         <h2 className='mb-5 text-[22px] font-extrabold tracking-tight'>
-          {isEdit ? `${BOARD_LABEL[board]} ?섏젙` : `${BOARD_LABEL[board]} 湲?곌린`}
+          {isEdit ? `${BOARD_LABEL[board]} 수정` : `${BOARD_LABEL[board]} 글쓰기`}
         </h2>
 
-        {/* ?듬챸 ?덈궡 */}
+        {/* 익명 안내 */}
         {isAnon && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700'>
-            ?듬챸?쇰줈 ?묒꽦?⑸땲?? ?묒꽦???뺣낫???쒖떆?섏? ?딆?留??쒕줈 議댁쨷?섎뒗 湲??
-            遺?곷뱶由쎈땲??
+            익명으로 작성됩니다. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
+            부탁드립니다.
           </div>
         )}
 
-        {/* 怨듭??ы빆 ?덈궡 */}
+        {/* 공지사항 안내 */}
         {isNotice && (
           <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700'>
-            怨듭??ы빆? ?댁쁺 沅뚰븳???덈뒗 怨꾩젙留?寃뚯떆?????덉뒿?덈떎.
+            공지사항은 운영 권한이 있는 계정만 게시할 수 있습니다.
           </div>
         )}
 
-        {/* 移댄뀒怨좊━ */}
-        <Field label='移댄뀒怨좊━'>
+        {/* 카테고리 */}
+        <Field label='카테고리'>
           <div className='flex flex-wrap gap-2'>
             {CATEGORIES[board].map((cat) => (
               <Chip
@@ -266,25 +265,25 @@ export default function CommunityBoardWrite({
           </div>
         </Field>
 
-        {/* ?쒕ぉ */}
-        <Field label='?쒕ぉ'>
+        {/* 제목 */}
+        <Field label='제목'>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={
-              isNotice ? '怨듭? ?쒕ぉ???낅젰?섏꽭?? : '?쒕ぉ???낅젰?섏꽭??
+              isNotice ? '공지 제목을 입력하세요' : '제목을 입력하세요'
             }
             className='flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[14px] outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />
         </Field>
 
-        {/* ?댁슜 */}
+        {/* 내용 */}
         <Field
-          label='?댁슜'
+          label='내용'
           hint={
             isAnon
-              ? '媛쒖씤?뺣낫媛 ?쒕윭?섏? ?딅룄濡?二쇱쓽??二쇱꽭??'
-              : '?대?吏???꾨옒 踰꾪듉?쇰줈 異붽??????덉뒿?덈떎.'
+              ? '개인정보가 드러나지 않도록 주의해 주세요.'
+              : '이미지는 아래 버튼으로 추가할 수 있습니다.'
           }
         >
           <textarea
@@ -293,25 +292,25 @@ export default function CommunityBoardWrite({
             rows={9}
             placeholder={
               isAnon
-                ? '?듬챸?쇰줈 ?명븯寃??댁빞湲곕? ?ㅻ젮二쇱꽭??'
+                ? '익명으로 편하게 이야기를 들려주세요.'
                 : isNotice
-                  ? '怨듭? ?댁슜???낅젰?섏꽭?? ?쇱젙쨌??겶룸Ц?섏쿂瑜??④퍡 ?곸뼱二쇱꽭??'
-                  : '?먯쑀濡?쾶 ?댁빞湲곕? ?곸뼱 蹂댁꽭??'
+                  ? '공지 내용을 입력하세요. 일정·대상·문의처를 함께 적어주세요.'
+                  : '자유롭게 이야기를 적어 보세요.'
             }
             className='flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[14px] leading-relaxed outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary'
           />
         </Field>
 
-        {/* ?대?吏 泥⑤? - ?듬챸寃뚯떆???쒖쇅 */}
+        {/* 이미지 첨부 - 익명게시판 제외 */}
         {!isAnon && (
-          <Field label='?ъ쭊 泥⑤?'>
+          <Field label='사진 첨부'>
             <div className='flex gap-3'>
               <label
                 htmlFor={fileInputId}
                 className='flex size-24 flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground hover:bg-slate-100'
               >
                 <ImagePlus className='size-[22px]' />
-                <span className='text-xs font-semibold'>?ъ쭊 異붽?</span>
+                <span className='text-xs font-semibold'>사진 추가</span>
               </label>
               <input
                 id={fileInputId}
@@ -321,14 +320,14 @@ export default function CommunityBoardWrite({
                 onChange={handleImageChange}
                 className='sr-only'
               />
-              {/* 誘몃━蹂닿린 ??TODO: ?뚯씪 ?낅줈??援ы쁽 ??援먯껜 */}
+              {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
               {imagePreviews.map((img, i) => (
                 <div
                   key={i}
                   className='relative size-24 overflow-hidden rounded-xl bg-slate-200'
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt={`泥⑤? ?대?吏 ${i + 1}`} className='h-full w-full object-cover' />
+                  <img src={img} alt={`첨부 이미지 ${i + 1}`} className='h-full w-full object-cover' />
                   <button
                     type='button'
                     onClick={() =>
@@ -344,24 +343,23 @@ export default function CommunityBoardWrite({
           </Field>
         )}
 
-        {/* ?섎떒 踰꾪듉 */}
+        {/* 하단 버튼 */}
         <div className='mt-1.5 flex justify-end gap-2 border-t border-border pt-3'>
           <Button variant='outline' onClick={handleBack}>
-            痍⑥냼
+            취소
           </Button>
           {!isNotice && (
             <Button variant='ghost'>
               <Save className='size-4' />
-              ?꾩떆???
+              임시저장
             </Button>
           )}
           <Button onClick={handleSubmit}>
             <Send className='size-4' />
-            {isNotice ? '怨듭? 寃뚯떆' : isEdit ? '?섏젙 ?꾨즺' : '?깅줉?섍린'}
+            {isNotice ? '공지 게시' : isEdit ? '수정 완료' : '등록하기'}
           </Button>
         </div>
       </div>
     </div>
   );
 }
-
