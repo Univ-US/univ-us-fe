@@ -18,6 +18,7 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
 }
 
+
 interface RefreshTokenResponse {
     accessToken: string;
     tokenType: string;
@@ -130,7 +131,7 @@ api.interceptors.response.use(
                 window.location.href =
                     localStorage.getItem("role") === "ADM"
                         ? "/subscribe"
-                        : "/landing?subscription=expired";
+                        : "/unauthorized";
             }
             return Promise.reject(error);
         }

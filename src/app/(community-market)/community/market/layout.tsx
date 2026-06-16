@@ -23,7 +23,7 @@ export default function MarketLayout({
           router.replace(
             status.role === 'ADM'
               ? '/subscribe'
-              : '/landing?subscription=expired',
+              : '/unauthorized',
           );
           return;
         }

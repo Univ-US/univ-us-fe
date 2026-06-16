@@ -9,6 +9,7 @@ import type {
   SubscriptionPlan,
   SubscriptionPrepareRequest,
   SubscriptionPrepareResponse,
+  SubscriptionUniversityOption,
 } from "@/types/subscription";
 
 export async function getSubscriptionStatus() {
@@ -20,6 +21,14 @@ export async function getSubscriptionStatus() {
 
 export async function getSubscriptionPlans() {
   const response = await api.get<SubscriptionPlan[]>("/api/subscriptions/plans");
+  return response.data;
+}
+
+export async function getSubscriptionUniversities(keyword?: string) {
+  const response = await api.get<SubscriptionUniversityOption[]>(
+    "/api/subscriptions/universities",
+    { params: keyword?.trim() ? { keyword: keyword.trim() } : undefined },
+  );
   return response.data;
 }
 

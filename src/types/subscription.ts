@@ -18,11 +18,22 @@ export type SubscriptionPaymentMethod = "CARD" | "KAKAO_PAY";
 
 export interface SubscriptionPrepareRequest {
   planId: number;
+  univId?: number;
   univName: string;
   sido: string;
   address: string;
   schoolPhone: string;
   homepage: string;
+}
+
+export interface SubscriptionUniversityOption {
+  univId: number;
+  univName: string;
+  sido: string;
+  address: string;
+  schoolPhone: string;
+  homepage: string;
+  subscriptionStatus: string | null;
 }
 
 export interface SubscriptionPrepareResponse {
