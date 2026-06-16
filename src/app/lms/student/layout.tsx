@@ -3,7 +3,7 @@
 // LMS 학생 공용 레이아웃 (사이드바 + 콘텐츠 셸)
 // - 사이드바 상단: 학교명(API) + UniVUs 브랜드 + 사용자(이름/학과/아바타, API)
 // - 네비: '프로필'만 활성(SLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
-// - children = 각 LMS 페이지(현재는 /lms/student/profile)
+// - children = 각 학생 LMS 페이지
 import { Client, type IStompSocket } from "@stomp/stompjs";
 import { useEffect, useState, type ReactNode } from "react";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -224,12 +224,12 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
 
-        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 홈(/home)으로 이동 */}
+        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 학생 LMS 대시보드로 이동 */}
         <div className={`flex items-center px-3 py-4 ${sidebarOpen ? "gap-2" : "justify-center"}`}>
           {sidebarOpen ? (
             <Link
-              href="/home"
-              title="홈으로"
+              href="/lms/student/dashboard"
+              title="대시보드로"
               className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-emerald-800/50"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

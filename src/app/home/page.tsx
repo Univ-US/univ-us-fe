@@ -162,7 +162,7 @@ export default function CampusHomePage() {
     // 교수 진입점 = 강의 내역(PLM-002) — 프로필이 아닌 LMS 메인 화면으로 진입
     const lmsHref =
         role === ROLE.PROF ? "/lms/professor/courses"
-        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/profile"
+        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/dashboard"
         : undefined;
 
     const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";

@@ -12,7 +12,7 @@ const quickLinks = [
     icon: Home,
   },
   {
-    href: "/lms/student/profile",
+    href: "/lms/student/dashboard",
     label: "LMS",
     description: "학생 LMS로 이동",
     icon: GraduationCap,
