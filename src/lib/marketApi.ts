@@ -26,7 +26,13 @@ export interface ProductListResponse {
 export const getProductList = async (
   params: ProductSearchParams = {},
 ): Promise<ProductListResponse> => {
-  const res = await api.get('/api/market/products', { params });
+  const res = await api.get('/api/market/products', {
+    params: {
+      page: 0,
+      size: 10,
+      ...params,
+    },
+  });
   return res.data;
 };
 
@@ -46,6 +52,7 @@ export interface ProductCreatePayload {
   place: string;
   category: string;
   productStatus?: string;
+  univId?: number;
 }
 
 export const createProduct = async (
