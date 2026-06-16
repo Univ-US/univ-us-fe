@@ -197,7 +197,7 @@ export default function CommunityHeader() {
           </div>
 
           {/* 알림 버튼 */}
-          <div className='relative' ref={notificationRef}>
+          <div className='hidden' ref={notificationRef}>
             <button
               type='button'
               onClick={() => setNotificationOpen((prev) => !prev)}
