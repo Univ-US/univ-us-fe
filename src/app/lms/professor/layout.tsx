@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
+import { useLmsProfessorChatStore } from "@/store/lms/lmsProfessorChatStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
@@ -49,7 +50,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "커뮤니케이션",
     items: [
-      { label: "채팅", icon: "💬", badge: 2 },
+      { label: "채팅", icon: "💬", href: "/lms/professor/chat" },
       { label: "캘린더", icon: "📅", href: "/lms/professor/calendar" },
     ],
   },
@@ -69,6 +70,8 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
   const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
   const loadUngradedCount = useLmsGradingStore((s) => s.loadUngradedCount);
+  const chatUnreadCount = useLmsProfessorChatStore((s) => s.unreadCount);
+  const loadChatUnreadCount = useLmsProfessorChatStore((s) => s.loadUnreadCount);
 
   useEffect(() => {
     let active = true;
@@ -100,6 +103,10 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (role === ROLE.PROF) loadUngradedCount();
   }, [role, loadUngradedCount]);
+
+  useEffect(() => {
+    if (role === ROLE.PROF) void loadChatUnreadCount();
+  }, [role, loadChatUnreadCount]);
 
   const handleLogout = async () => {
     try {
@@ -184,7 +191,11 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                   item.href && stripSlash(pathname) === stripSlash(item.href);
                 // '채점 현황'은 실제 미채점 건수 주입, 나머지는 정적 badge. 0/미로딩이면 숨김.
                 const badge =
-                  item.href === "/lms/professor/grading" ? ungradedCount : item.badge;
+                  item.href === "/lms/professor/grading"
+                    ? ungradedCount
+                    : item.href === "/lms/professor/chat"
+                      ? chatUnreadCount
+                      : item.badge;
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
