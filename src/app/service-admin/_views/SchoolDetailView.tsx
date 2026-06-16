@@ -14,11 +14,11 @@ import {
 import {
     changeServiceAdminSchoolPlan,
     getServiceAdminSchool,
+    getServiceAdminPlans,
     scheduleServiceAdminSchoolCancellation,
+    type ServiceAdminPlan,
     type ServiceAdminSchool,
 } from "@/lib/serviceAdminApi";
-import { getSubscriptionPlans } from "@/lib/subscriptionApi";
-import type { SubscriptionPlan } from "@/types/subscription";
 import {
     formatCurrency,
     PaymentBadge,
@@ -44,7 +44,7 @@ export default function SchoolDetailView({
     onBack,
 }: SchoolDetailViewProps) {
     const [school, setSchool] = useState<ServiceAdminSchool | null>(null);
-    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [plans, setPlans] = useState<ServiceAdminPlan[]>([]);
     const [selectedPlanId, setSelectedPlanId] = useState<number | "">("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -56,10 +56,16 @@ export default function SchoolDetailView({
         try {
             const [schoolResponse, planResponse] = await Promise.all([
                 getServiceAdminSchool(schoolId),
-                getSubscriptionPlans(),
+                getServiceAdminPlans(),
             ]);
             setSchool(schoolResponse);
-            setPlans(planResponse);
+            setPlans(
+                planResponse.plans.filter(
+                    (plan) =>
+                        plan.status === "ACTIVE"
+                        || plan.planId === schoolResponse.planId,
+                ),
+            );
             setSelectedPlanId(schoolResponse.planId ?? "");
         } catch (loadError) {
             console.error("Failed to load service admin school.", loadError);
