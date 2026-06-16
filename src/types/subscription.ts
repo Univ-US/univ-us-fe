@@ -69,8 +69,6 @@ export interface SubscriptionPaymentVerifyResponse {
   memberId: number;
   univId: number;
   role: "ADM";
-  accessToken: string;
-  tokenType: "Bearer";
 }
 
 export interface SubscriptionPaymentCancelRequest {

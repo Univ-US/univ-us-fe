@@ -38,43 +38,32 @@ export const getUniversities = async (): Promise<University[]> => {
     return res.data;
 };
 
-async function refreshAccessToken(): Promise<string> {
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) throw new Error("No refresh token");
-
+async function refreshAccessToken(): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
     });
     if (!res.ok) throw new Error("Refresh failed");
-
-    const data = await res.json();
-    localStorage.setItem("accessToken", data.accessToken);
-    if (data.memberId) localStorage.setItem("memberId", String(data.memberId));
-    if (data.role) localStorage.setItem("role", data.role);
-    return data.accessToken;
 }
 
-function buildStreamRequest(token: string | null, message: string): Request {
+function buildStreamRequest(message: string): Request {
     return new Request(`${API_BASE_URL}/api/ai/stream`, {
         method: "POST",
+        credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ message }),
     });
 }
 
 export async function* streamChatMessage(message: string): AsyncGenerator<string> {
-    let accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    let res = await fetch(buildStreamRequest(accessToken, message));
+    let res = await fetch(buildStreamRequest(message));
 
     if (res.status === 401) {
         try {
-            accessToken = await refreshAccessToken();
-            res = await fetch(buildStreamRequest(accessToken, message));
+            await refreshAccessToken();
+            res = await fetch(buildStreamRequest(message));
         } catch {
             throw new Error("UNAUTHORIZED");
         }
