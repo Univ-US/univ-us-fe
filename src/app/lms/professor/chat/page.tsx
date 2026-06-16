@@ -404,9 +404,8 @@ export default function ProfessorChatPage() {
                     onChange={(event) => setInput(event.target.value)}
                     rows={1}
                     maxLength={1000}
-                    disabled={sending}
                     placeholder="메시지를 입력하세요."
-                    className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-slate-500 focus:bg-white disabled:opacity-60"
+                    className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-slate-500 focus:bg-white"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                         event.preventDefault();
@@ -416,6 +415,7 @@ export default function ProfessorChatPage() {
                   />
                   <button
                     type="submit"
+                    onMouseDown={(event) => event.preventDefault()}
                     disabled={!input.trim() || sending}
                     aria-label="메시지 보내기"
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
