@@ -4,15 +4,24 @@
 // - 사이드바 상단: 학교명(API) + UniVUs 브랜드 + 사용자(이름/학과/아바타, API)
 // - 네비: '프로필'만 활성(SLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 LMS 페이지(현재는 /lms/student/profile)
+import { Client, type IStompSocket } from "@stomp/stompjs";
 import { useEffect, useState, type ReactNode } from "react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import SockJS from "sockjs-client";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 import { useLmsStudentChatStore } from "@/store/lms/lmsStudentChatStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import useEscapeClose from "@/components/lms/useEscapeClose";
+import {
+  getChatRooms,
+  LMS_STUDENT_CHAT_TOPIC_PREFIX,
+  type ChatMessage,
+} from "@/lib/lmsStudentChatApi";
+import { getWebSocketEndpointUrl } from "@/lib/realtime";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
@@ -65,6 +74,15 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
   const [logoutOpen, setLogoutOpen] = useState(false); // SLM-011 로그아웃 확인 모달
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const sync = () => setSidebarOpen(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +123,59 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
     }
   };
 
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 767px)");
+    if (mobile.matches) setSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const currentPath = stripSlash(pathname);
+    if (!accessChecked || currentPath.startsWith("/lms/student/chat")) return;
+
+    let disposed = false;
+    let client: Client | null = null;
+
+    void getChatRooms()
+      .then((rooms) => {
+        if (disposed || rooms.length === 0) return;
+
+        client = new Client({
+          webSocketFactory: () =>
+            new SockJS(getWebSocketEndpointUrl()) as unknown as IStompSocket,
+          reconnectDelay: 5000,
+          heartbeatIncoming: 10000,
+          heartbeatOutgoing: 10000,
+          debug: () => {},
+          onConnect: () => {
+            if (disposed) return;
+            rooms.forEach((room) => {
+              client?.subscribe(`${LMS_STUDENT_CHAT_TOPIC_PREFIX}/${room.roomId}`, (message) => {
+                if (!message.body) return;
+                try {
+                  const payload = JSON.parse(message.body) as ChatMessage;
+                  if (payload.senderLmsPrfId !== room.studentLmsPrfId) {
+                    void loadChatUnreadCount();
+                  }
+                } catch {
+                  // Ignore malformed realtime payloads.
+                }
+              });
+            });
+          },
+        });
+
+        client.activate();
+      })
+      .catch(() => {
+        /* unread 초기 조회가 이미 있으므로 실시간 구독 실패는 조용히 둔다. */
+      });
+
+    return () => {
+      disposed = true;
+      void client?.deactivate();
+    };
+  }, [accessChecked, loadChatUnreadCount, pathname]);
+
   useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
   const avatar = resolveImg(profile?.lmsStudentProfileImageUrl ?? null);
@@ -114,31 +185,88 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
+      {!sidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="사이드바 열기"
+          title="사이드바 열기"
+          className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-800 shadow-lg md:hidden"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+      {sidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="사이드바 닫기"
+          className="fixed inset-0 z-30 bg-slate-950/35 md:hidden"
+        />
+      )}
+
       {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80">
-        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 홈(/home)으로 이동 */}
-        <Link
-          href="/home"
-          title="홈으로"
-          className="flex items-center gap-3 px-5 py-5 transition-colors hover:bg-emerald-800/50"
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80 shadow-xl transition-all duration-200 md:sticky md:top-0 md:z-auto md:shadow-none ${
+          sidebarOpen
+            ? "translate-x-0 md:w-60"
+            : "-translate-x-full md:w-16 md:translate-x-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setSidebarOpen((open) => !open)}
+          aria-label={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
+          title={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
+          className="absolute right-0 top-5 z-10 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-emerald-700/70 bg-emerald-950 text-emerald-50 shadow-lg hover:bg-emerald-800"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] text-emerald-200/70">
-              {/* 학교명: BE 제공(계정 미설정이면 null) */}
-              {profile?.lmsStudentProfileUniversityName || "-"}
-            </p>
-            <p className="text-lg font-bold text-white">UniVUs</p>
-          </div>
-          <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
-            {profile?.lmsStudentProfileRole || "학생"}
-          </span>
-        </Link>
+          {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </button>
+
+        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 홈(/home)으로 이동 */}
+        <div className={`flex items-center px-3 py-4 ${sidebarOpen ? "gap-2" : "justify-center"}`}>
+          {sidebarOpen ? (
+            <Link
+              href="/home"
+              title="홈으로"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-emerald-800/50"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
+              <>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] text-emerald-200/70">
+                    {/* 학교명: BE 제공(계정 미설정이면 null) */}
+                    {profile?.lmsStudentProfileUniversityName || "-"}
+                  </p>
+                  <p className="text-lg font-bold text-white">UniVUs</p>
+                </div>
+                <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
+                  {profile?.lmsStudentProfileRole || "학생"}
+                </span>
+              </>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="사이드바 펼치기"
+              title="사이드바 펼치기"
+              className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-emerald-800/50"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/univusicon.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
+            </button>
+          )}
+        </div>
 
         {/* 사용자 카드 */}
-        <div className="mx-3 mb-4 flex items-center gap-3 rounded-xl bg-emerald-800/40 px-3 py-3">
+        <div
+          className={`mx-3 mb-4 flex items-center rounded-xl bg-emerald-800/40 px-3 py-3 ${
+            sidebarOpen ? "gap-3" : "justify-center"
+          }`}
+        >
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-sm font-semibold text-white">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -147,22 +275,24 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               <span>{initial}</span>
             )}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {profile?.lmsStudentProfileName ?? "학생"}
-            </p>
-            <p className="truncate text-xs text-emerald-200/60">
-              {/* 학과 · 학번 */}
-              {profile?.lmsStudentProfileDepartment ?? "-"}
-              {profile?.lmsStudentProfileStudentNo
-                ? ` · ${profile.lmsStudentProfileStudentNo}`
-                : ""}
-            </p>
-          </div>
+          {sidebarOpen && (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">
+                {profile?.lmsStudentProfileName ?? "학생"}
+              </p>
+              <p className="truncate text-xs text-emerald-200/60">
+                {/* 학과 · 학번 */}
+                {profile?.lmsStudentProfileDepartment ?? "-"}
+                {profile?.lmsStudentProfileStudentNo
+                  ? ` · ${profile.lmsStudentProfileStudentNo}`
+                  : ""}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 프로필 로드 실패 시 (가짜 정보로 가리지 않고 표기) */}
-        {loadFailed && !profile && (
+        {sidebarOpen && loadFailed && !profile && (
           <p className="mx-3 -mt-2 mb-3 text-[11px] text-amber-300">
             ⚠ 프로필 정보를 불러오지 못했습니다 (서버 확인)
           </p>
@@ -172,9 +302,11 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
         <nav className="flex-1 overflow-y-auto px-3">
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="mb-4">
-              <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-emerald-300/50">
-                {section.title}
-              </p>
+              {sidebarOpen && (
+                <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-emerald-300/50">
+                  {section.title}
+                </p>
+              )}
               {section.items.map((item) => {
                 const active =
                   item.href && stripSlash(pathname) === stripSlash(item.href);
@@ -187,9 +319,13 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
+                    {sidebarOpen && <span className="flex-1">{item.label}</span>}
                     {badge != null && badge > 0 && (
-                      <span className="rounded-full bg-orange-500 px-1.5 text-[11px] font-semibold text-white">
+                      <span
+                        className={`rounded-full bg-orange-500 px-1.5 text-[11px] font-semibold text-white ${
+                          sidebarOpen ? "" : "absolute right-0.5 top-0.5"
+                        }`}
+                      >
                         {badge}
                       </span>
                     )}
@@ -205,7 +341,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                       active
                         ? "bg-emerald-700/80 font-semibold text-white before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-full before:bg-emerald-300 before:content-['']"
                         : "text-emerald-100/80 hover:bg-emerald-800/50"
-                    }`}
+                    } ${sidebarOpen ? "" : "justify-center"}`}
                   >
                     {content}
                   </Link>
@@ -213,7 +349,9 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-emerald-200/40`}
+                    className={`${base} cursor-not-allowed text-emerald-200/40 ${
+                      sidebarOpen ? "" : "justify-center"
+                    }`}
                   >
                     {content}
                   </div>
@@ -227,16 +365,22 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
         <div className="py-2">
           <Link
             href="/home"
-            className="flex items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white"
+            title="홈으로"
+            className={`flex items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white ${
+              sidebarOpen ? "" : "justify-center px-0"
+            }`}
           >
-            <span className="text-base">🏠</span> 홈으로
+            <span className="text-base">🏠</span> {sidebarOpen && "홈으로"}
           </Link>
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
-            className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white"
+            title="로그아웃"
+            className={`flex w-full items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white ${
+              sidebarOpen ? "" : "justify-center px-0"
+            }`}
           >
-            <span className="text-base">↩</span> 로그아웃
+            <span className="text-base">↩</span> {sidebarOpen && "로그아웃"}
           </button>
         </div>
       </aside>
