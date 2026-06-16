@@ -127,7 +127,7 @@ export default function ProfessorProfilePage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       setNotice("변경사항이 저장되었습니다.");
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "저장에 실패했습니다. 입력값을 확인해주세요."));
+      setError(`저장에 실패했습니다 — ${describeApiError(err)}`);
     } finally {
       setSaving(false);
     }
@@ -331,17 +331,4 @@ function Field({
       {note && <p className="mt-1 text-xs text-slate-400">{note}</p>}
     </div>
   );
-}
-
-function getErrorMessage(err: unknown, fallback: string): string {
-  if (typeof err === "object" && err !== null && "response" in err) {
-    const resp = (err as { response?: { data?: unknown } }).response;
-    const data = resp?.data;
-    if (typeof data === "string" && data) return data;
-    if (typeof data === "object" && data !== null && "message" in data) {
-      const msg = (data as { message?: unknown }).message;
-      if (typeof msg === "string" && msg) return msg;
-    }
-  }
-  return fallback;
 }
