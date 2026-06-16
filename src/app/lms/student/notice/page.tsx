@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
@@ -72,6 +72,7 @@ const matchCourses = (
   );
 
 const NOTICE_PREVIEW_MAX = 20;
+const NOTICE_PAGE_SIZE = 8;
 
 function noticeSummary(html: string): string {
   const text = htmlToPlainText(html);
@@ -86,6 +87,7 @@ export default function StudentNoticePage() {
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
   const [toast, setToast] = useState<Toast | null>(null);
 
   const showToast = useCallback((nextToast: Toast) => {
@@ -141,6 +143,13 @@ export default function StudentNoticePage() {
     const filtered = notices.filter((notice) => notice.lecId === selectedLecId);
     return [...filtered].sort((a, b) => b.date.localeCompare(a.date));
   }, [notices, selectedLecId]);
+  const totalPages = Math.max(1, Math.ceil(list.length / NOTICE_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStartIndex = safePage * NOTICE_PAGE_SIZE;
+  const pagedList = useMemo(
+    () => list.slice(pageStartIndex, pageStartIndex + NOTICE_PAGE_SIZE),
+    [list, pageStartIndex]
+  );
 
   const handleYearChange = (year: number | "all") => {
     setYearFilter(year);
@@ -153,14 +162,25 @@ export default function StudentNoticePage() {
   };
 
   useEffect(() => {
+    setPage(0);
+  }, [selectedLecId]);
+
+  useEffect(() => {
+    if (page !== safePage) {
+      setPage(safePage);
+    }
+  }, [page, safePage]);
+
+  useEffect(() => {
     if (list.length === 0) {
       setSelectedId(null);
       return;
     }
-    if (!list.some((notice) => notice.id === selectedId)) {
-      setSelectedId((list.find((notice) => notice.featured) ?? list[0]).id);
+    const selectable = pagedList.length > 0 ? pagedList : list;
+    if (!selectable.some((notice) => notice.id === selectedId)) {
+      setSelectedId((selectable.find((notice) => notice.featured) ?? selectable[0]).id);
     }
-  }, [list, selectedId]);
+  }, [list, pagedList, selectedId]);
 
   const selected = useMemo(
     () => list.find((notice) => notice.id === selectedId) ?? null,
@@ -271,7 +291,7 @@ export default function StudentNoticePage() {
               <span className="text-[11px] text-slate-400">{list.length}건</span>
             </div>
             <ul className="p-2">
-              {list.map((notice) => {
+              {pagedList.map((notice) => {
                 const active = notice.id === selectedId;
                 const summary = noticeSummary(notice.content);
                 return (
@@ -302,6 +322,16 @@ export default function StudentNoticePage() {
                 );
               })}
             </ul>
+            {totalPages > 1 && (
+              <NoticePager
+                page={safePage}
+                totalPages={totalPages}
+                totalItems={list.length}
+                startIndex={pageStartIndex}
+                visibleCount={pagedList.length}
+                onChange={setPage}
+              />
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -314,6 +344,72 @@ export default function StudentNoticePage() {
         </div>
       )}
     </div>
+  );
+}
+
+function NoticePager({
+  page,
+  totalPages,
+  totalItems,
+  startIndex,
+  visibleCount,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  startIndex: number;
+  visibleCount: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
+      <span className="text-[11px] text-slate-400">
+        총 {totalItems}건 중 {startIndex + 1}-{startIndex + visibleCount} 표시
+      </span>
+      <div className="flex items-center gap-1">
+        <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
+          이전
+        </PageBtn>
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
+            {i + 1}
+          </PageBtn>
+        ))}
+        <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
+          다음
+        </PageBtn>
+      </div>
+    </div>
+  );
+}
+
+function PageBtn({
+  children,
+  active = false,
+  disabled = false,
+  onClick,
+}: {
+  children: ReactNode;
+  active?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`min-w-8 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
+        active
+          ? "bg-emerald-700 text-white"
+          : "border border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
+      } disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:border-transparent disabled:hover:bg-transparent`}
+    >
+      {children}
+    </button>
   );
 }
 
