@@ -345,7 +345,7 @@ export default function CommunityBoardView({
                   aria-pressed={boardSubscribed}
                   title={boardSubscribed ? `${meta.label} 새 글 알림 끄기` : `${meta.label} 새 글 알림 켜기`}
                   className={cn(
-                    'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
+                    'hidden shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
                     boardSubscribed
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-slate-300 bg-white text-slate-400 hover:border-primary hover:text-primary',
