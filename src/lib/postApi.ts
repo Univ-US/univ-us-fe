@@ -38,6 +38,7 @@ export const createPost = async (postData: {
   title: string;
   content: string;
   category?: string;
+  univId?: number;
 }) => {
   const res = await api.post("/api/posts", postData);
   return res.data;
@@ -49,6 +50,7 @@ export const createPostWithImages = async (
     title: string;
     content: string;
     category?: string;
+    univId?: number;
   },
   images: File[],
 ) => {
@@ -57,6 +59,7 @@ export const createPostWithImages = async (
   formData.append("title", postData.title);
   formData.append("content", postData.content);
   if (postData.category) formData.append("category", postData.category);
+  if (postData.univId != null) formData.append("univId", String(postData.univId));
   images.forEach((image) => formData.append("images", image));
 
   const res = await api.post("/api/posts", formData);
