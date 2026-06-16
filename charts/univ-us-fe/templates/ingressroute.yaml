@@ -1,3 +1,10 @@
+# =====================================================================
+# ingressroute.yaml — Traefik 라우팅(프론트). '/' catch-all → FE(아파치 정적서빙).
+#   · 평문(web/80) 라우트 = 기존 그대로(LAN 데모 http://192.168.0.108).
+#   · TLS(websecure/443) 라우트 = 듀얼 도메인(SNI 분리). BE 차트와 동일 패턴.
+#     🔴 HTTP→HTTPS 301·HSTS 금지(www 자체서명 경고통과 잠김 방지) → 평문/TLS 공존.
+#     standalone univus-tls-www/duckdns 의 '/' 라우트를 차트로 영구화(컷오버 시 standalone 삭제).
+# =====================================================================
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -11,3 +18,41 @@ spec:
       services:
         - name: {{ .Release.Name }}
           port: {{ .Values.service.port }}
+{{- if .Values.ingress.tls.enabled }}
+{{- if .Values.ingress.tls.selfSigned.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-tls-www         # 자체서명 도메인 TLS 라우트(www.univus.com·univus.com)
+spec:
+  entryPoints:
+    - {{ .Values.ingress.tls.entryPoint }}   # websecure(443)
+  routes:
+    - match: ({{ range $i, $h := $.Values.ingress.tls.selfSigned.hosts }}{{ if $i }} || {{ end }}Host(`{{ $h }}`){{ end }}) && PathPrefix(`{{ $.Values.ingress.pathPrefix }}`)
+      kind: Rule
+      services:
+        - name: {{ $.Release.Name }}
+          port: {{ $.Values.service.port }}
+  tls:
+    secretName: {{ .Values.ingress.tls.selfSigned.secretName }}   # kubernetes.io/tls Secret(수동 선생성)
+{{- end }}
+{{- if .Values.ingress.tls.letsEncrypt.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}-tls-duckdns     # Let's Encrypt 도메인 TLS 라우트(univus.duckdns.org)
+spec:
+  entryPoints:
+    - {{ .Values.ingress.tls.entryPoint }}   # websecure(443)
+  routes:
+    - match: ({{ range $i, $h := $.Values.ingress.tls.letsEncrypt.hosts }}{{ if $i }} || {{ end }}Host(`{{ $h }}`){{ end }}) && PathPrefix(`{{ $.Values.ingress.pathPrefix }}`)
+      kind: Rule
+      services:
+        - name: {{ $.Release.Name }}
+          port: {{ $.Values.service.port }}
+  tls:
+    certResolver: {{ .Values.ingress.tls.letsEncrypt.certResolver }}   # Traefik ACME(le=prod)
+{{- end }}
+{{- end }}
