@@ -72,7 +72,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
       .then((status) => {
         if (!active) return;
         if (!status.serviceAccessible) {
-          router.replace("/landing?subscription=expired");
+          router.replace("/unauthorized");
           return;
         }
         setAccessChecked(true);

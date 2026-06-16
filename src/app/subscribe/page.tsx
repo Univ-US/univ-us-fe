@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Building2,
+  ChevronDown,
   Check,
   CreditCard,
   LoaderCircle,
+  Search,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ import {
   getSubscriptionPaymentConfig,
   getSubscriptionPlans,
   getSubscriptionStatus,
+  getSubscriptionUniversities,
   prepareSubscription,
 } from "@/lib/subscriptionApi";
 import { loadPortOneSdk } from "@/lib/portone";
@@ -29,14 +32,20 @@ import type {
   SubscriptionPaymentVerifyResponse,
   SubscriptionPlan,
   SubscriptionPrepareRequest,
+  SubscriptionUniversityOption,
 } from "@/types/subscription";
+
+type SubscriptionSchoolForm = Pick<
+  SubscriptionPrepareRequest,
+  "univName" | "sido" | "address" | "schoolPhone" | "homepage"
+>;
 
 type SubscriptionAuthUpdater = (
   verification: SubscriptionPaymentVerifyResponse,
   univName: string,
 ) => void;
 
-const initialForm: Omit<SubscriptionPrepareRequest, "planId"> = {
+const initialForm: SubscriptionSchoolForm = {
   univName: "",
   sido: "",
   address: "",
@@ -68,11 +77,10 @@ function formatMemberLimit(maxMemberCount: number | null) {
 }
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return getApiErrorMessage(error, fallbackMessage);
+  const apiMessage = getApiErrorMessage(error, "");
+  if (apiMessage.trim()) return apiMessage;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallbackMessage;
 }
 
 export default function SubscribePage() {
@@ -99,12 +107,30 @@ export default function SubscribePage() {
   const [loadingAccess, setLoadingAccess] = useState(true);
   const [accessStatus, setAccessStatus] =
     useState<SubscriptionAccessStatus | null>(null);
+  const [universityOptions, setUniversityOptions] = useState<
+    SubscriptionUniversityOption[]
+  >([]);
+  const [selectedUniversity, setSelectedUniversity] =
+    useState<SubscriptionUniversityOption | null>(null);
+  const [loadingUniversities, setLoadingUniversities] = useState(false);
+  const [universityOpen, setUniversityOpen] = useState(false);
+  const [universitySearch, setUniversitySearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const universityRef = useRef<HTMLDivElement>(null);
 
   const selectedPlan = useMemo(
     () => plans.find((plan) => plan.planId === selectedPlanId) ?? null,
     [plans, selectedPlanId],
+  );
+  const filteredUniversityOptions = useMemo(
+    () =>
+      universityOptions.filter((university) =>
+        university.univName
+          .toLowerCase()
+          .includes(universitySearch.trim().toLowerCase()),
+      ),
+    [universityOptions, universitySearch],
   );
 
   useEffect(() => {
@@ -203,11 +229,82 @@ export default function SubscribePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (role === "ADM") return;
+
+    let active = true;
+    setLoadingUniversities(true);
+    void getSubscriptionUniversities()
+      .then((universities) => {
+        if (active) setUniversityOptions(universities);
+      })
+      .catch(() => {
+        if (active) setUniversityOptions([]);
+      })
+      .finally(() => {
+        if (active) setLoadingUniversities(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        universityRef.current &&
+        !universityRef.current.contains(event.target as Node)
+      ) {
+        setUniversityOpen(false);
+        setUniversitySearch("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const updateForm = (
     field: keyof typeof initialForm,
     value: string,
   ) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const isAlreadySubscribedUniversity = (
+    university: SubscriptionUniversityOption | null,
+  ) => university?.subscriptionStatus === "ACTIVE" || university?.subscriptionStatus === "PENDING";
+
+  const selectUniversity = (university: SubscriptionUniversityOption) => {
+    setSelectedUniversity(university);
+    setUniversityOpen(false);
+    setUniversitySearch("");
+    setForm({
+      univName: university.univName,
+      sido: university.sido ?? "",
+      address: university.address ?? "",
+      schoolPhone: university.schoolPhone ?? "",
+      homepage: university.homepage ?? "",
+    });
+    setError(null);
+  };
+
+  const updateSchoolName = (value: string) => {
+    if (selectedUniversity && selectedUniversity.univName !== value) {
+      setSelectedUniversity(null);
+    }
+    updateForm("univName", value);
+  };
+
+  const updateSchoolField = (
+    field: Exclude<keyof typeof initialForm, "univName">,
+    value: string,
+  ) => {
+    if (selectedUniversity) {
+      setSelectedUniversity(null);
+    }
+    updateForm(field, value);
   };
 
   const closePreparedPayment = async (
@@ -237,6 +334,12 @@ export default function SubscribePage() {
       return;
     }
 
+    if (isAlreadySubscribedUniversity(selectedUniversity)) {
+      window.alert("이미 구독 중인 학교입니다.");
+      setError("이미 구독 중인 학교입니다.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -246,6 +349,7 @@ export default function SubscribePage() {
     try {
       const prepareResponse = await prepareSubscription({
         planId: selectedPlan.planId,
+        univId: selectedUniversity?.univId,
         univName: form.univName.trim(),
         sido: form.sido.trim(),
         address: form.address.trim(),
@@ -505,6 +609,98 @@ export default function SubscribePage() {
                 결제 성공 후 입력한 정보로 학교가 생성됩니다.
               </p>
 
+              {role !== "ADM" && (
+                <div className="relative mt-5" ref={universityRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUniversityOpen((current) => !current);
+                      setUniversitySearch("");
+                    }}
+                    className={`h-11 w-full rounded-lg border bg-white px-3.5 text-left text-sm outline-none transition ${
+                      universityOpen
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span
+                        className={
+                          selectedUniversity ? "text-slate-900" : "text-slate-400"
+                        }
+                      >
+                        {selectedUniversity
+                          ? selectedUniversity.univName
+                          : "학교를 선택해주세요"}
+                      </span>
+                      {loadingUniversities ? (
+                        <LoaderCircle className="size-4 animate-spin text-slate-400" />
+                      ) : (
+                        <ChevronDown
+                          className={`size-4 shrink-0 text-slate-400 transition-transform ${
+                            universityOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      )}
+                    </span>
+                  </button>
+
+                  {universityOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+                        <Search className="size-4 shrink-0 text-slate-400" />
+                        <input
+                          autoFocus
+                          value={universitySearch}
+                          onChange={(event) =>
+                            setUniversitySearch(event.target.value)
+                          }
+                          placeholder="학교 검색"
+                          className="w-full text-sm outline-none placeholder:text-slate-400"
+                        />
+                      </div>
+                      <ul className="max-h-48 overflow-y-auto py-1">
+                        {filteredUniversityOptions.length > 0 ? (
+                          filteredUniversityOptions.map((university) => {
+                            const alreadySubscribed =
+                              isAlreadySubscribedUniversity(university);
+
+                            return (
+                              <li key={university.univId}>
+                                <button
+                                  type="button"
+                                  onClick={() => selectUniversity(university)}
+                                  className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                >
+                                  <span className="truncate">
+                                    {university.univName}
+                                  </span>
+                                  <span className="flex shrink-0 items-center gap-2">
+                                    {alreadySubscribed && (
+                                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">
+                                        구독 중
+                                      </span>
+                                    )}
+                                    {selectedUniversity?.univId ===
+                                      university.univId && (
+                                      <Check className="size-4 text-primary" />
+                                    )}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })
+                        ) : (
+                          <li className="px-3.5 py-3 text-sm text-slate-400">
+                            검색 결과가 없습니다.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 <label className="text-sm font-bold">
                   학교명
@@ -513,7 +709,7 @@ export default function SubscribePage() {
                     disabled={role === "ADM"}
                     value={form.univName}
                     onChange={(event) =>
-                      updateForm("univName", event.target.value)
+                      updateSchoolName(event.target.value)
                     }
                     placeholder="예: UnivUs대학교"
                     className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
@@ -527,7 +723,7 @@ export default function SubscribePage() {
                     disabled={role === "ADM"}
                     value={form.sido}
                     onChange={(event) =>
-                      updateForm("sido", event.target.value)
+                      updateSchoolField("sido", event.target.value)
                     }
                     placeholder="예: 서울특별시"
                     className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
@@ -541,7 +737,7 @@ export default function SubscribePage() {
                     disabled={role === "ADM"}
                     value={form.address}
                     onChange={(event) =>
-                      updateForm("address", event.target.value)
+                      updateSchoolField("address", event.target.value)
                     }
                     placeholder="학교 주소를 입력해주세요."
                     className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
@@ -555,7 +751,7 @@ export default function SubscribePage() {
                     disabled={role === "ADM"}
                     value={form.schoolPhone}
                     onChange={(event) =>
-                      updateForm("schoolPhone", event.target.value)
+                      updateSchoolField("schoolPhone", event.target.value)
                     }
                     placeholder="02-1234-5678"
                     className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
@@ -570,7 +766,7 @@ export default function SubscribePage() {
                     type="url"
                     value={form.homepage}
                     onChange={(event) =>
-                      updateForm("homepage", event.target.value)
+                      updateSchoolField("homepage", event.target.value)
                     }
                     placeholder="https://www.example.ac.kr"
                     className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
