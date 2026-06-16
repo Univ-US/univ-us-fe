@@ -162,7 +162,7 @@ export default function StudentChatPage() {
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
-      debug: () => {},
+      debug: () => { },
       onConnect: () => {
         if (disposed) return;
         setRealtimeStatus("connected");
@@ -277,9 +277,8 @@ export default function StudentChatPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedRoomId(room.roomId)}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                        active ? "bg-emerald-50" : "hover:bg-slate-50"
-                      }`}
+                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${active ? "bg-emerald-50" : "hover:bg-slate-50"
+                        }`}
                     >
                       <span
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${room.avatarColor}`}
@@ -336,11 +335,10 @@ export default function StudentChatPage() {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      realtimeStatus === "connected"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${realtimeStatus === "connected"
                         ? "bg-emerald-50 text-emerald-700"
                         : "bg-slate-100 text-slate-400"
-                    }`}
+                      }`}
                   >
                     {realtimeStatus === "connected" ? <Wifi className="size-3" /> : <WifiOff className="size-3" />}
                     {realtimeStatus === "connected" ? "실시간" : "오프라인"}
