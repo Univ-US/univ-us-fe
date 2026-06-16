@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import Link from "next/link";
+import {
+    isAdminSessionConflictError,
+    type AdminSessionInfo,
+} from "@/lib/authApi";
 
 const getRedirectPathByRole = (role: string) => {
     switch (role) {
@@ -28,22 +32,21 @@ export default function LoginPage() {
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const role = useAuthStore((state) => state.role);
 
-    useEffect(() => {
-        // AuthProvider가 localStorage 복원을 끝내기 전에는 이동 판단을 하지 않습니다.
-        if (!isInitialized || !isLoggedIn) return;
-
-        const redirectPath = role ? getRedirectPathByRole(role) : "/landing";
-
-        router.replace(redirectPath ?? "/landing");
-    }, [isInitialized, isLoggedIn, role, router]);
-
     const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [conflictSession, setConflictSession] =
+        useState<AdminSessionInfo | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    useEffect(() => {
+        if (!isInitialized || !isLoggedIn) return;
+
+        const redirectPath = role ? getRedirectPathByRole(role) : "/landing";
+        router.replace(redirectPath ?? "/landing");
+    }, [isInitialized, isLoggedIn, role, router]);
+
+    const submitLogin = async (forceLogin = false) => {
         setError("");
 
         if (!loginId.trim() || !password.trim()) {
@@ -59,20 +62,40 @@ export default function LoginPage() {
         try {
             setSubmitting(true);
 
-            const role = await loginAction(loginId, password);
+            const role = await loginAction(loginId, password, forceLogin);
             const redirectPath = getRedirectPathByRole(role);
 
             if (!redirectPath) {
-                setError("운영자 계정만 로그인할 수 있습니다.");
+                setError("운영 계정만 로그인할 수 있습니다.");
                 return;
             }
 
             router.push(redirectPath);
-        } catch {
+        } catch (error) {
+            if (isAdminSessionConflictError(error)) {
+                setConflictSession(error.response.data.session ?? null);
+                return;
+            }
+
             setError("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        await submitLogin(false);
+    };
+
+    const handleCancelConflict = () => {
+        setConflictSession(null);
+        setError("기존 접속이 있어 로그인이 취소되었습니다.");
+    };
+
+    const handleForceLogin = async () => {
+        setConflictSession(null);
+        await submitLogin(true);
     };
 
     if (!isInitialized) {
@@ -125,6 +148,73 @@ export default function LoginPage() {
                     </Link>
                 </div>
             </form>
+
+            {conflictSession && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+                    <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">
+                                    동시 접근 제한
+                                </h2>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                    현재 같은 관리자 계정으로 접속 중인 세션이 있습니다.
+                                    기존 접속을 종료하고 로그인하시겠습니까?
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCancelConflict}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                aria-label="닫기"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                            <div className="flex justify-between gap-4">
+                                <span className="text-slate-500">접속 시간</span>
+                                <span className="font-medium">
+                                    {conflictSession.loginAt ?? "확인 불가"}
+                                </span>
+                            </div>
+                            <div className="mt-2 flex justify-between gap-4">
+                                <span className="text-slate-500">접속 환경</span>
+                                <span className="font-medium">
+                                    {conflictSession.device ?? "확인 불가"}
+                                </span>
+                            </div>
+                            <div className="mt-2 flex justify-between gap-4">
+                                <span className="text-slate-500">접속 IP</span>
+                                <span className="font-medium">
+                                    {conflictSession.ipAddress ?? "확인 불가"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleCancelConflict}
+                                disabled={submitting}
+                            >
+                                취소
+                            </Button>
+                            <Button
+                                type="button"
+                                className="flex-1"
+                                onClick={handleForceLogin}
+                                disabled={submitting}
+                            >
+                                기존 접속 종료
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

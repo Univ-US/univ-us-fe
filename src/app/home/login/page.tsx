@@ -6,9 +6,14 @@ import Link from "next/link";
 import { LogIn, ChevronDown, Search, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { userLogin } from "@/lib/authApi";
+import {
+    userLogin,
+    isAdminSessionConflictError,
+    type AdminSessionInfo,
+} from "@/lib/authApi";
 import { getUniversities } from "@/lib/homeApi";
 import type { University } from "@/lib/homeApi";
+
 
 const getRedirectPathByRole = (role: string) => {
     switch (role) {
@@ -46,6 +51,8 @@ export default function UserLoginPage() {
         u.univName.toLowerCase().includes(univSearch.toLowerCase())
     );
 
+    const [conflictSession, setConflictSession] = useState<AdminSessionInfo | null>(null);
+
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (univRef.current && !univRef.current.contains(e.target as Node)) {
@@ -62,7 +69,53 @@ export default function UserLoginPage() {
     }, []);
 
     const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+        // e.preventDefault();
+        // setError("");
+        //
+        // if (!memberId.trim() || !password.trim()) {
+        //     setError("아이디와 비밀번호를 입력해주세요.");
+        //     return;
+        // }
+        //
+        // if (univId === null) {
+        //     setError("학교를 선택해주세요.");
+        //     return;
+        // }
+        //
+        // try {
+        //     setSubmitting(true);
+        //
+        //     const data = await userLogin({ loginId: memberId, password, univId });
+        //
+        //     localStorage.setItem("accessToken", data.accessToken);
+        //     localStorage.setItem("refreshToken", data.refreshToken);
+        //     localStorage.setItem("memberId", String(data.memberId));
+        //     localStorage.setItem("memberName", data.memberName);
+        //     localStorage.setItem("role", data.role);
+        //     if (data.univId != null) localStorage.setItem("univId", String(data.univId));
+        //     if (data.univName) localStorage.setItem("univName", data.univName);
+        //     localStorage.setItem("communityNickname", data.communityNickname ?? "");
+        //     localStorage.setItem("status", data.status ?? "ACTIVE");
+        //     loadFromStorage();
+        //
+        //     const redirectPath = new URLSearchParams(window.location.search).get("redirect");
+        //     const communityAllowedRoles = ["SUA", "ADM", "STU", "ALU"];
+        //     const canRedirectToCommunity =
+        //         !!redirectPath &&
+        //         redirectPath.startsWith("/community") &&
+        //         communityAllowedRoles.includes(data.role);
+        //
+        //     router.push(canRedirectToCommunity ? redirectPath : getRedirectPathByRole(data.role));
+        // } catch {
+        //     setError("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
+        // } finally {
+        //     setSubmitting(false);
+        // }
         e.preventDefault();
+        await submitLogin(false);
+    };
+
+    const submitLogin = async (forceLogin = false) => {
         setError("");
 
         if (!memberId.trim() || !password.trim()) {
@@ -70,7 +123,9 @@ export default function UserLoginPage() {
             return;
         }
 
-        if (univId === null) {
+        const selectedUnivId = univId;
+
+        if (selectedUnivId === null) {
             setError("학교를 선택해주세요.");
             return;
         }
@@ -78,18 +133,19 @@ export default function UserLoginPage() {
         try {
             setSubmitting(true);
 
-            const data = await userLogin({ loginId: memberId, password, univId });
+            const data = await userLogin({
+                loginId: memberId,
+                password,
+                univId: selectedUnivId,
+                forceLogin,
+            });
 
-            localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
-            localStorage.setItem("memberId", String(data.memberId));
-            localStorage.setItem("memberName", data.memberName);
-            localStorage.setItem("role", data.role);
-            if (data.univId != null) localStorage.setItem("univId", String(data.univId));
-            if (data.univName) localStorage.setItem("univName", data.univName);
-            localStorage.setItem("communityNickname", data.communityNickname ?? "");
-            localStorage.setItem("status", data.status ?? "ACTIVE");
-            loadFromStorage();
+            const sessionLoaded = await loadFromStorage();
+
+            if (!sessionLoaded) {
+                setError("로그인 세션을 확인하지 못했습니다. 다시 로그인해주세요.");
+                return;
+            }
 
             const redirectPath = new URLSearchParams(window.location.search).get("redirect");
             const communityAllowedRoles = ["SUA", "ADM", "STU", "ALU"];
@@ -99,11 +155,26 @@ export default function UserLoginPage() {
                 communityAllowedRoles.includes(data.role);
 
             router.push(canRedirectToCommunity ? redirectPath : getRedirectPathByRole(data.role));
-        } catch {
+        } catch (error) {
+            if (isAdminSessionConflictError(error)) {
+                setConflictSession(error.response.data.session ?? null);
+                return;
+            }
+
             setError("로그인에 실패했습니다. 아이디 또는 비밀번호를 확인해주세요.");
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleCancelConflict = () => {
+        setConflictSession(null);
+        setError("기존 접속이 있어 로그인이 취소되었습니다.");
+    };
+
+    const handleForceLogin = async () => {
+        setConflictSession(null);
+        await submitLogin(true);
     };
 
     return (
@@ -201,6 +272,32 @@ export default function UserLoginPage() {
                     </div>
                 </form>
             </div>
+            {conflictSession && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+                    <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
+                        <h2 className="text-lg font-bold text-slate-900">동시 접근 제한</h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                            현재 같은 관리자 계정으로 접속 중인 세션이 있습니다.
+                            기존 접속을 종료하고 로그인하시겠습니까?
+                        </p>
+
+                        <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                            <div>접속 시간: {conflictSession.loginAt ?? "확인 불가"}</div>
+                            <div>접속 환경: {conflictSession.device ?? "확인 불가"}</div>
+                            <div>접속 IP: {conflictSession.ipAddress ?? "확인 불가"}</div>
+                        </div>
+
+                        <div className="mt-6 flex gap-2">
+                            <Button type="button" variant="outline" className="flex-1" onClick={handleCancelConflict}>
+                                취소
+                            </Button>
+                            <Button type="button" className="flex-1" onClick={handleForceLogin}>
+                                기존 접속 종료
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
