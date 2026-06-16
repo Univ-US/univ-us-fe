@@ -1,4 +1,5 @@
-import { Clock, RefreshCw, Trash2, CheckCircle2, Clock4 } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, RefreshCw, Trash2, CheckCircle2, Clock4, Info } from 'lucide-react';
 
 import type { ReadingSeatReservation } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,19 @@ export default function MyReadingSeatReservations({
   onExtend,
   onRefresh,
 }: MyReadingSeatReservationsProps) {
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const handleExtendClick = (reservationId: number, isExtendableTime: boolean) => {
+    if (!isExtendableTime) {
+      setToastMsg('만료 20분 전부터 연장 가능합니다.');
+      setTimeout(() => setToastMsg(null), 3000);
+      return;
+    }
+    if (onExtend) {
+      onExtend(reservationId);
+    }
+  };
+
   return (
     <div className='mb-5 rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md'>
       <div className='mb-4 flex items-center justify-between gap-3'>
@@ -78,6 +92,10 @@ export default function MyReadingSeatReservations({
             const isUsing = reservation.status === 'USING';
             const isCheckingIn = checkingInReservationId === reservation.reservationId;
             const isExtending = extendingReservationId === reservation.reservationId;
+
+            const now = Date.now();
+            const endTimeMs = new Date(reservation.endTime).getTime();
+            const isExtendableTime = endTimeMs - now <= 20 * 60 * 1000 && endTimeMs - now > 0;
 
             return (
               <div
@@ -129,9 +147,14 @@ export default function MyReadingSeatReservations({
                   {isUsing && onExtend && (
                     <button
                       type='button'
-                      onClick={() => onExtend(reservation.reservationId)}
+                      onClick={() => handleExtendClick(reservation.reservationId, isExtendableTime)}
                       disabled={isExtending}
-                      className='flex h-9 items-center justify-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/10 hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
+                      className={cn(
+                        'flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-[12px] font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50',
+                        !isExtendableTime
+                          ? 'border-slate-200 bg-slate-50 text-slate-400 hover:bg-slate-100 hover:border-slate-300'
+                          : 'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10'
+                      )}
                     >
                       <Clock4 className='size-3.5' />
                       {isExtending ? '처리 중' : '연장'}
@@ -152,6 +175,13 @@ export default function MyReadingSeatReservations({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2 flex animate-in fade-in slide-in-from-bottom-2 items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 shadow-lg duration-300'>
+          <Info className='size-4 text-slate-500' />
+          <p className='text-[13px] font-semibold text-slate-700'>{toastMsg}</p>
         </div>
       )}
     </div>
