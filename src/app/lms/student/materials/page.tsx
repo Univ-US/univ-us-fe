@@ -1,13 +1,6 @@
 "use client";
 
-// SLM-006 강의 자료 — 교수가 올린 자료(제목·본문·첨부)를 과목별 확인 + '강의 보기' 모달 열람/다운로드
-// 🧪 mock-first(§15): BE 연동 전 샘플 데이터. 색상 = 학생 에메랄드 계열(§13).
-// - 구성 = PLM-006(과제 관리)·PLM-003 패턴: 년도/학기(기본 둘 다 '전체') + 과목 드롭다운(첫 과목 자동 선택)
-//   → 선택한 '한 과목'의 자료만 표시. 년도/학기는 수강 과목을 클라에서 좁힘.
-// - 자료 구조 = 교수 강의 업로드(PLM-005) 미러: 자료 1건 = 제목 + 본문(content) + 첨부 0..N.
-//   테이블 컬럼: 제목 · 강의 내용(content 요약 plain text) · 업로드일 · 유형(첫 첨부 배지 🎬/📄 +N, 0개→'—') · '강의 보기' 액션. (크기는 모달 첨부에 표기)
-//   페이지네이션: 선택 과목 자료를 10건/페이지로 클라 슬라이스(다중 페이지일 때만 페이저+높이 고정). 과목 전환 시 key로 0페이지 리셋.
-// - '강의 보기' → StudentMaterialViewDialog 모달(본문 content + 첨부 다운로드). 열람 제한(만료/교수 제한)은 모달 내 첨부 다운로드만 🔒(보기·본문은 항상 가능).
+// SLM-006 강의 자료 — 학생이 수강 중인 강의의 업로드 자료를 과목별 확인하고 첨부를 다운로드한다.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { isVideoExt } from "@/lib/lmsProfessorUploadApi"; // 영상 확장자 판정(교수 업로드와 동일)
 import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요약(content HTML → plain text)
@@ -22,14 +15,10 @@ import {
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
-// 강의 자료 테이블 페이지네이션 — 한 페이지당 자료 수(목업 클라 슬라이스). BE 연동 시 §21 서버 페이지네이션 전환 대상.
+// 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 표시한다.
 const MATERIALS_PAGE_SIZE = 10;
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-
-// 인수인계용 안내 박스의 테이블명 칩 스타일(모노스페이스)
-const TBL_CLS =
-  "rounded bg-white px-1 py-0.5 font-mono text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200";
 
 const semLabelOf = (year: number, termCode: string) =>
   `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
@@ -188,64 +177,6 @@ export default function StudentMaterialsPage() {
           </select>
         </div>
       </header>
-
-      {/* mock 단계 안내 (§15) */}
-      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-        🧪 샘플 데이터(BE 연동 전) — 실제 강의 자료가 아닙니다.
-      </div>
-
-      {/* 인수인계용 — 이 화면 구현에 필요한 BE 테이블(정본=CLAUDE-DB.md). BE 연동 후 이 박스 삭제. */}
-      <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
-        <p className="mb-1.5 font-semibold text-slate-700">🗄 BE 연동 테이블 (이 화면 구현 시 필요)</p>
-        <ul className="space-y-1">
-          <li>
-            <code className={TBL_CLS}>SEMESTERS</code> — 학기(년도·학기 — 필터·과목 라벨)
-          </li>
-          <li>
-            <code className={TBL_CLS}>LECTURE_STUDENT_ENROLLMENT</code> — 학생 수강 강의(LMS_PRF_ID=학생) → 열람 가능한 강의 한정
-          </li>
-          <li>
-            <code className={TBL_CLS}>LECTURE</code> + <code className={TBL_CLS}>LECTURE_CODE</code> — 강의·과목명(LEC_COD_NAME)·분반(LEC_SECTION)
-          </li>
-          <li>
-            <code className={TBL_CLS}>LECTURE_UPLOADING</code> — 자료 본체(제목 LEC_UPL_TITLE·본문 LEC_UPL_CONTENT·업로드일 LEC_UPL_REG_DATE·LEC_ID로 강의 연결)
-          </li>
-          <li>
-            <code className={TBL_CLS}>LECTURE_UPLOADING_ATTACHMENT</code> — 첨부(1:N 다중·유형=EXT_TYPE·크기 FIL_SIZE·상태 ATT_VAL_STATUS: ACT/DEL/EXPR/FAIL)
-          </li>
-        </ul>
-
-        <p className="mt-3 mb-1.5 font-semibold text-slate-700">📐 구현 규칙 · 특이사항</p>
-        <ul className="space-y-1">
-          <li>
-            · <b>화면 구성</b> = 년도·학기(기본 둘 다 ‘전체’) + 과목 드롭다운(첫 과목 자동 선택) → 선택 과목 1개의 자료만 표시(PLM-006 패턴). BE는 학기 무관 전체 반환, FE가 좁힘.
-          </li>
-          <li>
-            · <b>페이지네이션</b> = 선택 과목 자료 <b>10건/페이지</b>(<code className={TBL_CLS}>MATERIALS_PAGE_SIZE=10</code>). 현 목업은 클라 슬라이스 — BE 연동 시 §21 서버 페이지네이션(page 0-based·size) 전환 대상.
-          </li>
-          <li>
-            · <b>행 액션 = ‘강의 보기’(모달)</b> — 교수 업로드(제목·본문 <code className={TBL_CLS}>LEC_UPL_CONTENT</code>·첨부)를 그대로 열람. 다운로드는 모달 안 첨부별. ⚠️ <b>열람 제한(만료·교수 제한)은 첨부 다운로드만 막음</b>(보기·본문은 항상 가능).
-          </li>
-          <li>
-            · <b>수강 범위 = 신청한 전부</b>(폐강 CNCL 포함 — 수강 내역과 동일 정책). 학생이 수강하지 않은 강의의 자료는 노출 금지.
-          </li>
-          <li>
-            · ⭐ <b>자료 1건(<code className={TBL_CLS}>LECTURE_UPLOADING</code>) ↔ 첨부 0..N</b> — 교수 강의 업로드(PLM-005) 구조 미러. <b>유형</b> = 첫 첨부 확장자(<code className={TBL_CLS}>EXT_TYPE</code>) 배지(🎬 영상 / 📄 그 외) + 다중이면 <code className={TBL_CLS}>+N</code> / <b>크기</b> = 첨부 <code className={TBL_CLS}>FIL_SIZE</code> 합계(모달 첨부에 표기). <b>첨부 0개(텍스트 전용)</b> → 유형 <code className={TBL_CLS}>—</code>.
-          </li>
-          <li>
-            · <b>유효/다운로드 도출</b>: 표시 첨부 = <code className={TBL_CLS}>ATT_VAL_STATUS=ACT</code>만(BE는 attachments에 ACT만 직렬화 권장 · DEL/FAIL 제외). <b>downloadable = 표시 첨부가 전부 ACT면 true</b>, 하나라도 <code className={TBL_CLS}>EXPR</code>이면 false(lockedReason=<code className={TBL_CLS}>expired</code>).
-          </li>
-          <li>
-            · ⚠️ <code className={TBL_CLS}>EXPR</code>의 발생 조건/주체는 BE 정책 — 스키마에 학생별 ‘열람 기간’ 컬럼 없음(FE가 expired를 ‘열람 기간 만료’로 라벨링할 뿐). <b><code className={TBL_CLS}>restricted</code>(교수 제한)은 스키마 전용 컬럼 없음</b> → MVP는 <code className={TBL_CLS}>EXPR</code>만 채우고 restricted는 컬럼 추가 후 활성화. (목록의 ‘교수 제한’ 샘플은 컬럼 추가 후 UI 데모용.)
-          </li>
-          <li>
-            · <b>인증 다운로드 필수</b> — 자료/첨부는 permitAll 아님 → BE 다운로드 엔드포인트(PLM-004-01 <code className={TBL_CLS}>downloadFile</code> 패턴). <code className={TBL_CLS}>&lt;a download&gt;</code>는 JWT 못 실어 blob fetch. ⚠️ <b>다중 첨부 실제 다운로드</b>(파일 개별 vs zip 묶음)는 BE/UX 결정.
-          </li>
-          <li>
-            · <b>업로드일</b> = <code className={TBL_CLS}>LEC_UPL_REG_DATE</code> 날짜만(YYYY-MM-DD, 시각 의미 없음). <b>본문</b>(<code className={TBL_CLS}>LEC_UPL_CONTENT</code>, 교수 Tiptap HTML)은 테이블 ‘강의 내용’ 컬럼에 plain text 요약, ‘강의 보기’ 모달에서 <code className={TBL_CLS}>sanitizeLmsHtml</code> 정화 후 전체 렌더.
-          </li>
-        </ul>
-      </div>
 
       {error ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
