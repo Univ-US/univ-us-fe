@@ -663,9 +663,10 @@ function lecStatusBadgeClass(code: string | null) {
   }
 }
 
+// 출석률 막대 색 — 교수 LMS 색상 표준(95/80, 2026-06-16): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
-  if (rate >= 85) return "bg-emerald-500";
-  if (rate >= 70) return "bg-amber-400";
+  if (rate >= 95) return "bg-emerald-500";
+  if (rate >= 80) return "bg-amber-400";
   return "bg-red-400";
 }
 
