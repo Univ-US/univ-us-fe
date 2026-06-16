@@ -122,6 +122,12 @@ export const deleteProduct = async (
   const res = await api.delete(`/api/market/products/${productId}`);
   return res.data;
 };
+export const completeFreeProduct = async (
+  productId: number,
+): Promise<{ success: boolean; product: Product }> => {
+  const res = await api.patch(`/api/market/products/${productId}/free-complete`);
+  return res.data;
+};
 
 // ── 댓글 목록 조회 ────────────────────────────────────────────────────────
 export const getProductCommentList = async (
@@ -290,5 +296,12 @@ export const completeTradeChatPayment = async (
   payload: ChatPaymentCompletePayload,
 ): Promise<PaymentCompleteResponse> => {
   const res = await api.post('/api/market/chats/payments/complete', payload);
+  return res.data;
+};
+
+export const completeFreeTradeChat = async (
+  roomId: number,
+): Promise<TradeChatRoom> => {
+  const res = await api.patch(`/api/market/chats/${roomId}/free-complete`);
   return res.data;
 };

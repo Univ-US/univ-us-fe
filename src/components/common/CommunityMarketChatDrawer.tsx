@@ -11,6 +11,7 @@ import {
   Trash2,
   UserRound,
   Wallet,
+  PackageOpen,
   Wifi,
   WifiOff,
   X,
@@ -27,6 +28,7 @@ import SockJS from 'sockjs-client';
 
 import { getApiErrorMessage } from '@/lib/apiError';
 import {
+  completeFreeTradeChat,
   completeTradeChatPayment,
   closeTradeChatRoom,
   createOrGetTradeChatRoom,
@@ -240,17 +242,16 @@ export default function CommunityMarketChatDrawer({
   const [negotiatedPriceInput, setNegotiatedPriceInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [loading, setLoading] = useState(false);
-  const [roomLoading, setRoomLoading] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [priceSaving, setPriceSaving] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [freeCompleteLoading, setFreeCompleteLoading] = useState(false);
   const [closing, setClosing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [realtimeStatus, setRealtimeStatus] =
     useState<RealtimeStatus>('disconnected');
-  const handledProductRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -262,7 +263,8 @@ export default function CommunityMarketChatDrawer({
     activeRoom?.status === 'DONE' || activeRoom?.productStatus === 'DONE';
   const isClosed = activeRoom?.status === 'CLOSED';
   const isChatLocked = isDone || isClosed;
-  const activePrice = activeRoom?.negotiatedPrice ?? targetProduct?.price ?? 0;
+  const activePrice = Number(activeRoom?.negotiatedPrice ?? targetProduct?.price ?? 0);
+  const isFreeSharing = activePrice <= 0;
 
   const emptyMessage = useMemo(() => {
     if (!memberId) {
@@ -332,31 +334,6 @@ export default function CommunityMarketChatDrawer({
     }
   }, [memberId]);
 
-  const startChatWithProduct = useCallback(
-    async (productId: number) => {
-      if (!memberId) {
-        setError('로그인 후 채팅을 시작할 수 있습니다.');
-        return;
-      }
-
-      setRoomLoading(true);
-      setError('');
-
-      try {
-        const room = await createOrGetTradeChatRoom(productId);
-        setRooms((current) => upsertRoom(current, room));
-        setActiveRoom(room);
-        onRoomCreated?.(room);
-      } catch (startError) {
-        console.error(startError);
-        setError(getApiErrorMessage(startError, '채팅을 시작하지 못했습니다.'));
-      } finally {
-        setRoomLoading(false);
-      }
-    },
-    [memberId, onRoomCreated],
-  );
-
   const loadMessages = useCallback(async (roomId: number) => {
     setMessagesLoading(true);
     setError('');
@@ -375,7 +352,6 @@ export default function CommunityMarketChatDrawer({
 
   useEffect(() => {
     if (!open) {
-      handledProductRef.current = null;
       setRealtimeStatus('disconnected');
       return;
     }
@@ -388,13 +364,12 @@ export default function CommunityMarketChatDrawer({
       return;
     }
 
-    if (handledProductRef.current === targetProductId) {
-      return;
+    const existingRoom = rooms.find((room) => room.productId === targetProductId);
+    setActiveRoom(existingRoom ?? null);
+    if (!existingRoom) {
+      setMessages([]);
     }
-
-    handledProductRef.current = targetProductId;
-    void startChatWithProduct(targetProductId);
-  }, [open, startChatWithProduct, targetProductId]);
+  }, [open, rooms, targetProductId]);
 
   useEffect(() => {
     if (!open || !activeRoomId) {
@@ -488,7 +463,7 @@ export default function CommunityMarketChatDrawer({
 
     const trimmedMessage = messageText.trim();
     const submittedMessage = messageText;
-    if (!activeRoom || isChatLocked || !trimmedMessage || sending) {
+    if ((!activeRoom && !targetProductId) || isChatLocked || !trimmedMessage || sending) {
       return;
     }
 
@@ -496,7 +471,20 @@ export default function CommunityMarketChatDrawer({
     setError('');
 
     try {
-      const message = await sendTradeChatMessage(activeRoom.roomId, trimmedMessage);
+      let room = activeRoom;
+      if (!room && targetProductId) {
+        const createdRoom = await createOrGetTradeChatRoom(targetProductId);
+        room = createdRoom;
+        setRooms((current) => upsertRoom(current, createdRoom));
+        setActiveRoom(createdRoom);
+        onRoomCreated?.(createdRoom);
+      }
+
+      if (!room) {
+        return;
+      }
+
+      const message = await sendTradeChatMessage(room.roomId, trimmedMessage);
       appendMessage(message);
       setMessageText((current) =>
         current === submittedMessage ? '' : current,
@@ -538,6 +526,37 @@ export default function CommunityMarketChatDrawer({
     }
   }
 
+  async function handleCompleteFreeSharing() {
+    if (!activeRoom || !isSeller || isChatLocked || freeCompleteLoading) {
+      return;
+    }
+
+    if (!isFreeSharing) {
+      setError('유료 상품은 구매자 결제로 거래를 완료해 주세요.');
+      return;
+    }
+
+    if (!confirm('무료 나눔을 완료 처리할까요?')) {
+      return;
+    }
+
+    setFreeCompleteLoading(true);
+    setError('');
+
+    try {
+      const updatedRoom = await completeFreeTradeChat(activeRoom.roomId);
+      applyRoomUpdate(updatedRoom);
+      onRoomUpdated?.(updatedRoom);
+      onRoomsChanged?.();
+      onTradeCompleted?.();
+    } catch (completeError) {
+      console.error(completeError);
+      setError(getApiErrorMessage(completeError, '나눔완료 처리에 실패했습니다.'));
+    } finally {
+      setFreeCompleteLoading(false);
+    }
+  }
+
   async function handlePayment() {
     if (!activeRoom || !memberId || !isBuyer || isChatLocked || paymentLoading) {
       return;
@@ -545,6 +564,11 @@ export default function CommunityMarketChatDrawer({
 
     if (isDone) {
       setError('이미 거래가 완료된 채팅방입니다.');
+      return;
+    }
+
+    if (isFreeSharing) {
+      setError('무료 나눔 상품은 결제 없이 판매자가 나눔완료 처리합니다.');
       return;
     }
 
@@ -693,7 +717,7 @@ export default function CommunityMarketChatDrawer({
               중고거래 채팅
             </div>
             <div className="mt-1 truncate text-[12px] font-semibold text-slate-400">
-              {activeRoom ? getRoomTitle(activeRoom, memberId) : '상품별 거래 채팅'}
+              {activeRoom ? getRoomTitle(activeRoom, memberId) : targetProduct?.productName ?? '상품별 거래 채팅'}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -746,7 +770,7 @@ export default function CommunityMarketChatDrawer({
               </div>
               {rooms.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-slate-50 px-4 py-3 text-[12px] font-semibold text-slate-400">
-                  {roomLoading ? '채팅방을 준비하는 중입니다.' : emptyMessage}
+                  {emptyMessage}
                 </div>
               ) : (
                 <div className="flex gap-2 overflow-x-auto pb-1">
@@ -813,10 +837,10 @@ export default function CommunityMarketChatDrawer({
                     <div className="truncate text-[12px] font-extrabold text-slate-900">
                       {activeRoom
                         ? getRoomTitle(activeRoom, memberId)
-                        : '채팅방을 선택해 주세요'}
+                        : targetProduct?.productName ?? '채팅방을 선택해 주세요'}
                     </div>
                     <div className="mt-1 text-[11px] font-semibold text-slate-400">
-                      채팅방별 협상가로 결제됩니다.
+                      무료 나눔은 판매자가 완료 처리하고, 유료 상품은 협상가로 결제됩니다.
                     </div>
                   </div>
                   <span
@@ -866,7 +890,7 @@ export default function CommunityMarketChatDrawer({
                           {priceSaving ? '저장중' : '가격수정'}
                         </button>
                       </div>
-                    ) : isBuyer ? (
+                    ) : isBuyer && !isFreeSharing ? (
                       <div className="grid grid-cols-3 gap-2">
                         {PAYMENT_METHODS.map(({ value, label, description, Icon }) => (
                           <button
@@ -893,7 +917,12 @@ export default function CommunityMarketChatDrawer({
                       </div>
                     ) : null}
 
-                    {isBuyer && (
+                    {isBuyer && isFreeSharing && (
+                      <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary">
+                        무료 나눔 상품입니다. 판매자가 나눔완료를 누르면 거래가 완료됩니다.
+                      </div>
+                    )}
+                    {isBuyer && !isFreeSharing && (
                       <button
                         type="button"
                         onClick={() => void handlePayment()}
@@ -904,6 +933,18 @@ export default function CommunityMarketChatDrawer({
                         {paymentLoading
                           ? '결제 처리중'
                           : `${formatPrice(activePrice)} 결제하기`}
+                      </button>
+                    )}
+
+                    {isSeller && isFreeSharing && !isChatLocked && (
+                      <button
+                        type="button"
+                        onClick={() => void handleCompleteFreeSharing()}
+                        disabled={freeCompleteLoading}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-hover)] disabled:bg-slate-200"
+                      >
+                        <PackageOpen className="size-4" />
+                        {freeCompleteLoading ? '처리중' : '나눔완료'}
                       </button>
                     )}
 
@@ -919,7 +960,7 @@ export default function CommunityMarketChatDrawer({
                           {closing ? '종료중' : '대화종료'}
                         </button>
                       )}
-                      {isClosed && (
+                      {(isClosed || isDone) && (
                         <button
                           type="button"
                           onClick={() => void handleDeleteRoom()}
@@ -942,7 +983,7 @@ export default function CommunityMarketChatDrawer({
                   </div>
                 )}
 
-                {roomLoading || messagesLoading ? (
+                {messagesLoading ? (
                   <div className="flex h-full items-center justify-center text-[13px] font-bold text-slate-400">
                     채팅 내용을 불러오는 중입니다.
                   </div>
@@ -1033,7 +1074,7 @@ export default function CommunityMarketChatDrawer({
                   ref={messageInputRef}
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
-                  disabled={!activeRoom || isChatLocked}
+                  disabled={(!activeRoom && !targetProductId) || isChatLocked}
                   rows={2}
                   maxLength={2000}
                   placeholder={isChatLocked ? '더 이상 참여할 수 없는 채팅입니다.' : '메시지 입력'}
@@ -1047,7 +1088,7 @@ export default function CommunityMarketChatDrawer({
                 />
                 <button
                   type="submit"
-                  disabled={!activeRoom || isChatLocked || !messageText.trim() || sending}
+                  disabled={(!activeRoom && !targetProductId) || isChatLocked || !messageText.trim() || sending}
                   aria-label="메시지 보내기"
                   className="group flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:shadow-none"
                 >
