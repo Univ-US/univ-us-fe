@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
+import { useLmsStudentChatStore } from "@/store/lms/lmsStudentChatStore";
 import LmsGuard from "@/components/auth/LmsGuard";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { ROLE, type Role } from "@/lib/rolecode";
@@ -43,7 +44,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
       { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
-      { label: "채팅", icon: "💬", href: "/lms/student/chat", badge: 2 },
+      { label: "채팅", icon: "💬", href: "/lms/student/chat" },
       { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
       { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },
     ],
@@ -59,6 +60,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
   const loadProfile = useStudentProfileStore((s) => s.load);
   const submittableAssignmentCount = useLmsStudentAssignmentStore((s) => s.submittableCount);
   const loadSubmittableAssignmentCount = useLmsStudentAssignmentStore((s) => s.loadSubmittableCount);
+  const chatUnreadCount = useLmsStudentChatStore((s) => s.unreadCount);
+  const loadChatUnreadCount = useLmsStudentChatStore((s) => s.loadUnreadCount);
   const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
   const [logoutOpen, setLogoutOpen] = useState(false); // SLM-011 로그아웃 확인 모달
@@ -87,8 +90,9 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
     if (accessChecked) {
       loadProfile().catch(() => setLoadFailed(true));
       void loadSubmittableAssignmentCount();
+      void loadChatUnreadCount();
     }
-  }, [accessChecked, loadProfile, loadSubmittableAssignmentCount]);
+  }, [accessChecked, loadProfile, loadSubmittableAssignmentCount, loadChatUnreadCount]);
 
   // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
   const handleLogout = async () => {
@@ -177,6 +181,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                 const badge =
                   item.href === "/lms/student/assignments/submit"
                     ? submittableAssignmentCount
+                    : item.href === "/lms/student/chat"
+                      ? chatUnreadCount
                     : item.badge;
                 const content = (
                   <>
