@@ -32,7 +32,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "강의 관리",
     items: [
-      { label: "강의 내역", icon: "📖" },
+      { label: "강의 내역", icon: "📖", href: "/lms/professor/courses" },
       { label: "수강생 현황", icon: "👥", href: "/lms/professor/Enrollee" },
       // '채점 현황' 배지는 하드코딩 X — 실제 미채점 건수(overview.totalUngraded)를 스토어에서 주입(아래 렌더)
       { label: "채점 현황", icon: "✅", href: "/lms/professor/grading" },
@@ -128,10 +128,10 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
       {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
-        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 홈(/home)으로 이동 */}
+        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 LMS 메인(강의 내역)으로 이동 (홈은 하단 '홈으로') */}
         <Link
-          href="/home"
-          title="홈으로"
+          href="/lms/professor/courses"
+          title="강의 내역"
           className="flex items-center gap-3 px-5 py-5 transition-colors hover:bg-slate-800/60"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

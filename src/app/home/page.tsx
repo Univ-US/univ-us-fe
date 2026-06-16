@@ -159,8 +159,9 @@ export default function CampusHomePage() {
     }, [isLoggedIn]);
 
     // LMS 바로가기: role에 따라 교수(PLM)/학생·졸업생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
+    // 교수 진입점 = 강의 내역(PLM-002) — 프로필이 아닌 LMS 메인 화면으로 진입
     const lmsHref =
-        role === ROLE.PROF ? "/lms/professor/profile"
+        role === ROLE.PROF ? "/lms/professor/courses"
         : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/profile"
         : undefined;
 
