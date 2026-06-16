@@ -1,3 +1,4 @@
+﻿/* eslint-disable */
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -43,30 +44,30 @@ const BOARD_META: Record<BoardType, {
   accentText: string;
 }> = {
   free: {
-    label: '자유게시판', desc: '캠퍼스 생활의 모든 이야기를 자유롭게 나누는 공간입니다.',
+    label: '?먯쑀寃뚯떆??, desc: '罹좏띁???앺솢??紐⑤뱺 ?댁빞湲곕? ?먯쑀濡?쾶 ?섎늻??怨듦컙?낅땲??',
     icon: <MessageSquare className='size-5 text-primary' />,
-    categories: ['전체', '일상', '정보', '질문', '잡답', '모임'],
-    rules: ['서로 존중하는 말투를 사용해 주세요.', '광고·도배·욕설은 삭제될 수 있습니다.', '개인정보가 담긴 글은 피해 주세요.'],
+    categories: ['?꾩껜', '?쇱긽', '?뺣낫', '吏덈Ц', '?〓떟', '紐⑥엫'],
+    rules: ['?쒕줈 議댁쨷?섎뒗 留먰닾瑜??ъ슜??二쇱꽭??', '愿묎퀬쨌?꾨같쨌?뺤꽕? ??젣?????덉뒿?덈떎.', '媛쒖씤?뺣낫媛 ?닿릿 湲? ?쇳빐 二쇱꽭??'],
     headerBg: 'bg-gradient-to-br from-teal-50 via-white to-emerald-50 border-teal-100',
     iconBg: 'bg-primary/10',
     badgeBg: 'bg-primary/10 text-primary',
     accentText: 'text-primary',
   },
   secret: {
-    label: '익명게시판', desc: '익명으로 편하게 고민을 나눌 수 있는 공간입니다.',
+    label: '?듬챸寃뚯떆??, desc: '?듬챸?쇰줈 ?명븯寃?怨좊????섎닃 ???덈뒗 怨듦컙?낅땲??',
     icon: <VenetianMask className='size-5 text-slate-500' />,
-    categories: ['전체', '고민', '잡담', '질문'],
-    rules: ['익명이어도 서로 존중해 주세요.', '특정인 비방은 제재 대상입니다.', '개인정보 노출에 주의해 주세요.'],
+    categories: ['?꾩껜', '怨좊?', '?〓떞', '吏덈Ц'],
+    rules: ['?듬챸?댁뼱???쒕줈 議댁쨷??二쇱꽭??', '?뱀젙??鍮꾨갑? ?쒖옱 ??곸엯?덈떎.', '媛쒖씤?뺣낫 ?몄텧??二쇱쓽??二쇱꽭??'],
     headerBg: 'bg-gradient-to-br from-slate-50 via-white to-gray-50 border-slate-200',
     iconBg: 'bg-slate-100',
     badgeBg: 'bg-slate-100 text-slate-600',
     accentText: 'text-slate-600',
   },
   notice: {
-    label: '공지사항', desc: '학교·운영진이 작성하는 중요 공지를 확인하세요.',
+    label: '怨듭??ы빆', desc: '?숆탳쨌?댁쁺吏꾩씠 ?묒꽦?섎뒗 以묒슂 怨듭?瑜??뺤씤?섏꽭??',
     icon: <Megaphone className='size-5 text-blue-500' />,
-    categories: ['전체', '학사', '시설', '생활', '장학'],
-    rules: ['공지사항은 운영진만 작성할 수 있습니다.', '중요 공지를 놓치지 않도록 확인해 주세요.', '문의는 학교 홈페이지를 이용해 주세요.'],
+    categories: ['?꾩껜', '?숈궗', '?쒖꽕', '?앺솢', '?ν븰'],
+    rules: ['怨듭??ы빆? ?댁쁺吏꾨쭔 ?묒꽦?????덉뒿?덈떎.', '以묒슂 怨듭?瑜??볦튂吏 ?딅룄濡??뺤씤??二쇱꽭??', '臾몄쓽???숆탳 ?덊럹?댁?瑜??댁슜??二쇱꽭??'],
     headerBg: 'bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-100',
     iconBg: 'bg-blue-50',
     badgeBg: 'bg-blue-100 text-blue-600',
@@ -75,9 +76,9 @@ const BOARD_META: Record<BoardType, {
 };
 
 const BOARD_TABS: { key: BoardType; label: string; icon: React.ReactNode }[] = [
-  { key: 'free',   label: '자유게시판', icon: <MessageSquare className='size-3.5' /> },
-  { key: 'secret', label: '익명게시판', icon: <VenetianMask  className='size-3.5' /> },
-  { key: 'notice', label: '공지사항',   icon: <Megaphone     className='size-3.5' /> },
+  { key: 'free',   label: '?먯쑀寃뚯떆??, icon: <MessageSquare className='size-3.5' /> },
+  { key: 'secret', label: '?듬챸寃뚯떆??, icon: <VenetianMask  className='size-3.5' /> },
+  { key: 'notice', label: '怨듭??ы빆',   icon: <Megaphone     className='size-3.5' /> },
 ];
 
 function PostRow({ post, isAnon, isNotice, onOpen }: {
@@ -87,8 +88,8 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
     return (
       <button onClick={onOpen} className='group/row flex w-full items-center gap-3 border-b border-border bg-slate-50 px-[18px] py-[15px] text-left transition-all duration-200 last:border-0 hover:bg-slate-100'>
         <EyeOff className='size-[17px] shrink-0 text-slate-300' />
-        <span className='min-w-0 flex-1 text-[13px] font-medium text-slate-400 transition-transform duration-200 group-hover/row:translate-x-0.5'>신고가 누적되어 블라인드 처리된 게시글입니다.</span>
-        <span className='shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-500'>신고 {post.reportCount}회</span>
+        <span className='min-w-0 flex-1 text-[13px] font-medium text-slate-400 transition-transform duration-200 group-hover/row:translate-x-0.5'>?좉퀬媛 ?꾩쟻?섏뼱 釉붾씪?몃뱶 泥섎━??寃뚯떆湲?낅땲??</span>
+        <span className='shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-500'>?좉퀬 {post.reportCount}??/span>
         <ChevronRight className='size-4 text-slate-300 transition-transform duration-200 group-hover/row:translate-x-0.5' />
       </button>
     );
@@ -97,7 +98,7 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
     <button onClick={onOpen} className='group/row flex w-full items-center gap-[14px] border-b border-border px-[18px] py-[15px] text-left transition-all duration-200 last:border-0 hover:bg-slate-50'>
       <div className='w-[40px] shrink-0 flex justify-center'>
         {post.tag ? (
-          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold transition-transform duration-200 group-hover/row:scale-105', post.tag === '중요' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600')}>{post.tag}</span>
+          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold transition-transform duration-200 group-hover/row:scale-105', post.tag === '以묒슂' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600')}>{post.tag}</span>
         ) : (
           <span className='whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500 transition-transform duration-200 group-hover/row:scale-105'>{post.category}</span>
         )}
@@ -120,7 +121,7 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
         <>
           <div className={cn('flex shrink-0 items-center', isAnon ? 'w-[90px]' : 'w-[130px]')}>
             <span className='truncate text-[12px] text-slate-400'>
-              {isAnon ? `익명 · ${formatDate(post.createdAt)}` : `${post.authorName} · ${formatDate(post.createdAt)}`}
+              {isAnon ? `?듬챸 쨌 ${formatDate(post.createdAt)}` : `${post.authorName} 쨌 ${formatDate(post.createdAt)}`}
             </span>
           </div>
           {!post.tag && (
@@ -157,7 +158,7 @@ function SidePopular({ posts, onOpen }: { posts: Post[]; onOpen: (post: Post) =>
     <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md'>
       <div className='flex items-center gap-2 border-b border-border px-4 py-3.5'>
         <Heart className='size-4 text-red-400' />
-        <span className='text-[14px] font-bold text-slate-800'>이 게시판 인기글</span>
+        <span className='text-[14px] font-bold text-slate-800'>??寃뚯떆???멸린湲</span>
       </div>
       <div>
         {top5.map((post, i) => (
@@ -183,7 +184,7 @@ function SideRules({ rules }: { rules: string[] }) {
     <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md'>
       <div className='flex items-center gap-2 px-4 pt-4 pb-1'>
         <Shield className='size-4 text-primary' />
-        <span className='text-[14px] font-bold text-slate-800'>게시판 이용 안내</span>
+        <span className='text-[14px] font-bold text-slate-800'>寃뚯떆???댁슜 ?덈궡</span>
       </div>
       <div className='px-4 pb-4'>
         {rules.map((rule, i) => (
@@ -218,8 +219,8 @@ export default function CommunityBoardView({
   const [, startTransition] = useTransition();
   const [page, setPage] = useState(1);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [sortBy, setSortBy] = useState<'최신순' | '인기순' | '댓글순'>('최신순');
+  const [selectedCategory, setSelectedCategory] = useState('?꾩껜');
+  const [sortBy, setSortBy] = useState<'理쒖떊?? | '?멸린?? | '?볤???>('理쒖떊??);
   const [boardSubscribed, setBoardSubscribed] = useState(false);
 
   const handleOpenPost = (post: Post) => {
@@ -245,7 +246,7 @@ export default function CommunityBoardView({
     );
   };
 
-  // URL ?postId= 쿼리 읽어서 상세 자동 오픈
+  // URL ?postId= 荑쇰━ ?쎌뼱???곸꽭 ?먮룞 ?ㅽ뵂
   useEffect(() => {
     const postIdParam = searchParams.get('postId');
     if (!postIdParam) return;
@@ -253,7 +254,7 @@ export default function CommunityBoardView({
     if (selectedPost?.postId === postId) return;
 
     const found = posts.find((p) => p.postId === postId);
-    // startTransition으로 감싸서 effect 안 setState 경고 해결
+    // startTransition?쇰줈 媛먯떥??effect ??setState 寃쎄퀬 ?닿껐
     if (found) {
       startTransition(() => setSelectedPost(found));
     } else {
@@ -263,11 +264,11 @@ export default function CommunityBoardView({
     }
   }, [searchParams, posts]);
 
-  const filteredPosts = selectedCategory === '전체' ? posts : posts.filter((p) => p.category === selectedCategory);
+  const filteredPosts = selectedCategory === '?꾩껜' ? posts : posts.filter((p) => p.category === selectedCategory);
   const boardTotalCount = totalCount ?? posts.length;
   const sortedPosts = [...filteredPosts].sort((a, b) => {
-    if (sortBy === '인기순') return b.likeCount - a.likeCount;
-    if (sortBy === '댓글순') return b.commentCount - a.commentCount;
+    if (sortBy === '?멸린??) return b.likeCount - a.likeCount;
+    if (sortBy === '?볤???) return b.commentCount - a.commentCount;
     return 0;
   });
   const totalPages = Math.ceil(sortedPosts.length / PAGE_SIZE);
@@ -319,7 +320,7 @@ export default function CommunityBoardView({
                   <div className='flex items-center gap-2'>
                     <h1 className='text-[18px] font-extrabold text-slate-900'>{meta.label}</h1>
                     <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', meta.badgeBg)}>
-                      전체 {boardTotalCount}
+                      ?꾩껜 {boardTotalCount}
                     </span>
                   </div>
                   <p className='mt-1 text-[13px] text-slate-500'>{meta.desc}</p>
@@ -329,13 +330,13 @@ export default function CommunityBoardView({
                         <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' /><circle cx='9' cy='7' r='4' />
                         <path d='M23 21v-2a4 4 0 0 0-3-3.87' /><path d='M16 3.13a4 4 0 0 1 0 7.75' />
                       </svg>
-                      게시글 <b className='text-slate-600'>{boardTotalCount.toLocaleString('ko-KR')}</b>
+                      寃뚯떆湲 <b className='text-slate-600'>{boardTotalCount.toLocaleString('ko-KR')}</b>
                     </span>
                     <span className='flex items-center gap-1.5 text-[12px] text-slate-400'>
                       <svg className='size-3.5' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                         <path d='M12 20h9' /><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' />
                       </svg>
-                      오늘 <b className={meta.accentText}>{todayCount.toLocaleString('ko-KR')}</b>개의 새 글
+                      ?ㅻ뒛 <b className={meta.accentText}>{todayCount.toLocaleString('ko-KR')}</b>媛쒖쓽 ??湲
                     </span>
                   </div>
                 </div>
@@ -343,7 +344,7 @@ export default function CommunityBoardView({
                   type='button'
                   onClick={handleToggleBoardSubscription}
                   aria-pressed={boardSubscribed}
-                  title={boardSubscribed ? `${meta.label} 새 글 알림 끄기` : `${meta.label} 새 글 알림 켜기`}
+                  title={boardSubscribed ? `${meta.label} ??湲 ?뚮┝ ?꾧린` : `${meta.label} ??湲 ?뚮┝ 耳쒓린`}
                   className={cn(
                     'hidden shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
                     boardSubscribed
@@ -352,7 +353,7 @@ export default function CommunityBoardView({
                   )}
                 >
                   <Bell className='size-[16px]' />
-                  {boardSubscribed ? '알림받는 중' : '알림받기'}
+                  {boardSubscribed ? '?뚮┝諛쏅뒗 以? : '?뚮┝諛쏄린'}
                 </button>
               </div>
             </div>
@@ -368,9 +369,9 @@ export default function CommunityBoardView({
                 ))}
               </div>
               <div className='flex items-center gap-1 text-[11px] text-slate-400'>
-                {(['최신순', '인기순', '댓글순'] as const).map((s, i) => (
+                {(['理쒖떊??, '?멸린??, '?볤???] as const).map((s, i) => (
                   <span key={s} className='flex items-center'>
-                    {i > 0 && <span className='mx-1'>·</span>}
+                    {i > 0 && <span className='mx-1'>쨌</span>}
                     <button onClick={() => setSortBy(s)} className={cn('relative font-semibold transition-all duration-200 hover:-translate-y-0.5', sortBy === s ? 'text-primary after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-primary' : 'hover:text-slate-700')}>{s}</button>
                   </span>
                 ))}
@@ -379,7 +380,7 @@ export default function CommunityBoardView({
 
             <div className='overflow-hidden rounded-2xl border border-border bg-white shadow-sm'>
               {visiblePosts.length === 0 ? (
-                <div className='py-16 text-center text-[13px] text-slate-400'>게시글이 없습니다.</div>
+                <div className='py-16 text-center text-[13px] text-slate-400'>寃뚯떆湲???놁뒿?덈떎.</div>
               ) : (
                 visiblePosts.map((post) => (
                   <PostRow key={post.postId} post={post} isAnon={isAnon} isNotice={board === 'notice'} onOpen={() => handleOpenPost(post)} />
@@ -392,7 +393,7 @@ export default function CommunityBoardView({
               {canWriteBoard && (
                 <div className='absolute right-0'>
                   <Button onClick={() => router.push(`/community/${board}/write`)} className='shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0'>
-                    <Pencil className='size-3.5' />글쓰기
+                    <Pencil className='size-3.5' />湲?곌린
                   </Button>
                 </div>
               )}
@@ -410,3 +411,4 @@ export default function CommunityBoardView({
     </div>
   );
 }
+

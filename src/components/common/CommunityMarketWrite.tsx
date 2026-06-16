@@ -1,3 +1,4 @@
+﻿/* eslint-disable */
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -17,19 +18,19 @@ import { API_BASE_URL } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import type { ProductCategory, ProductImage, TradeStatus } from '@/types/community';
 
-// ── 카테고리 목록 ──────────────────────────────────────
-const CATEGORIES: ProductCategory[] = ['교재', '전자기기', '생활용품', '기타'];
+// ?? 移댄뀒怨좊━ 紐⑸줉 ??????????????????????????????????????
+const CATEGORIES: ProductCategory[] = ['援먯옱', '?꾩옄湲곌린', '?앺솢?⑺뭹', '湲고?'];
 const EDITABLE_PRODUCT_STATUSES: TradeStatus[] = ['SALE', 'RESERVE'];
 const PRODUCT_STATUS_LABELS: Record<TradeStatus, string> = {
-  SALE: '판매중',
-  RESERVE: '예약중',
-  DONE: '거래완료',
+  SALE: '?먮ℓ以?,
+  RESERVE: '?덉빟以?,
+  DONE: '嫄곕옒?꾨즺',
 };
 
 const resolveImageUrl = (url: string) =>
   url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
 
-// ── 칩 버튼 ───────────────────────────────────────────
+// ?? 移?踰꾪듉 ???????????????????????????????????????????
 function Chip({
   label,
   active,
@@ -54,7 +55,7 @@ function Chip({
   );
 }
 
-// ── 입력 필드 래퍼 ─────────────────────────────────────
+// ?? ?낅젰 ?꾨뱶 ?섑띁 ?????????????????????????????????????
 function Field({
   label,
   hint,
@@ -73,13 +74,13 @@ function Field({
   );
 }
 
-// ── 메인 컴포넌트 ──────────────────────────────────────
+// ?? 硫붿씤 而댄룷?뚰듃 ??????????????????????????????????????
 export default function CommunityMarketWrite() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get('productId');
   const isEdit = !!productId;
-  const [category, setCategory] = useState<ProductCategory>('교재');
+  const [category, setCategory] = useState<ProductCategory>('援먯옱');
   const [productName, setProductName] = useState('');
   const [price, setPrice] = useState('');
   const [isFree, setIsFree] = useState(false);
@@ -138,8 +139,8 @@ export default function CommunityMarketWrite() {
         setExistingImages(product.images ?? []);
         setInitialExistingImageIds((product.images ?? []).map((image) => image.imageId));
       } catch (err) {
-        console.error('상품 조회 실패:', err);
-        alert('상품 정보를 불러오지 못했습니다.');
+        console.error('?곹뭹 議고쉶 ?ㅽ뙣:', err);
+        alert('?곹뭹 ?뺣낫瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??');
         handleBack();
       }
     };
@@ -154,12 +155,12 @@ export default function CommunityMarketWrite() {
     );
 
     if (imageFiles.length !== selectedFiles.length) {
-      alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
+      alert('JPG, PNG, WEBP ?대?吏留?泥⑤??????덉뒿?덈떎.');
     }
 
     const availableSlots = Math.max(0, 5 - totalImageCount);
     if (imageFiles.length > availableSlots) {
-      alert('상품 이미지는 기존 이미지와 새 이미지를 합쳐 최대 5장까지 첨부할 수 있습니다.');
+      alert('?곹뭹 ?대?吏??湲곗〈 ?대?吏? ???대?吏瑜??⑹퀜 理쒕? 5?κ퉴吏 泥⑤??????덉뒿?덈떎.');
     }
     setImages((prev) => [...prev, ...imageFiles].slice(0, prev.length + availableSlots));
     event.target.value = '';
@@ -184,24 +185,24 @@ export default function CommunityMarketWrite() {
 
   const handleSubmit = async () => {
     if (!productName.trim()) {
-      alert('상품명을 입력해 주세요.');
+      alert('?곹뭹紐낆쓣 ?낅젰??二쇱꽭??');
       return;
     }
     if (!isFree && !price.trim()) {
-      alert('가격을 입력해 주세요.');
+      alert('媛寃⑹쓣 ?낅젰??二쇱꽭??');
       return;
     }
     if (!place.trim()) {
-      alert('거래 희망 장소를 입력해 주세요.');
+      alert('嫄곕옒 ?щ쭩 ?μ냼瑜??낅젰??二쇱꽭??');
       return;
     }
     if (!description.trim()) {
-      alert('상품 설명을 입력해 주세요.');
+      alert('?곹뭹 ?ㅻ챸???낅젰??二쇱꽭??');
       return;
     }
 
     if (isSuperAdmin && !isEdit && targetUnivId == null) {
-      alert('상품을 등록할 학교를 선택해줘.');
+      alert('?곹뭹???깅줉???숆탳瑜??좏깮?댁쨾.');
       return;
     }
 
@@ -226,7 +227,7 @@ export default function CommunityMarketWrite() {
         if (!isEdit && images.length > 0) {
           const savedProductId = isEdit ? Number(productId) : res.productId;
           if (!savedProductId) {
-            throw new Error('상품 이미지 업로드에 필요한 상품 ID가 없습니다.');
+            throw new Error('?곹뭹 ?대?吏 ?낅줈?쒖뿉 ?꾩슂???곹뭹 ID媛 ?놁뒿?덈떎.');
           }
 
           await uploadProductImages(savedProductId, images);
@@ -240,20 +241,20 @@ export default function CommunityMarketWrite() {
           );
         }
 
-        alert(isEdit ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.');
+        alert(isEdit ? '?곹뭹???섏젙?섏뿀?듬땲??' : '?곹뭹???깅줉?섏뿀?듬땲??');
         handleBack();
       } else {
-        alert(res.message ?? (isEdit ? '상품 수정에 실패했습니다.' : '상품 등록에 실패했습니다.'));
+        alert(res.message ?? (isEdit ? '?곹뭹 ?섏젙???ㅽ뙣?덉뒿?덈떎.' : '?곹뭹 ?깅줉???ㅽ뙣?덉뒿?덈떎.'));
       }
     } catch (err) {
-      console.error('상품 등록 실패:', err);
-      alert(isEdit ? '상품 수정에 실패했습니다. 다시 시도해 주세요.' : '상품 등록에 실패했습니다. 다시 시도해 주세요.');
+      console.error('?곹뭹 ?깅줉 ?ㅽ뙣:', err);
+      alert(isEdit ? '?곹뭹 ?섏젙???ㅽ뙣?덉뒿?덈떎. ?ㅼ떆 ?쒕룄??二쇱꽭??' : '?곹뭹 ?깅줉???ㅽ뙣?덉뒿?덈떎. ?ㅼ떆 ?쒕룄??二쇱꽭??');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 가격 입력 포맷 (숫자만)
+  // 媛寃??낅젰 ?щ㎎ (?レ옄留?
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
     setPrice(raw ? Number(raw).toLocaleString('ko-KR') : '');
@@ -262,13 +263,13 @@ export default function CommunityMarketWrite() {
   return (
     <div className="min-h-screen bg-slate-50 px-[30px] py-7">
       <div className="mx-auto max-w-[920px]">
-        {/* 뒤로가기 */}
+        {/* ?ㅻ줈媛湲?*/}
         <button
           onClick={handleBack}
           className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-slate-500 transition-all duration-200 hover:-translate-x-0.5 hover:text-slate-900"
         >
           <ArrowLeft className="size-4" />
-          중고거래 홈
+          以묎퀬嫄곕옒 ??
         </button>
 
         <div className="mb-5 flex items-end justify-between border-b border-border pb-4">
@@ -279,7 +280,7 @@ export default function CommunityMarketWrite() {
             {isSuperAdmin && !isEdit && (
               <div className="mb-3">
                 <label className="mb-2 block text-[13px] font-bold text-slate-800">
-                  대상 학교
+                  ????숆탳
                 </label>
                 <select
                   value={targetUnivId ?? ''}
@@ -295,17 +296,17 @@ export default function CommunityMarketWrite() {
               </div>
             )}
             <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-900">
-              {isEdit ? '상품 수정' : '상품 등록'}
+              {isEdit ? '?곹뭹 ?섏젙' : '?곹뭹 ?깅줉'}
             </h2>
           </div>
           <p className="text-[12px] text-slate-500">
-            사진, 가격, 거래 장소를 정확히 적으면 문의가 빨라집니다.
+            ?ъ쭊, 媛寃? 嫄곕옒 ?μ냼瑜??뺥솗???곸쑝硫?臾몄쓽媛 鍮⑤씪吏묐땲??
           </p>
         </div>
 
         <div className="rounded-lg border border-border bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md">
-          {/* 사진 첨부 */}
-          <Field label="상품 사진" hint="최대 5장까지 첨부할 수 있습니다. 첫 번째 사진이 대표 이미지로 표시됩니다.">
+          {/* ?ъ쭊 泥⑤? */}
+          <Field label="?곹뭹 ?ъ쭊" hint="理쒕? 5?κ퉴吏 泥⑤??????덉뒿?덈떎. 泥?踰덉㎏ ?ъ쭊??????대?吏濡??쒖떆?⑸땲??">
             <div className="flex flex-wrap gap-3">
               <label
                 className="flex size-[108px] flex-col items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-dashed border-input bg-slate-50 text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/5 hover:text-primary active:translate-y-0"
@@ -333,16 +334,16 @@ export default function CommunityMarketWrite() {
                 >
                   <img
                     src={resolveImageUrl(image.imageUrl)}
-                    alt={`기존 상품 이미지 ${i + 1}`}
+                    alt={`湲곗〈 ?곹뭹 ?대?吏 ${i + 1}`}
                     className="size-full object-cover transition-transform duration-300 group-hover/preview:scale-105"
                   />
                   {i === 0 && (
                     <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      대표
+                      ???
                     </span>
                   )}
                   <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                    기존
+                    湲곗〈
                   </span>
                   <button
                     type="button"
@@ -361,12 +362,12 @@ export default function CommunityMarketWrite() {
                 >
                   <img
                     src={previewUrl}
-                    alt={`상품 이미지 미리보기 ${i + 1}`}
+                    alt={`?곹뭹 ?대?吏 誘몃━蹂닿린 ${i + 1}`}
                     className="size-full object-cover transition-transform duration-300 group-hover/preview:scale-105"
                   />
                   {existingImages.length === 0 && i === 0 && (
                     <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      대표
+                      ???
                     </span>
                   )}
                   <button
@@ -383,47 +384,47 @@ export default function CommunityMarketWrite() {
 
           <div className="grid grid-cols-[1fr_240px] gap-5">
             <div>
-              {/* 상품명 */}
-              <Field label="상품명">
+              {/* ?곹뭹紐?*/}
+              <Field label="?곹뭹紐?>
                 <input
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
-                  placeholder="예) 자료구조 전공서적 (거의 새것)"
+                  placeholder="?? ?먮즺援ъ“ ?꾧났?쒖쟻 (嫄곗쓽 ?덇쾬)"
                   className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[13px] outline-none transition-all duration-200 placeholder:text-muted-foreground/70 focus:border-primary focus:shadow-sm focus:ring-2 focus:ring-primary/10"
                 />
               </Field>
 
-              {/* 거래 희망 장소 */}
-              <Field label="거래 희망 장소">
+              {/* 嫄곕옒 ?щ쭩 ?μ냼 */}
+              <Field label="嫄곕옒 ?щ쭩 ?μ냼">
                 <div className="flex h-11 items-center gap-2 rounded-lg border border-input px-3.5 transition-all duration-200 focus-within:border-primary focus-within:shadow-sm focus-within:ring-2 focus-within:ring-primary/10">
                   <MapPin className="size-[17px] shrink-0 text-muted-foreground" />
                   <input
                     value={place}
                     onChange={(e) => setPlace(e.target.value)}
-                    placeholder="예) 중앙도서관 앞"
+                    placeholder="?? 以묒븰?꾩꽌愿 ??
                     className="flex-1 bg-transparent text-[13px] outline-none"
                   />
                 </div>
               </Field>
 
-              {/* 상품 설명 */}
+              {/* ?곹뭹 ?ㅻ챸 */}
               <Field
-                label="상품 설명"
-                hint="상품 상태, 구매 시기, 거래 방식 등을 적어주세요."
+                label="?곹뭹 ?ㅻ챸"
+                hint="?곹뭹 ?곹깭, 援щℓ ?쒓린, 嫄곕옒 諛⑹떇 ?깆쓣 ?곸뼱二쇱꽭??"
               >
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={7}
-                  placeholder="상품에 대해 자세히 설명해 주세요."
+                  placeholder="?곹뭹??????먯꽭???ㅻ챸??二쇱꽭??"
                   className="flex min-h-20 w-full rounded-lg border border-input bg-background px-3.5 py-3 text-[13px] leading-relaxed outline-none transition-all duration-200 placeholder:text-muted-foreground/70 focus:border-primary focus:shadow-sm focus:ring-2 focus:ring-primary/10"
                 />
               </Field>
             </div>
 
             <div className="rounded-lg border border-border bg-slate-50 p-4">
-              {/* 카테고리 */}
-              <Field label="카테고리">
+              {/* 移댄뀒怨좊━ */}
+              <Field label="移댄뀒怨좊━">
                 <div className="flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => (
                     <Chip
@@ -437,7 +438,7 @@ export default function CommunityMarketWrite() {
               </Field>
 
               {isEdit && (
-                <Field label="판매 상태" hint="거래완료는 결제 완료 시 자동으로 변경됩니다.">
+                <Field label="?먮ℓ ?곹깭" hint="嫄곕옒?꾨즺??寃곗젣 ?꾨즺 ???먮룞?쇰줈 蹂寃쎈맗?덈떎.">
                   <div className="flex flex-wrap gap-2">
                     {EDITABLE_PRODUCT_STATUSES.map((status) => (
                       <Chip
@@ -451,8 +452,8 @@ export default function CommunityMarketWrite() {
                 </Field>
               )}
 
-              {/* 가격 */}
-              <Field label="가격">
+              {/* 媛寃?*/}
+              <Field label="媛寃?>
                 <div className="space-y-2">
                   <div
                     className={cn(
@@ -468,11 +469,11 @@ export default function CommunityMarketWrite() {
                       className="flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
                     />
                     <span className="text-[13px] font-semibold text-muted-foreground">
-                      원
+                      ??
                     </span>
                   </div>
                   <Chip
-                    label="나눔 (무료)"
+                    label="?섎닎 (臾대즺)"
                     active={isFree}
                     onClick={() => {
                       setIsFree(!isFree);
@@ -484,14 +485,14 @@ export default function CommunityMarketWrite() {
             </div>
           </div>
 
-          {/* 하단 버튼 */}
+          {/* ?섎떒 踰꾪듉 */}
           <div className="flex justify-end gap-2 border-t border-border pt-4">
             <Button variant="outline" onClick={handleBack} disabled={submitting} className="transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
-              취소
+              痍⑥냼
             </Button>
             <Button onClick={handleSubmit} disabled={submitting} className="transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 [&_svg]:transition-transform [&_svg]:duration-200 hover:[&_svg]:translate-x-0.5">
               <Send className="size-4" />
-              {submitting ? (isEdit ? '수정 중...' : '등록 중...') : isEdit ? '상품 수정' : '상품 등록'}
+              {submitting ? (isEdit ? '?섏젙 以?..' : '?깅줉 以?..') : isEdit ? '?곹뭹 ?섏젙' : '?곹뭹 ?깅줉'}
             </Button>
           </div>
         </div>
@@ -499,3 +500,4 @@ export default function CommunityMarketWrite() {
     </div>
   );
 }
+
