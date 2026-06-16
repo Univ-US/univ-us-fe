@@ -161,7 +161,7 @@ export default function CampusHomePage() {
     // LMS 바로가기: role에 따라 교수(PLM)/학생·졸업생(SLM) 진입점으로 분기 (그 외 역할은 LMS 페이지 없음)
     const lmsHref =
         role === ROLE.PROF ? "/lms/professor/profile"
-        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/profile"
+        : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/dashboard"
         : undefined;
 
     const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
