@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
+import { getAdminSupports, type ApiSupport } from "@/lib/adminApi";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
     Bell,
@@ -60,8 +61,13 @@ const VALID_VIEWS = new Set(Object.keys(SECTION_LABEL) as View[]);
 function SchoolAdminDashboard() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { logoutAction, memberName, isInitialized, role } = useAuthStore();
+    const { logoutAction, memberName, isInitialized, role, univId } = useAuthStore();
     const [accessChecked, setAccessChecked] = useState(false);
+    const [pendingInquiries, setPendingInquiries] = useState<ApiSupport[]>([]);
+    const [seenInquiryIds, setSeenInquiryIds] = useState<Set<number>>(new Set());
+    const [notificationOpen, setNotificationOpen] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
+    const hasUnseenInquiry = pendingInquiries.some((i) => !seenInquiryIds.has(i.supportId));
 
     useEffect(() => {
         if (!isInitialized) return;
@@ -88,6 +94,37 @@ function SchoolAdminDashboard() {
             active = false;
         };
     }, [isInitialized, role, router]);
+
+    useEffect(() => {
+        if (!univId) return;
+
+        let active = true;
+        const checkPendingInquiries = () => {
+            getAdminSupports(univId)
+                .then((supports) => {
+                    if (active) setPendingInquiries(supports.filter((s) => s.status === 0));
+                })
+                .catch(() => {});
+        };
+
+        checkPendingInquiries();
+        const interval = setInterval(checkPendingInquiries, 10000);
+
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, [univId, searchParams]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (notificationRef.current && !notificationRef.current.contains(e.target as Node)) {
+                setNotificationOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const rawView = searchParams.get("view") as View | null;
     const view: View = rawView && VALID_VIEWS.has(rawView) ? rawView : "dashboard";
@@ -183,9 +220,66 @@ function SchoolAdminDashboard() {
                                 <Building2 className="size-4" />
                                 <span className="text-slate-900">{SECTION_LABEL[view]}</span>
                             </div>
-                            <button className="flex size-9 items-center justify-center rounded-full border border-border bg-white shadow-sm">
-                                <Bell className="size-4 text-slate-500" />
-                            </button>
+                            <div className="relative" ref={notificationRef}>
+                                <button
+                                    onClick={() => {
+                                        setNotificationOpen((prev) => !prev);
+                                        setSeenInquiryIds((prev) => {
+                                            const next = new Set(prev);
+                                            pendingInquiries.forEach((i) => next.add(i.supportId));
+                                            return next;
+                                        });
+                                    }}
+                                    className="relative flex size-9 items-center justify-center rounded-full border border-border bg-white shadow-sm"
+                                >
+                                    <Bell className="size-4 text-slate-500" />
+                                    {hasUnseenInquiry && (
+                                        <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" />
+                                    )}
+                                </button>
+
+                                {notificationOpen && (
+                                    <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-80 overflow-hidden rounded-xl border border-emerald-900/10 bg-white shadow-lg">
+                                        <div className="border-b border-slate-100 px-4 py-3">
+                                            <p className="text-sm font-black text-slate-900">알림</p>
+                                        </div>
+                                        {pendingInquiries.length === 0 ? (
+                                            <p className="px-4 py-8 text-center text-sm text-slate-400">새로운 알림이 없습니다.</p>
+                                        ) : (
+                                            <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
+                                                {pendingInquiries.slice(0, 5).map((item) => (
+                                                    <li key={item.supportId}>
+                                                        <button
+                                                            onClick={() => {
+                                                                setNotificationOpen(false);
+                                                                setView("inquiries");
+                                                            }}
+                                                            className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-slate-50"
+                                                        >
+                                                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                                                                <MessageSquareText className="size-4" />
+                                                            </span>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-sm font-bold text-slate-800">{item.memberName}님의 문의</p>
+                                                                <p className="mt-0.5 truncate text-xs text-slate-500">{item.message}</p>
+                                                            </div>
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                setNotificationOpen(false);
+                                                setView("inquiries");
+                                            }}
+                                            className="block w-full border-t border-slate-100 px-4 py-2.5 text-center text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                                        >
+                                            문의사항 전체보기
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </header>
 
