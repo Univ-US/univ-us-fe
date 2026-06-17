@@ -37,7 +37,6 @@ import UsersView from "./_views/UsersView";
 import {
     getMockMembersForSchool,
     SERVICE_INQUIRIES,
-    SERVICE_PAYMENTS,
     SERVICE_SCHOOLS,
 } from "./_mockData";
 import type {
@@ -46,7 +45,6 @@ import type {
     ServiceAdminView,
     ServiceInquiry,
     ServiceMember,
-    ServicePayment,
     ServiceSchool,
 } from "./_types";
 
@@ -121,7 +119,6 @@ function ServiceAdminDashboardContent() {
     const [members, setMembers] = useState<ServiceMember[]>(() =>
         SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
     );
-    const [payments] = useState<ServicePayment[]>(SERVICE_PAYMENTS);
     const [inquiries, setInquiries] =
         useState<ServiceInquiry[]>(SERVICE_INQUIRIES);
     const [dashboard, setDashboard] =
@@ -456,11 +453,7 @@ function ServiceAdminDashboardContent() {
                             />
                         )}
                         {view === "logs" && (
-                            <OperationsLogsView
-                                schools={schools}
-                                members={members}
-                                payments={payments}
-                            />
+                            <OperationsLogsView />
                         )}
                     </section>
                 </div>

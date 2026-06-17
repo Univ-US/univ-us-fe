@@ -237,6 +237,77 @@ export interface ServiceAdminPaymentQuery {
     sort?: "RECENT" | "AMOUNT_DESC" | "AMOUNT_ASC" | "SCHOOL_ASC";
 }
 
+export type ServiceAdminOperationLogCategory = "ACCESS" | "PAYMENT";
+export type ServiceAdminOperationLogResult =
+    | "SUCCESS"
+    | "FAILURE"
+    | "SCHEDULED";
+export type ServiceAdminOperationLogAction =
+    | "LOGIN_SUCCESS"
+    | "LOGOUT"
+    | "LOGIN_FAILED"
+    | "PAYMENT_PAID"
+    | "PAYMENT_FAILED"
+    | "PAYMENT_READY"
+    | "PAYMENT_CANCELED"
+    | "PAYMENT_REFUNDED"
+    | "PAYMENT";
+export type ServiceAdminOperationLogPeriod = "1" | "7" | "30" | "90" | "ALL";
+
+export interface ServiceAdminOperationLog {
+    id: string;
+    category: ServiceAdminOperationLogCategory;
+    action: ServiceAdminOperationLogAction;
+    result: ServiceAdminOperationLogResult;
+    occurredAt: string;
+    sourceId: number;
+    memberId: number | null;
+    memberName: string | null;
+    loginId: string | null;
+    role: MemberRole | null;
+    memberStatus: MemberStatus | null;
+    univId: number | null;
+    univName: string | null;
+    identifier: string | null;
+    failReason: string | null;
+    failReasonLabel: string | null;
+    subscriptionId: number | null;
+    paymentStatus: ServiceAdminPaymentStatus | null;
+    merchantUid: string | null;
+    portonePaymentId: string | null;
+    portoneScheduleId: string | null;
+    amount: number | null;
+    planName: string | null;
+    paidAt: string | null;
+    nextBillingAt: string | null;
+    refundedAt: string | null;
+    refundAmount: number | null;
+    refundReason: string | null;
+    portoneCancellationId: string | null;
+}
+
+export interface ServiceAdminOperationLogPage {
+    content: ServiceAdminOperationLog[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+    totalCount: number;
+    successCount: number;
+    failureCount: number;
+    scheduledCount: number;
+}
+
+export interface ServiceAdminOperationLogQuery {
+    page: number;
+    keyword?: string;
+    category?: ServiceAdminOperationLogCategory;
+    result?: ServiceAdminOperationLogResult;
+    period?: ServiceAdminOperationLogPeriod;
+}
+
 export interface ServiceAdminSchoolQuery {
     page: number;
     keyword?: string;
@@ -342,6 +413,16 @@ export async function retryServiceAdminPayment(historyId: number) {
 export async function cancelServiceAdminScheduledPayment(historyId: number) {
     const response = await api.patch<ServiceAdminPayment>(
         `/api/service-admin/payments/${historyId}/cancel`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminOperationLogs(
+    params: ServiceAdminOperationLogQuery,
+) {
+    const response = await api.get<ServiceAdminOperationLogPage>(
+        "/api/service-admin/operation-logs",
+        { params },
     );
     return response.data;
 }
