@@ -194,12 +194,12 @@ export default function ProfessorGradingPage() {
 
   // 필터 드롭다운 옵션 — 학기 목록에서 유도(년도 내림차순 / 학기 TERM_ORDER 순)
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
+      [...new Set(semesters.map((s) => s.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [semesters]

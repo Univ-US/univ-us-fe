@@ -8,7 +8,7 @@
 //  · GET /api/lms/professor/lectures/{lecId}/students/export?search=&submission=&sort=&order=   (xlsx)
 //  · GET /api/lms/professor/lectures/{lecId}/students/{memberId}/report
 //  · GET /api/common-codes/{groupCode}            (토큰 불필요, 라벨 매핑용)
-// ⚠️ 서버는 "코드값"만 반환(termCode/submissionStatusCode). 라벨은 공통코드로 FE가 매핑.
+// ⚠️ 서버는 "코드값"만 반환(semTerm/submissionStatusCode). 라벨은 공통코드로 FE가 매핑.
 // ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
@@ -17,8 +17,8 @@ import { truncateLectureName } from "@/lib/lmsLectureName";
 // ── 타입 (BE 응답 형태) ────────────────────────────────────
 export interface Semester {
   semId: number;
-  year: number;
-  termCode: string; // SM1/SM2/SMR/WNT (라벨은 SEM_TERM 공통코드)
+  semYear: number;
+  semTerm: string; // SM1/SM2/SMR/WNT (라벨은 SEM_TERM 공통코드)
 }
 
 export interface Lecture {
@@ -27,8 +27,8 @@ export interface Lecture {
   lecCode: string;
   lecSection: string | number; // 분반
   semId: number;
-  year?: number | null; // 학기 (같은 강의명 학기별 구분용)
-  termCode?: string | null;
+  semYear?: number | null; // 학기 연도 (같은 강의명 학기별 구분용)
+  semTerm?: string | null; // 학기 코드 (SEM_TERM 공통코드)
   lecValStatus?: string | null; // 강의 상태 OPEN/PROG/CLSD/CNCL → LEC_VAL_STATUS 라벨
 }
 
@@ -201,7 +201,7 @@ export const getCommonCodeMap = async (
 // ── 표시 헬퍼 ──────────────────────────────────────────────
 /** 학기 표시: "2026년 1학기" (termCode는 SEM_TERM 맵으로 라벨링) */
 export const semesterLabel = (sem: Semester, termMap: Record<string, string>) =>
-  `${sem.year}년 ${termMap[sem.termCode] ?? sem.termCode}`;
+  `${sem.semYear}년 ${termMap[sem.semTerm] ?? sem.semTerm}`;
 
 // 강의명 길이 제한은 공용 유틸로 통일(교수 화면 전 드롭다운 공유). Enrollee page 호환 위해 re-export.
 export { LECTURE_NAME_MAX } from "./lmsLectureName";
@@ -218,8 +218,8 @@ export const lectureLabel = (
   statusMap: Record<string, string> = {}
 ) => {
   let label = truncateLectureName(lec.lecName);
-  if (lec.year != null && lec.termCode) {
-    label += ` · ${lec.year}년 ${termMap[lec.termCode] ?? lec.termCode}`;
+  if (lec.semYear != null && lec.semTerm) {
+    label += ` · ${lec.semYear}년 ${termMap[lec.semTerm] ?? lec.semTerm}`;
   }
   if (lec.lecValStatus) {
     label += ` (${statusMap[lec.lecValStatus] ?? lec.lecValStatus})`;
