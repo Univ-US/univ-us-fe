@@ -35,7 +35,7 @@ const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-primary" },
     { label: "증명서발급", icon: FileText, bg: "bg-teal-600", href: "https://www.certpia.com" },
     { label: "학교홈", icon: GraduationCap, bg: "bg-slate-700" },
-    { label: "화면예약", icon: Monitor, bg: "bg-teal-500" },
+    { label: "시설 이용", icon: Monitor, bg: "bg-teal-500" },
     { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
     { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
     { label: "학교 SNS", icon: Hash, bg: "bg-teal-500" },
@@ -305,6 +305,7 @@ export default function CampusHomePage() {
                                 const resolvedHref =
                                     s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
                                     : s.label === "LMS" ? lmsHref
+                                    : s.label === "시설 이용" ? "/community/reservation/"
                                     : s.label === "학교 SNS" ? (schoolInfo?.snsUrl ?? undefined)
                                     : s.label === "YouTube" ? (schoolInfo?.youtubeUrl ?? undefined)
                                     : s.label === "동아리" ? (schoolInfo?.clubUrl ?? undefined)
