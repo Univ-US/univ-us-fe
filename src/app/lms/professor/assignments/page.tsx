@@ -123,7 +123,14 @@ export default function ProfessorAssignmentsPage() {
       try {
         const lecs = await getAssignmentLectures();
         setLectures(lecs);
-        const lecId = matchLectures("all", "all", lecs)[0]?.lecId ?? null;
+        // 딥링크(강의 내역 PLM-002 '과제 관리'): ?lecId= 가 담당 강의에 있으면 그 강의, 없으면 첫 과목
+        const all = matchLectures("all", "all", lecs);
+        const requested = new URLSearchParams(window.location.search).get("lecId");
+        const requestedId = requested ? Number(requested) : null;
+        const lecId =
+          requestedId != null && all.some((l) => l.lecId === requestedId)
+            ? requestedId
+            : all[0]?.lecId ?? null;
         setSelectedLecId(lecId);
         if (lecId == null) {
           // 담당 강의 없음 → 빈 상태(아래 목록 effect는 lecId null이면 미실행)
