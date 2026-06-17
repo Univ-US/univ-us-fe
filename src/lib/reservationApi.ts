@@ -112,6 +112,14 @@ export type ReservationMutationResponse = {
   message: string;
 };
 
+export type ReservationPenaltyStatus = {
+  activePenaltyCount: number;
+  blockThreshold: number;
+  blocked: boolean;
+  pledgePhrase: string;
+  message: string;
+};
+
 export type ActiveSeatReservation = {
   reservationId: number;
   memberId: number;
@@ -158,6 +166,26 @@ export async function getReservationDateOptions(days = 5) {
     {
       params: { days },
     },
+  );
+
+  return res.data;
+}
+
+export async function getReservationPenaltyStatus() {
+  const res = await api.get<ReservationPenaltyStatus>(
+    '/api/reservations/penalties/status',
+  );
+
+  return res.data;
+}
+
+export async function pledgeReservationPenalty(
+  pledgeText: string,
+  agreed: boolean,
+) {
+  const res = await api.post<ReservationPenaltyStatus>(
+    '/api/reservations/penalties/pledge',
+    { pledgeText, agreed },
   );
 
   return res.data;
