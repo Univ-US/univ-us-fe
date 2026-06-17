@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getUniversities, streamChatMessage, getNotices, getHomeConfig, Notice, type HomeWidgetConfig } from "@/lib/homeApi";
+import { getStudentCalendar, type CalendarEvent } from "@/lib/lmsStudentCalendarApi";
+import { getProfessorCalendar } from "@/lib/lmsProfessorCalendarApi";
 import api from "@/lib/api";
 import { ROLE } from "@/lib/rolecode";
 
@@ -58,6 +60,42 @@ const MOCK_MEALS = [
     { type: "중식", time: "11:30 ~ 13:30", items: ["부대찌개", "공기밥", "잡채", "미역국", "배추김치", "과일"]},
     { type: "석식", time: "17:30 ~ 19:00", items: ["김치찌개", "공기밥", "두부조림", "콩나물무침", "배추김치"] },
 ];
+
+function toYMD(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const TIMETABLE_DAYS = ["월", "화", "수", "목", "금"];
+const TIMETABLE_SLOT_MIN = 30;
+const TIMETABLE_COLORS = [
+    "bg-primary/15 text-primary",
+    "bg-amber-100 text-amber-700",
+    "bg-violet-100 text-violet-700",
+    "bg-rose-100 text-rose-700",
+    "bg-emerald-100 text-emerald-700",
+    "bg-sky-100 text-sky-700",
+];
+
+function getWeekRange(base: Date) {
+    const day = base.getDay(); // 0=일 ~ 6=토
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(base);
+    monday.setDate(base.getDate() + mondayOffset);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    return { monday, friday };
+}
+
+function parseTimeToMinutes(t: string): number {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+}
+
+function dateToWeekdayIndex(dateStr: string): number | null {
+    const day = new Date(dateStr).getDay(); // 0=일 ~ 6=토
+    if (day < 1 || day > 5) return null;
+    return day - 1; // 0=월 ~ 4=금
+}
 
 function useNow() {
     const [now, setNow] = useState<Date | null>(null);
@@ -147,6 +185,7 @@ export default function CampusHomePage() {
     const [homeConfig, setHomeConfig] = useState<HomeWidgetConfig>(DEFAULT_CONFIG);
     const [notices, setNotices] = useState<Notice[]>([]);
     const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -165,6 +204,36 @@ export default function CampusHomePage() {
         role === ROLE.PROF ? "/lms/professor/courses"
         : role === ROLE.STU || role === ROLE.ALU ? "/lms/student/dashboard"
         : undefined;
+
+    const isLmsRole = role === ROLE.STU || role === ROLE.ALU || role === ROLE.PROF;
+
+    useEffect(() => {
+        if (!isLoggedIn || !isLmsRole) return;
+        const { monday, friday } = getWeekRange(new Date());
+        const params = { from: toYMD(monday), to: toYMD(friday) };
+        const fetcher = role === ROLE.PROF ? getProfessorCalendar : getStudentCalendar;
+        fetcher(params).then(setCalendarEvents).catch(() => {});
+    }, [isLoggedIn, isLmsRole, role]);
+
+    const lectures = calendarEvents.filter((e) => e.type === "LECTURE" && e.time);
+
+    const { startHour, endHour } = (() => {
+        if (lectures.length === 0) return { startHour: 9, endHour: 18 };
+        let minMin = Infinity, maxMin = -Infinity;
+        lectures.forEach((e) => {
+            const s = parseTimeToMinutes(e.time!);
+            const en = e.endTime ? parseTimeToMinutes(e.endTime) : s + 60;
+            minMin = Math.min(minMin, s);
+            maxMin = Math.max(maxMin, en);
+        });
+        return {
+            startHour: Math.min(9, Math.floor(minMin / 60)),
+            endHour: Math.max(18, Math.ceil(maxMin / 60)),
+        };
+    })();
+    const totalSlots = ((endHour - startHour) * 60) / TIMETABLE_SLOT_MIN;
+    const hourLabels = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+    const todayColIdx = isLoggedIn ? dateToWeekdayIndex(toYMD(new Date())) : null;
 
     const timeStr = now ? now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
     const dateStr = now ? `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}` : "";
@@ -502,6 +571,91 @@ export default function CampusHomePage() {
                                 </p>
                             </div>
                         </Link>
+                    )}
+
+                    {/* 미니 시간표 (학생/졸업생/교수 전용, 항상 노출) */}
+                    {isLoggedIn && isLmsRole && (
+                        <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="font-extrabold text-slate-800 text-sm">이번 주 시간표</h2>
+                                <Link
+                                    href={role === ROLE.PROF ? "/lms/professor/calendar" : "/lms/student/calendar"}
+                                    className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    더보기
+                                </Link>
+                            </div>
+                            {lectures.length === 0 ? (
+                                <p className="text-sm text-slate-400">등록된 강의가 없어요.</p>
+                            ) : (
+                                <div
+                                    className="grid text-[10px]"
+                                    style={{
+                                        gridTemplateColumns: "28px repeat(5, 1fr)",
+                                        gridTemplateRows: `16px repeat(${totalSlots}, 14px)`,
+                                    }}
+                                >
+                                    {/* 요일 헤더 */}
+                                    <div />
+                                    {TIMETABLE_DAYS.map((d, i) => (
+                                        <div
+                                            key={d}
+                                            className={`flex items-center justify-center font-bold ${todayColIdx === i ? "text-primary" : "text-slate-500"}`}
+                                            style={{ gridColumn: i + 2, gridRow: 1 }}
+                                        >
+                                            {d}
+                                        </div>
+                                    ))}
+
+                                    {/* 시간 라벨 + 가로 구분선 */}
+                                    {hourLabels.map((h) => {
+                                        const rowStart = ((h - startHour) * 60) / TIMETABLE_SLOT_MIN + 2;
+                                        return (
+                                            <Fragment key={h}>
+                                                <div
+                                                    className="border-t border-slate-100 pr-1 text-right text-slate-400 leading-none"
+                                                    style={{ gridColumn: 1, gridRow: rowStart }}
+                                                >
+                                                    {h}
+                                                </div>
+                                                <div
+                                                    className="border-t border-slate-100"
+                                                    style={{ gridColumn: "2 / span 5", gridRow: rowStart }}
+                                                />
+                                            </Fragment>
+                                        );
+                                    })}
+
+                                    {/* 오늘 컬럼 배경 */}
+                                    {todayColIdx !== null && (
+                                        <div
+                                            className="bg-primary/5 rounded"
+                                            style={{ gridColumn: todayColIdx + 2, gridRow: `2 / span ${totalSlots}` }}
+                                        />
+                                    )}
+
+                                    {/* 강의 블록 */}
+                                    {lectures.map((e, i) => {
+                                        const dayIdx = dateToWeekdayIndex(e.date);
+                                        if (dayIdx === null) return null;
+                                        const start = parseTimeToMinutes(e.time!);
+                                        const end = e.endTime ? parseTimeToMinutes(e.endTime) : start + 60;
+                                        const rowStart = (start - startHour * 60) / TIMETABLE_SLOT_MIN + 2;
+                                        const span = Math.max(1, (end - start) / TIMETABLE_SLOT_MIN);
+                                        return (
+                                            <div
+                                                key={`${e.lecId}-${e.date}-${i}`}
+                                                className={`m-px overflow-hidden rounded px-1 py-0.5 font-semibold leading-tight ${TIMETABLE_COLORS[e.lecId % TIMETABLE_COLORS.length]}`}
+                                                style={{ gridColumn: dayIdx + 2, gridRow: `${rowStart} / span ${span}` }}
+                                                title={`${e.title}${e.lecSection ? ` ${e.lecSection}반` : ""} ${e.time}~${e.endTime ?? ""}`}
+                                            >
+                                                <span className="block truncate">{e.title}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
                     )}
 
                     {/* 최근 공지 */}
