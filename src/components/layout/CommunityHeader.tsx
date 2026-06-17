@@ -14,6 +14,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getCommunityDisplayName } from '@/lib/communityProfileDisplay';
 import { useAuthStore } from '@/store/authStore';
 import { getPostList } from '@/lib/postApi';
 
@@ -46,7 +47,7 @@ export default function CommunityHeader() {
   const notificationRef = useRef<HTMLDivElement>(null);
   const univName = useAuthStore((s) => s.univName);
   const { memberName, communityNickname, logoutAction } = useAuthStore();
-  const displayName = communityNickname || memberName || '사용자';
+  const displayName = getCommunityDisplayName({ communityNickname, memberName });
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
