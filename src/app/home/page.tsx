@@ -152,6 +152,7 @@ export default function CampusHomePage() {
     const [chatLoading, setChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [showExtra, setShowExtra] = useState(false);
+
     useEffect(() => {
         if (!isLoggedIn) return;
         getNotices().then(setNotices).catch(() => {});
