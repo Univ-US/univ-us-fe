@@ -83,9 +83,18 @@ function isRoomRealtimeEventForDate(
 ) {
   return !!event.startTime && event.startTime.slice(0, 10) === date;
 }
+
+type ReservationToast = {
+  message: string;
+  type: 'success' | 'error';
+} | null;
+
 const S = {
   pageContainer: 'min-h-screen bg-slate-50 px-[30px] py-6',
   contentWrapper: 'mx-auto max-w-[1140px]',
+  toast: 'fixed right-6 top-6 z-[80] max-w-[360px] rounded-xl border px-4 py-3 text-[13px] font-bold shadow-lg',
+  toastSuccess: 'border-primary/20 bg-white text-primary',
+  toastError: 'border-red-100 bg-white text-red-500',
   headerGroup: 'mb-6 flex flex-wrap items-end justify-between gap-4',
   title: 'text-[22px] font-extrabold tracking-tight text-slate-900',
   subtitle: 'mt-1.5 text-[13px] text-slate-400',
@@ -164,6 +173,7 @@ export default function CommunityReservation() {
   const [cancelRoomReservationTarget, setCancelRoomReservationTarget] =
     useState<RoomReservation | null>(null);
   const [cancelRoomReservationError, setCancelRoomReservationError] = useState('');
+  const [toast, setToast] = useState<ReservationToast>(null);
 
   const selectedDay = reservationDays[selDay] ?? null;
   const reservationDateRangeLabel = useMemo(
@@ -426,6 +436,18 @@ export default function CommunityReservation() {
       mounted = false;
     };
   }, [selectedDay]);
+
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 2600);
+
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     if (!roomDragAnchor) {
@@ -724,10 +746,11 @@ export default function CommunityReservation() {
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
       ]);
+      setToast({ type: 'success', message: '입실 처리되었습니다.' });
     } catch (error) {
       console.error(error);
       const message = getApiErrorMessage(error, '입실 처리에 실패했습니다.');
-      alert(message);
+      setToast({ type: 'error', message });
     } finally {
       setCheckingInReservationId(null);
     }
@@ -741,11 +764,14 @@ export default function CommunityReservation() {
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
       ]);
-      alert(res.message || '예약이 연장되었습니다.');
+      setToast({
+        type: 'success',
+        message: res.message || '예약이 연장되었습니다.',
+      });
     } catch (error) {
       console.error(error);
       const message = getApiErrorMessage(error, '연장 처리에 실패했습니다.');
-      alert(message);
+      setToast({ type: 'error', message });
     } finally {
       setExtendingReservationId(null);
     }
@@ -875,6 +901,17 @@ export default function CommunityReservation() {
 
   return (
     <div className={S.pageContainer}>
+      {toast && (
+        <div
+          aria-live="polite"
+          className={cn(
+            S.toast,
+            toast.type === 'success' ? S.toastSuccess : S.toastError,
+          )}
+        >
+          {toast.message}
+        </div>
+      )}
       <div className={S.contentWrapper}>
         <div className={S.headerGroup}>
           <div>
