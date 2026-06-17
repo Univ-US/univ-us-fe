@@ -21,8 +21,8 @@ export interface AssignmentRow {
   assignmentId: number;
   courseName: string; // 데이터구조 및 알고리즘
   lecSection: number | null; // 분반 (LECTURE.LEC_SECTION) — "N반" 표기
-  title: string; // 알고리즘 구현 #3
-  dueDate: string; // 2026.05.25
+  lecAsnTitle: string; // LECTURE_ASSIGNMENT.LEC_ASN_TITLE
+  lecAsnDueDate: string; // LECTURE_ASSIGNMENT.LEC_ASN_DUE_DATE "2026.05.25"
   submittedCount: number; // 제출 수 (미제출 제외)
   gradedCount: number; // 채점완료 수 (점수 있음)
   ungradedCount: number; // 미채점 = submitted − graded
@@ -43,12 +43,12 @@ export interface Submission {
   memberId: number; // 행 식별 키 (미제출 포함 항상 존재)
   studentName: string;
   studentNo: string;
-  submittedAt: string | null; // "05.24 22:11" / null = 미제출
-  submissionStatus: string | null; // 제출상태 공통코드(SBM/NSB…) — FE 미사용
+  lecAsnSbmRegDate: string | null; // LEC_ASN_SBM_REG_DATE "05.24 22:11" / null = 미제출
+  lecAsnSbmStatus: string | null; // LEC_ASN_SBM_STATUS 제출상태 공통코드(SBM/NSB…) — FE 미사용
   file: SubmissionFile | null;
-  score: number | null; // null = 미채점
-  feedback: string; // 없으면 ""
-  graded: boolean; // score 있음 여부
+  asnSbmEvlScore: number | null; // ASN_SBM_EVL_SCORE null = 미채점
+  asnSbmEvlFeedback: string; // ASN_SBM_EVL_FEEDBACK 없으면 ""
+  graded: boolean; // asnSbmEvlScore 있음 여부
 }
 
 /** 채점 현황 개요 배너 (PLM-004 상단) — 선택 필터 범위의 미채점 합·과목별. 목록은 페이지 API로 분리 */
@@ -72,9 +72,9 @@ export interface PageResponse<T> {
 export interface GradingDetail {
   assignmentId: number;
   courseName: string;
-  title: string;
+  lecAsnTitle: string;
   maxScore: number;
-  dueDate: string;
+  lecAsnDueDate: string;
   gradedCount: number;
   ungradedCount: number;
   submissions: Submission[];
@@ -141,7 +141,7 @@ export const getGradingDetail = async (
 export const saveGrade = async (
   assignmentId: number,
   submissionId: number,
-  payload: { score: number | null; feedback: string }
+  payload: { asnSbmEvlScore: number | null; asnSbmEvlFeedback: string }
 ): Promise<Submission> => {
   const res = await api.put<Submission>(
     `/api/lms/professor/grading/assignments/${assignmentId}/submissions/${submissionId}`,
