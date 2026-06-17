@@ -16,16 +16,19 @@ import {
   extendReadingSeatReservation,
   getMyReadingSeatReservations,
   getMyRoomReservations,
+  getReservationPenaltyStatus,
   getReadingRoomAvailability,
   getReadingSeatAvailability,
   getReservationDateOptions,
   getRoomAvailability,
+  pledgeReservationPenalty,
   reserveReadingSeat,
   reserveRoom,
   type ReadingRoomAvailability,
   type ReadingSeatAvailability,
   type ReadingSeatReservation,
   type ReservationDateOption,
+  type ReservationPenaltyStatus,
   type RoomAvailability,
   type RoomReservation,
 } from '@/lib/reservationApi';
@@ -35,6 +38,7 @@ import { useAuthStore } from '@/store/authStore';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
+import ReservationPenaltyPledgeModal from './ReservationPenaltyPledgeModal';
 import SeatChatDrawer from './seat/SeatChatDrawer';
 import SeatCancelModal from './seat/SeatCancelModal';
 import SeatReservationModal from './seat/SeatReservationModal';
@@ -174,6 +178,11 @@ export default function CommunityReservation() {
     useState<RoomReservation | null>(null);
   const [cancelRoomReservationError, setCancelRoomReservationError] = useState('');
   const [toast, setToast] = useState<ReservationToast>(null);
+  const [penaltyStatus, setPenaltyStatus] =
+    useState<ReservationPenaltyStatus | null>(null);
+  const [penaltyModalOpen, setPenaltyModalOpen] = useState(false);
+  const [penaltyLoading, setPenaltyLoading] = useState(false);
+  const [penaltyError, setPenaltyError] = useState('');
 
   const selectedDay = reservationDays[selDay] ?? null;
   const reservationDateRangeLabel = useMemo(
@@ -219,6 +228,32 @@ export default function CommunityReservation() {
   const selectedRoomStartTime = selectedRoomSlots[0]?.startTime ?? '';
   const selectedRoomEndTime =
     selectedRoomSlots[selectedRoomSlots.length - 1]?.endTime ?? '';
+
+  const refreshPenaltyStatus = useCallback(async (openIfBlocked = false) => {
+    try {
+      const status = await getReservationPenaltyStatus();
+      setPenaltyStatus(status);
+      if (status.blocked && openIfBlocked) {
+        setPenaltyError('');
+        setPenaltyModalOpen(true);
+      }
+      return status;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }, []);
+
+  const openPenaltyModalIfBlocked = useCallback(() => {
+    if (!penaltyStatus?.blocked) {
+      return false;
+    }
+
+    setPenaltyError('');
+    setPenaltyModalOpen(true);
+    setToast({ type: 'error', message: penaltyStatus.message });
+    return true;
+  }, [penaltyStatus]);
 
   const loadMyReservations = useCallback(async () => {
     setMyReservationsLoading(true);
@@ -339,6 +374,10 @@ export default function CommunityReservation() {
     onRoomEvent: handleRoomRealtimeEvent,
   });
   const isRealtimeConnected = realtimeStatus === 'connected';
+
+  useEffect(() => {
+    void refreshPenaltyStatus(true);
+  }, [refreshPenaltyStatus]);
 
   useEffect(() => {
     let mounted = true;
@@ -642,6 +681,9 @@ export default function CommunityReservation() {
     if (!selSeat) {
       return;
     }
+    if (openPenaltyModalIfBlocked()) {
+      return;
+    }
 
     setSeatReservationError('');
     setSeatReservationModalOpen(true);
@@ -681,6 +723,14 @@ export default function CommunityReservation() {
       );
 
       if (isApiErrorStatus(error, 409)) {
+        const status = await refreshPenaltyStatus(true);
+        if (status?.blocked) {
+          setSeatReservationModalOpen(false);
+          setSeatReservationError('');
+          setToast({ type: 'error', message: status.message });
+          return;
+        }
+
         await Promise.allSettled([
           refreshSelectedSeatAvailability(),
           loadMyReservations(),
@@ -834,6 +884,9 @@ export default function CommunityReservation() {
     if (!selSlot || !selectedRoomStartTime || !selectedRoomEndTime) {
       return;
     }
+    if (openPenaltyModalIfBlocked()) {
+      return;
+    }
 
     setRoomReservationPurpose('');
     setRoomReservationError('');
@@ -863,11 +916,48 @@ export default function CommunityReservation() {
       ]);
     } catch (error) {
       console.error(error);
-      setRoomReservationError(
+      const message = getApiErrorMessage(
+        error,
         '공간 예약 요청에 실패했습니다. 로그인 상태와 공간 상태를 확인해주세요.',
       );
+      if (isApiErrorStatus(error, 409)) {
+        const status = await refreshPenaltyStatus(true);
+        if (status?.blocked) {
+          setRoomReservationModalOpen(false);
+          setRoomReservationError('');
+          setToast({ type: 'error', message: status.message });
+          return;
+        }
+      }
+
+      setRoomReservationError(message);
     } finally {
       setRoomReservationLoading(false);
+    }
+  }
+
+  async function handleSubmitPenaltyPledge(
+    pledgeText: string,
+    agreed: boolean,
+  ) {
+    setPenaltyLoading(true);
+    setPenaltyError('');
+
+    try {
+      const status = await pledgeReservationPenalty(pledgeText, agreed);
+      setPenaltyStatus(status);
+      setPenaltyModalOpen(false);
+      setToast({
+        type: 'success',
+        message: '서약이 확인되었습니다. 다시 예약할 수 있습니다.',
+      });
+    } catch (error) {
+      console.error(error);
+      setPenaltyError(
+        getApiErrorMessage(error, '서약 확인에 실패했습니다. 입력 내용을 확인해주세요.'),
+      );
+    } finally {
+      setPenaltyLoading(false);
     }
   }
 
@@ -1157,6 +1247,20 @@ export default function CommunityReservation() {
               setCancelRoomReservationError('');
             }}
             onSubmit={handleCancelRoomReservation}
+          />
+        )}
+
+        {penaltyModalOpen && penaltyStatus?.blocked && (
+          <ReservationPenaltyPledgeModal
+            status={penaltyStatus}
+            loading={penaltyLoading}
+            error={penaltyError}
+            onClose={() => {
+              if (penaltyLoading) return;
+              setPenaltyModalOpen(false);
+              setPenaltyError('');
+            }}
+            onSubmit={handleSubmitPenaltyPledge}
           />
         )}
       </div>
