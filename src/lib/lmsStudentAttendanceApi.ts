@@ -1,0 +1,38 @@
+// src/lib/lmsStudentAttendanceApi.ts
+// SLM-005 출석 내역 — 로그인 학생의 수강 강의별 출석·지각·결석 현황
+import api from "@/lib/api";
+
+/** 지각·결석 1건의 상세(팝오버 표시용) */
+export interface AttendanceRecord {
+  date: string; // "YYYY-MM-DD"
+}
+
+/** 강의 1행의 출결 현황 */
+export interface AttendanceCourse {
+  lecId: number;
+  courseName: string;
+  lecSection: number;
+  totalSessions: number;
+  present: number;
+  late: number;
+  absent: number;
+  attendanceRate: number;
+  lateRecords: AttendanceRecord[];
+  absentRecords: AttendanceRecord[];
+}
+
+/** 한 학기 단위 카드 */
+export interface SemesterAttendance {
+  year: number;
+  termCode: string;
+  semesterLabel: string;
+  inProgress: boolean;
+  courseCount: number;
+  courses: AttendanceCourse[];
+}
+
+/** GET /api/lms/student/attendance — 학기별 출결 현황 */
+export const getStudentAttendance = async (): Promise<SemesterAttendance[]> => {
+  const res = await api.get<SemesterAttendance[]>("/api/lms/student/attendance");
+  return res.data;
+};

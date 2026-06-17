@@ -1,26 +1,859 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Building2,
+  ChevronDown,
+  Check,
+  CreditCard,
+  LoaderCircle,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getApiErrorMessage } from "@/lib/apiError";
+import {
+  cancelSubscriptionPayment,
+  completeSubscriptionBillingPayment,
+  getSubscriptionPaymentConfig,
+  getSubscriptionPlans,
+  getSubscriptionStatus,
+  getSubscriptionUniversities,
+  prepareSubscription,
+} from "@/lib/subscriptionApi";
+import { loadPortOneSdk } from "@/lib/portone";
+import { useAuthStore } from "@/store/authStore";
+import type {
+  SubscriptionPaymentMethod,
+  SubscriptionAccessStatus,
+  SubscriptionPaymentVerifyResponse,
+  SubscriptionPlan,
+  SubscriptionPrepareRequest,
+  SubscriptionUniversityOption,
+} from "@/types/subscription";
+
+type SubscriptionSchoolForm = Pick<
+  SubscriptionPrepareRequest,
+  "univName" | "sido" | "address" | "schoolPhone" | "homepage"
+>;
+
+type SubscriptionAuthUpdater = (
+  verification: SubscriptionPaymentVerifyResponse,
+  univName: string,
+) => void;
+
+const initialForm: SubscriptionSchoolForm = {
+  univName: "",
+  sido: "",
+  address: "",
+  schoolPhone: "",
+  homepage: "",
+};
+
+function formatPrice(price: number) {
+  return `${price.toLocaleString("ko-KR")}원`;
+}
+
+function formatBillingCycle(billingCycle: string) {
+  switch (billingCycle.toUpperCase()) {
+    case "MONTHLY":
+      return "월";
+    case "YEARLY":
+      return "년";
+    default:
+      return billingCycle;
+  }
+}
+
+function formatMemberLimit(maxMemberCount: number | null) {
+  if (maxMemberCount == null) {
+    return "회원 수 제한 없음";
+  }
+
+  return `최대 ${maxMemberCount.toLocaleString("ko-KR")}명`;
+}
+
+function getErrorMessage(error: unknown, fallbackMessage: string) {
+  const apiMessage = getApiErrorMessage(error, "");
+  if (apiMessage.trim()) return apiMessage;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallbackMessage;
+}
 
 export default function SubscribePage() {
-    return (
-        <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
-            <div className="w-full max-w-[520px] rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
-                <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <CreditCard className="size-6" />
-                </div>
-                <h1 className="mt-5 text-2xl font-extrabold text-slate-900">
-                    구독 신청
-                </h1>
-                <p className="mt-3 text-sm leading-6 text-slate-500">
-                    로그인한 기관 담당자가 플랜을 선택하고 구독 신청을 진행하는 페이지입니다.
-                </p>
-                <Button asChild className="mt-6">
-                    <Link href="/landing">홈으로 돌아가기</Link>
-                </Button>
+  const router = useRouter();
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const role = useAuthStore((state) => state.role);
+  const memberName = useAuthStore((state) => state.memberName);
+  const applySubscriptionVerification = useAuthStore(
+    (state) =>
+      (
+        state as typeof state & {
+          applySubscriptionVerification: SubscriptionAuthUpdater;
+        }
+      ).applySubscriptionVerification,
+  );
+
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] =
+    useState<SubscriptionPaymentMethod>("CARD");
+  const [form, setForm] = useState(initialForm);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingAccess, setLoadingAccess] = useState(true);
+  const [accessStatus, setAccessStatus] =
+    useState<SubscriptionAccessStatus | null>(null);
+  const [universityOptions, setUniversityOptions] = useState<
+    SubscriptionUniversityOption[]
+  >([]);
+  const [selectedUniversity, setSelectedUniversity] =
+    useState<SubscriptionUniversityOption | null>(null);
+  const [loadingUniversities, setLoadingUniversities] = useState(false);
+  const [universityOpen, setUniversityOpen] = useState(false);
+  const [universitySearch, setUniversitySearch] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const universityRef = useRef<HTMLDivElement>(null);
+
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.planId === selectedPlanId) ?? null,
+    [plans, selectedPlanId],
+  );
+  const filteredUniversityOptions = useMemo(
+    () =>
+      universityOptions.filter((university) =>
+        university.univName
+          .toLowerCase()
+          .includes(universitySearch.trim().toLowerCase()),
+      ),
+    [universityOptions, universitySearch],
+  );
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    if (!isLoggedIn) {
+      router.replace("/login");
+      return;
+    }
+
+    if (role === "GUEST") {
+      setLoadingAccess(false);
+      return;
+    }
+
+    if (role !== "ADM") {
+      router.replace("/landing");
+      return;
+    }
+
+    let active = true;
+    void getSubscriptionStatus()
+      .then((status) => {
+        if (!active) return;
+
+        if (status.serviceAccessible) {
+          router.replace("/dashboard/school-admin");
+          return;
+        }
+
+        setAccessStatus(status);
+        setForm({
+          univName: status.univName ?? "",
+          sido: status.sido ?? "",
+          address: status.address ?? "",
+          schoolPhone: status.schoolPhone ?? "",
+          homepage: status.homepage ?? "",
+        });
+        if (!status.resubscribeAvailable) {
+          setError("진행 중인 구독 결제 요청을 먼저 정리해야 합니다.");
+        }
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(
+          getApiErrorMessage(
+            requestError,
+            "구독 상태를 확인하지 못했습니다.",
+          ),
+        );
+      })
+      .finally(() => {
+        if (active) setLoadingAccess(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isInitialized, isLoggedIn, role, router]);
+
+  useEffect(() => {
+    let active = true;
+
+    getSubscriptionPlans()
+      .then((response) => {
+        if (!active) return;
+
+        setPlans(response);
+
+        const planIdFromQuery = Number(
+          new URLSearchParams(window.location.search).get("planId"),
+        );
+        const requestedPlan = response.find(
+          (plan) => plan.planId === planIdFromQuery,
+        );
+
+        setSelectedPlanId(requestedPlan?.planId ?? response[0]?.planId ?? null);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(
+          getApiErrorMessage(
+            requestError,
+            "구독 플랜을 불러오지 못했습니다.",
+          ),
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingPlans(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (role === "ADM") return;
+
+    let active = true;
+    setLoadingUniversities(true);
+    void getSubscriptionUniversities()
+      .then((universities) => {
+        if (active) setUniversityOptions(universities);
+      })
+      .catch(() => {
+        if (active) setUniversityOptions([]);
+      })
+      .finally(() => {
+        if (active) setLoadingUniversities(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        universityRef.current &&
+        !universityRef.current.contains(event.target as Node)
+      ) {
+        setUniversityOpen(false);
+        setUniversitySearch("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const updateForm = (
+    field: keyof typeof initialForm,
+    value: string,
+  ) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const isAlreadySubscribedUniversity = (
+    university: SubscriptionUniversityOption | null,
+  ) => university?.subscriptionStatus === "ACTIVE" || university?.subscriptionStatus === "PENDING";
+
+  const selectUniversity = (university: SubscriptionUniversityOption) => {
+    setSelectedUniversity(university);
+    setUniversityOpen(false);
+    setUniversitySearch("");
+    setForm({
+      univName: university.univName,
+      sido: university.sido ?? "",
+      address: university.address ?? "",
+      schoolPhone: university.schoolPhone ?? "",
+      homepage: university.homepage ?? "",
+    });
+    setError(null);
+  };
+
+  const updateSchoolName = (value: string) => {
+    if (selectedUniversity && selectedUniversity.univName !== value) {
+      setSelectedUniversity(null);
+    }
+    updateForm("univName", value);
+  };
+
+  const updateSchoolField = (
+    field: Exclude<keyof typeof initialForm, "univName">,
+    value: string,
+  ) => {
+    if (selectedUniversity) {
+      setSelectedUniversity(null);
+    }
+    updateForm(field, value);
+  };
+
+  const closePreparedPayment = async (
+    merchantUid: string,
+    reason: string,
+  ) => {
+    try {
+      await cancelSubscriptionPayment({
+        merchantUid,
+        reason: reason.slice(0, 500),
+      });
+    } catch {
+      // 결제창 오류 메시지를 우선 노출하고, 정리 실패는 서버 로그로 확인합니다.
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!selectedPlan) {
+      setError("구독 플랜을 선택해주세요.");
+      return;
+    }
+
+    if (role === "ADM" && !accessStatus?.resubscribeAvailable) {
+      setError("현재 상태에서는 재구독을 시작할 수 없습니다.");
+      return;
+    }
+
+    if (isAlreadySubscribedUniversity(selectedUniversity)) {
+      window.alert("이미 구독 중인 학교입니다.");
+      setError("이미 구독 중인 학교입니다.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    let merchantUid: string | null = null;
+    let billingPaymentStarted = false;
+
+    try {
+      const prepareResponse = await prepareSubscription({
+        planId: selectedPlan.planId,
+        univId: selectedUniversity?.univId,
+        univName: form.univName.trim(),
+        sido: form.sido.trim(),
+        address: form.address.trim(),
+        schoolPhone: form.schoolPhone.trim(),
+        homepage: form.homepage.trim(),
+      });
+      merchantUid = prepareResponse.merchantUid;
+
+      const paymentConfig = await getSubscriptionPaymentConfig();
+      const channelKey =
+        paymentMethod === "CARD"
+          ? paymentConfig.cardBillingChannelKey
+          : paymentConfig.kakaoBillingChannelKey;
+
+      if (!paymentConfig.storeId || !channelKey) {
+        throw new Error(
+          paymentMethod === "CARD"
+            ? "카드 정기결제 설정이 누락되었습니다."
+            : "카카오페이 정기결제 설정이 누락되었습니다.",
+        );
+      }
+
+      const portOne = await loadPortOneSdk();
+      const billingKeyResponse = await portOne.requestIssueBillingKey({
+        storeId: paymentConfig.storeId,
+        channelKey,
+        billingKeyMethod:
+          paymentMethod === "CARD" ? "CARD" : "EASY_PAY",
+        issueId: `billing_${prepareResponse.merchantUid}`,
+        issueName: `UnivUs ${prepareResponse.planName} 구독`,
+        displayAmount: prepareResponse.amount,
+        currency: "CURRENCY_KRW",
+        customer: {
+          fullName: memberName ?? undefined,
+        },
+      });
+
+      if (billingKeyResponse?.code) {
+        const reason =
+          billingKeyResponse.message || billingKeyResponse.code;
+        await closePreparedPayment(prepareResponse.merchantUid, reason);
+        setError(
+          billingKeyResponse.message || "빌링키 발급이 취소되었습니다.",
+        );
+        return;
+      }
+
+      if (!billingKeyResponse?.billingKey) {
+        await closePreparedPayment(
+          prepareResponse.merchantUid,
+          "PORTONE_BILLING_KEY_MISSING",
+        );
+        setError("PortOne 빌링키를 확인할 수 없습니다.");
+        return;
+      }
+
+      billingPaymentStarted = true;
+      const verification = await completeSubscriptionBillingPayment({
+        merchantUid: prepareResponse.merchantUid,
+        billingKey: billingKeyResponse.billingKey,
+        paymentMethod,
+      });
+
+      applySubscriptionVerification(
+        verification,
+        accessStatus?.univName ?? form.univName.trim(),
+      );
+      router.replace("/dashboard/school-admin");
+    } catch (requestError) {
+      if (merchantUid && !billingPaymentStarted) {
+        await closePreparedPayment(
+          merchantUid,
+          getErrorMessage(requestError, "PAYMENT_REQUEST_FAILED"),
+        );
+      }
+
+      setError(
+        getErrorMessage(
+          requestError,
+          billingPaymentStarted
+            ? "정기결제 처리에 실패했습니다."
+            : "구독 결제를 시작하지 못했습니다.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (
+    !isInitialized ||
+    !isLoggedIn ||
+    (role !== "GUEST" && role !== "ADM") ||
+    loadingAccess ||
+    (role === "ADM" && !accessStatus)
+  ) {
+    return null;
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-5 py-10 text-slate-950">
+      <div className="mx-auto max-w-[1080px]">
+        <Link
+          href="/landing"
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary"
+        >
+          <ArrowLeft className="size-4" />
+          홈으로 돌아가기
+        </Link>
+
+        <div className="mt-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CreditCard className="size-5" />
             </div>
-        </main>
-    );
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">
+                {role === "ADM" ? "구독 다시 시작" : "구독 신청"}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {role === "ADM"
+                  ? "기존 학교로 새 구독 플랜과 결제를 진행해주세요."
+                  : "플랜과 학교 정보를 확인한 뒤 결제를 진행해주세요."}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 grid gap-6 lg:grid-cols-[1.25fr_0.75fr]"
+        >
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <CreditCard className="size-4 text-primary" />
+                <h2 className="font-black">플랜 선택</h2>
+              </div>
+
+              {loadingPlans ? (
+                <div className="flex h-36 items-center justify-center text-slate-400">
+                  <LoaderCircle className="size-5 animate-spin" />
+                </div>
+              ) : plans.length === 0 ? (
+                <p className="mt-5 rounded-xl bg-slate-50 p-5 text-sm text-slate-500">
+                  현재 신청 가능한 구독 플랜이 없습니다.
+                </p>
+              ) : (
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {plans.map((plan) => {
+                    const selected = plan.planId === selectedPlanId;
+
+                    return (
+                      <button
+                        key={plan.planId}
+                        type="button"
+                        onClick={() => setSelectedPlanId(plan.planId)}
+                        className={`rounded-xl border p-5 text-left transition ${
+                          selected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-slate-200 hover:border-primary/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-lg font-black">
+                              {plan.planName}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {formatMemberLimit(plan.maxMemberCount)}
+                            </p>
+                          </div>
+                          {selected && (
+                            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-white">
+                              <Check className="size-4" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-5 text-2xl font-black">
+                          {formatPrice(plan.price)}
+                          <span className="ml-1 text-sm text-slate-500">
+                            / {formatBillingCycle(plan.billingCycle)}
+                          </span>
+                        </p>
+                        {plan.description && (
+                          <p className="mt-3 text-sm leading-6 text-slate-500">
+                            {plan.description}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <CreditCard className="size-4 text-primary" />
+                <h2 className="font-black">결제수단</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                최초 결제 후 선택한 수단으로 정기결제가 진행됩니다.
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    {
+                      value: "CARD",
+                      label: "신용·체크카드",
+                      description: "토스페이먼츠 정기결제",
+                    },
+                    {
+                      value: "KAKAO_PAY",
+                      label: "카카오페이",
+                      description: "카카오페이 정기결제",
+                    },
+                  ] as const
+                ).map((method) => {
+                  const selected = paymentMethod === method.value;
+
+                  return (
+                    <button
+                      key={method.value}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.value)}
+                      className={`flex items-center justify-between rounded-xl border p-4 text-left transition ${
+                        selected
+                          ? "border-primary bg-primary/5 ring-1 ring-primary"
+                          : "border-slate-200 hover:border-primary/40"
+                      }`}
+                    >
+                      <span>
+                        <span className="block font-black">{method.label}</span>
+                        <span className="mt-1 block text-xs text-slate-500">
+                          {method.description}
+                        </span>
+                      </span>
+                      {selected && (
+                        <span className="flex size-6 items-center justify-center rounded-full bg-primary text-white">
+                          <Check className="size-4" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Building2 className="size-4 text-primary" />
+                <h2 className="font-black">학교 정보</h2>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                결제 성공 후 입력한 정보로 학교가 생성됩니다.
+              </p>
+
+              {role !== "ADM" && (
+                <div className="relative mt-5" ref={universityRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUniversityOpen((current) => !current);
+                      setUniversitySearch("");
+                    }}
+                    className={`h-11 w-full rounded-lg border bg-white px-3.5 text-left text-sm outline-none transition ${
+                      universityOpen
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span
+                        className={
+                          selectedUniversity ? "text-slate-900" : "text-slate-400"
+                        }
+                      >
+                        {selectedUniversity
+                          ? selectedUniversity.univName
+                          : "학교를 선택해주세요"}
+                      </span>
+                      {loadingUniversities ? (
+                        <LoaderCircle className="size-4 animate-spin text-slate-400" />
+                      ) : (
+                        <ChevronDown
+                          className={`size-4 shrink-0 text-slate-400 transition-transform ${
+                            universityOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      )}
+                    </span>
+                  </button>
+
+                  {universityOpen && (
+                    <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                      <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+                        <Search className="size-4 shrink-0 text-slate-400" />
+                        <input
+                          autoFocus
+                          value={universitySearch}
+                          onChange={(event) =>
+                            setUniversitySearch(event.target.value)
+                          }
+                          placeholder="학교 검색"
+                          className="w-full text-sm outline-none placeholder:text-slate-400"
+                        />
+                      </div>
+                      <ul className="max-h-48 overflow-y-auto py-1">
+                        {filteredUniversityOptions.length > 0 ? (
+                          filteredUniversityOptions.map((university) => {
+                            const alreadySubscribed =
+                              isAlreadySubscribedUniversity(university);
+
+                            return (
+                              <li key={university.univId}>
+                                <button
+                                  type="button"
+                                  onClick={() => selectUniversity(university)}
+                                  className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                >
+                                  <span className="truncate">
+                                    {university.univName}
+                                  </span>
+                                  <span className="flex shrink-0 items-center gap-2">
+                                    {alreadySubscribed && (
+                                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600">
+                                        구독 중
+                                      </span>
+                                    )}
+                                    {selectedUniversity?.univId ===
+                                      university.univId && (
+                                      <Check className="size-4 text-primary" />
+                                    )}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          })
+                        ) : (
+                          <li className="px-3.5 py-3 text-sm text-slate-400">
+                            검색 결과가 없습니다.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <label className="text-sm font-bold">
+                  학교명
+                  <input
+                    required
+                    disabled={role === "ADM"}
+                    value={form.univName}
+                    onChange={(event) =>
+                      updateSchoolName(event.target.value)
+                    }
+                    placeholder="예: UnivUs대학교"
+                    className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+
+                <label className="text-sm font-bold">
+                  시도
+                  <input
+                    required
+                    disabled={role === "ADM"}
+                    value={form.sido}
+                    onChange={(event) =>
+                      updateSchoolField("sido", event.target.value)
+                    }
+                    placeholder="예: 서울특별시"
+                    className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+
+                <label className="text-sm font-bold md:col-span-2">
+                  주소
+                  <input
+                    required
+                    disabled={role === "ADM"}
+                    value={form.address}
+                    onChange={(event) =>
+                      updateSchoolField("address", event.target.value)
+                    }
+                    placeholder="학교 주소를 입력해주세요."
+                    className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+
+                <label className="text-sm font-bold">
+                  대표 전화번호
+                  <input
+                    required
+                    disabled={role === "ADM"}
+                    value={form.schoolPhone}
+                    onChange={(event) =>
+                      updateSchoolField("schoolPhone", event.target.value)
+                    }
+                    placeholder="02-1234-5678"
+                    className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+
+                <label className="text-sm font-bold">
+                  홈페이지
+                  <input
+                    required
+                    disabled={role === "ADM"}
+                    type="url"
+                    value={form.homepage}
+                    onChange={(event) =>
+                      updateSchoolField("homepage", event.target.value)
+                    }
+                    placeholder="https://www.example.ac.kr"
+                    className="mt-2 h-11 w-full rounded-lg border border-input px-3.5 font-normal outline-none focus:border-primary"
+                  />
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
+            <h2 className="text-lg font-black">결제 정보</h2>
+
+            {selectedPlan ? (
+              <div className="mt-5 space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">선택 플랜</span>
+                  <span className="font-black">{selectedPlan.planName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">결제 주기</span>
+                  <span className="font-black">
+                    {formatBillingCycle(selectedPlan.billingCycle)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">결제수단</span>
+                  <span className="font-black">
+                    {paymentMethod === "CARD"
+                      ? "신용·체크카드"
+                      : "카카오페이"}
+                  </span>
+                </div>
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="flex items-end justify-between">
+                    <span className="text-sm font-bold">총 결제 금액</span>
+                    <span className="text-2xl font-black text-primary">
+                      {formatPrice(selectedPlan.price)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 text-sm text-slate-400">
+                플랜을 선택해주세요.
+              </p>
+            )}
+
+            <div className="mt-6 rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-500">
+              <div className="flex items-center gap-2 font-black text-slate-700">
+                <ShieldCheck className="size-4 text-primary" />
+                안전한 결제
+              </div>
+              <p className="mt-2">
+                결제 정보는 PortOne 결제창에서 처리되며, 빌링키 검증과 최초
+                결제가 완료된 뒤에만 학교와 관리자 권한이 생성됩니다.
+              </p>
+            </div>
+
+            {error && (
+              <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                {error}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={
+                submitting ||
+                loadingPlans ||
+                !selectedPlan ||
+                plans.length === 0 ||
+                (role === "ADM" && !accessStatus?.resubscribeAvailable)
+              }
+              className="mt-5 h-12 w-full text-base font-black"
+            >
+              {submitting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  결제 진행 중
+                </>
+              ) : (
+                "결제하기"
+              )}
+            </Button>
+          </aside>
+        </form>
+      </div>
+    </main>
+  );
 }

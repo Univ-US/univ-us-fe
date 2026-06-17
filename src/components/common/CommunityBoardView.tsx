@@ -200,10 +200,18 @@ function SideRules({ rules }: { rules: string[] }) {
 interface CommunityBoardViewProps {
   board: BoardType;
   posts: Post[];
+  totalCount?: number;
+  todayCount?: number;
   onRefresh?: () => void;
 }
 
-export default function CommunityBoardView({ board, posts, onRefresh }: CommunityBoardViewProps) {
+export default function CommunityBoardView({
+  board,
+  posts,
+  totalCount,
+  todayCount = 0,
+  onRefresh,
+}: CommunityBoardViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = useAuthStore((s) => s.role);
@@ -212,6 +220,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [sortBy, setSortBy] = useState<'최신순' | '인기순' | '댓글순'>('최신순');
+  const [boardSubscribed, setBoardSubscribed] = useState(false);
 
   const handleOpenPost = (post: Post) => {
     setSelectedPost(post);
@@ -220,6 +229,21 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
 
   const isAnon = board === 'secret';
   const meta = BOARD_META[board];
+
+  useEffect(() => {
+    setBoardSubscribed(
+      localStorage.getItem(`community-board-subscription:${board}`) === 'true',
+    );
+  }, [board]);
+
+  const handleToggleBoardSubscription = () => {
+    const nextSubscribed = !boardSubscribed;
+    setBoardSubscribed(nextSubscribed);
+    localStorage.setItem(
+      `community-board-subscription:${board}`,
+      String(nextSubscribed),
+    );
+  };
 
   // URL ?postId= 쿼리 읽어서 상세 자동 오픈
   useEffect(() => {
@@ -240,6 +264,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
   }, [searchParams, posts]);
 
   const filteredPosts = selectedCategory === '전체' ? posts : posts.filter((p) => p.category === selectedCategory);
+  const boardTotalCount = totalCount ?? posts.length;
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (sortBy === '인기순') return b.likeCount - a.likeCount;
     if (sortBy === '댓글순') return b.commentCount - a.commentCount;
@@ -294,7 +319,7 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
                   <div className='flex items-center gap-2'>
                     <h1 className='text-[18px] font-extrabold text-slate-900'>{meta.label}</h1>
                     <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold', meta.badgeBg)}>
-                      전체 {posts.length}
+                      전체 {boardTotalCount}
                     </span>
                   </div>
                   <p className='mt-1 text-[13px] text-slate-500'>{meta.desc}</p>
@@ -304,18 +329,30 @@ export default function CommunityBoardView({ board, posts, onRefresh }: Communit
                         <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' /><circle cx='9' cy='7' r='4' />
                         <path d='M23 21v-2a4 4 0 0 0-3-3.87' /><path d='M16 3.13a4 4 0 0 1 0 7.75' />
                       </svg>
-                      멤버 <b className='text-slate-600'>12,480</b>
+                      게시글 <b className='text-slate-600'>{boardTotalCount.toLocaleString('ko-KR')}</b>
                     </span>
                     <span className='flex items-center gap-1.5 text-[12px] text-slate-400'>
                       <svg className='size-3.5' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                         <path d='M12 20h9' /><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' />
                       </svg>
-                      오늘 <b className={meta.accentText}>64</b>개의 새 글
+                      오늘 <b className={meta.accentText}>{todayCount.toLocaleString('ko-KR')}</b>개의 새 글
                     </span>
                   </div>
                 </div>
-                <button className='flex size-[34px] shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-400 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-md active:translate-y-0'>
+                <button
+                  type='button'
+                  onClick={handleToggleBoardSubscription}
+                  aria-pressed={boardSubscribed}
+                  title={boardSubscribed ? `${meta.label} 새 글 알림 끄기` : `${meta.label} 새 글 알림 켜기`}
+                  className={cn(
+                    'hidden shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
+                    boardSubscribed
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-slate-300 bg-white text-slate-400 hover:border-primary hover:text-primary',
+                  )}
+                >
                   <Bell className='size-[16px]' />
+                  {boardSubscribed ? '알림받는 중' : '알림받기'}
                 </button>
               </div>
             </div>

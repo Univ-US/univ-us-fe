@@ -6,6 +6,8 @@ import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { createPost, createPostWithImages, updatePost, getPostById, uploadPostImages } from '@/lib/postApi';
+import { getUniversities, type University } from '@/lib/homeApi';
+import { useAuthStore } from '@/store/authStore';
 import type { BoardType } from '@/types/community';
 
 // ── 게시판별 카테고리 ──────────────────────────────────
@@ -84,10 +86,15 @@ export default function CommunityBoardWrite({
   const [content, setContent] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [targetUnivId, setTargetUnivId] = useState<number | null>(null);
   const fileInputId = useId();
+  const role = useAuthStore((state) => state.role);
+  const authUnivId = useAuthStore((state) => state.univId);
 
   const isAnon = board === 'secret';
   const isNotice = board === 'notice';
+  const isSuperAdmin = role === 'SUA';
 
   // 수정 모드일 때 기존 데이터 불러오기
   useEffect(() => {
@@ -105,6 +112,19 @@ export default function CommunityBoardWrite({
     };
     fetchPost();
   }, [postId]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || isEdit) return;
+
+    getUniversities()
+      .then((items) => {
+        setUniversities(items);
+        setTargetUnivId((current) => current ?? items[0]?.univId ?? null);
+      })
+      .catch((error) => {
+        console.error('Failed to load universities:', error);
+      });
+  }, [isEdit, isSuperAdmin]);
 
   const handleBack = () => router.push(`/community/${board}`);
 
@@ -138,10 +158,24 @@ export default function CommunityBoardWrite({
       return;
     }
 
+    if (isSuperAdmin && !isEdit && targetUnivId == null) {
+      alert('게시글을 등록할 학교를 선택해줘.');
+      return;
+    }
+
     const BOARD_ID_MAP: Record<BoardType, number> = {
       free:   1,
       secret: 2,
       notice: 3, // DB BOARD_TYPE 테이블 기준
+    };
+
+    const selectedUnivId = isSuperAdmin ? targetUnivId ?? undefined : authUnivId ?? undefined;
+    const postPayload = {
+      boardId:  BOARD_ID_MAP[board],
+      title:    title.trim(),
+      content:  content.trim(),
+      category: category,
+      univId:   selectedUnivId,
     };
 
     try {
@@ -157,19 +191,9 @@ export default function CommunityBoardWrite({
         alert('수정되었습니다.');
       } else {
         if (images.length > 0) {
-          await createPostWithImages({
-            boardId:  BOARD_ID_MAP[board],
-            title:    title.trim(),
-            content:  content.trim(),
-            category: category,
-          }, images);
+          await createPostWithImages(postPayload, images);
         } else {
-          await createPost({
-            boardId:  BOARD_ID_MAP[board],
-            title:    title.trim(),
-            content:  content.trim(),
-            category: category,
-          });
+          await createPost(postPayload);
         }
         alert('등록되었습니다.');
       }
@@ -191,6 +215,22 @@ export default function CommunityBoardWrite({
           <ArrowLeft className='size-4' />
           취소하고 돌아가기
         </button>
+
+        {isSuperAdmin && !isEdit && (
+          <Field label='대상 학교'>
+            <select
+              value={targetUnivId ?? ''}
+              onChange={(event) => setTargetUnivId(Number(event.target.value))}
+              className='flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[14px] outline-none transition-colors focus:border-primary'
+            >
+              {universities.map((university) => (
+                <option key={university.univId} value={university.univId}>
+                  {university.univName}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
 
         <h2 className='mb-5 text-[22px] font-extrabold tracking-tight'>
           {isEdit ? `${BOARD_LABEL[board]} 수정` : `${BOARD_LABEL[board]} 글쓰기`}

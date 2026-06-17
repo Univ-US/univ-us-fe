@@ -2,12 +2,12 @@
 
 // SLM-001 — 학생 LMS 프로필 (학번·학과·이미지 화면)
 // 수정 가능: 프로필 이미지 · 이메일 / 읽기전용(관리자 변경): 이름 · 학번 · 학과 · 휴대폰번호
-// 회원탈퇴(SLM-012): 관리자 처리(요청만 전송)
+// 회원탈퇴(SLM-012): 학교 관리자 문의 페이지로 연결
 // 프로필 데이터는 공유 스토어(useStudentProfileStore)에서 — 저장 시 사이드바와 동시 동기화
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
-  requestStudentSecession,
   STUDENT_PROFILE_IMAGE_MAX_SIZE,
   STUDENT_PROFILE_IMAGE_ALLOWED_TYPES,
 } from "@/lib/lmsStudentApi";
@@ -21,6 +21,8 @@ const resolveImageUrl = (url: string | null) =>
   !url ? null : url.startsWith("http") ? url : `${API_BASE}${url}`;
 
 export default function StudentProfilePage() {
+  const router = useRouter();
+
   // 공유 스토어 (저장된 프로필 = single source of truth)
   const profile = useStudentProfileStore((s) => s.profile);
   const loadProfile = useStudentProfileStore((s) => s.load);
@@ -130,16 +132,8 @@ export default function StudentProfilePage() {
     }
   };
 
-  const handleSecession = async () => {
-    if (!confirm("회원탈퇴를 요청하시겠습니까? (관리자 승인 후 처리됩니다)")) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await requestStudentSecession();
-      setNotice("회원탈퇴가 요청되었습니다. 관리자 처리를 기다려주세요.");
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, "회원탈퇴 요청에 실패했습니다."));
-    }
+  const handleSecession = () => {
+    router.push("/home/contact/");
   };
 
   const avatarSrc =

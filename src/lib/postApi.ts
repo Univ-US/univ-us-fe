@@ -3,12 +3,20 @@ import api from "@/lib/api";
 import type { Post, PostComment, PostImage } from "@/types/community";
 
 // 게시글 목록 조회
+export interface PostListResponse {
+  postList: Post[];
+  totalCount: number;
+  todayCount?: number;
+  totalPage: number;
+  currentPage: number;
+}
+
 export const getPostList = async (params: {
   boardId?: number;
   page?: number;
   size?: number;
   keyword?: string;
-}) => {
+}): Promise<PostListResponse> => {
   const res = await api.get("/api/posts", { params });
   return res.data;
 };
@@ -19,12 +27,18 @@ export const getPostById = async (postId: number) => {
   return res.data as Post;
 };
 
+export const increasePostViewCount = async (postId: number) => {
+  const res = await api.post(`/api/posts/${postId}/view`);
+  return res.data as Post;
+};
+
 // 게시글 등록
 export const createPost = async (postData: {
   boardId: number;
   title: string;
   content: string;
   category?: string;
+  univId?: number;
 }) => {
   const res = await api.post("/api/posts", postData);
   return res.data;
@@ -36,6 +50,7 @@ export const createPostWithImages = async (
     title: string;
     content: string;
     category?: string;
+    univId?: number;
   },
   images: File[],
 ) => {
@@ -44,6 +59,7 @@ export const createPostWithImages = async (
   formData.append("title", postData.title);
   formData.append("content", postData.content);
   if (postData.category) formData.append("category", postData.category);
+  if (postData.univId != null) formData.append("univId", String(postData.univId));
   images.forEach((image) => formData.append("images", image));
 
   const res = await api.post("/api/posts", formData);

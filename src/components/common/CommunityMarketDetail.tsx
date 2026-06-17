@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import {
@@ -30,6 +30,7 @@ import {
   deleteProduct,
   getPaymentConfig,
   completePayment,
+  completeFreeProduct,
   getProductReportStatus,
 } from '@/lib/marketApi';
 import { useAuthStore } from '@/store/authStore';
@@ -227,6 +228,7 @@ export default function CommunityMarketDetail({
   const [reportToast, setReportToast] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [freeCompleteLoading, setFreeCompleteLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [chatOpen, setChatOpen] = useState(false);
@@ -237,12 +239,14 @@ export default function CommunityMarketDetail({
     ? 'DONE'
     : productStatus;
   const sold = effectiveProductStatus === 'DONE';
+  const isFreeSharing = product.price <= 0;
   const purchasable = effectiveProductStatus === 'SALE' && !paymentDone;
   const productImages = product.images ?? [];
   const selectedImage = productImages[selectedImageIndex] ?? productImages[0];
 
   const isOwner = memberId === product.memberId;
   const canManageProduct = isOwner || role === 'SUA' || role === 'ADM';
+  const canCompleteFreeSharing = isOwner && isFreeSharing && !sold;
 
   const handleReportClick = () => {
     if (alreadyReported) {
@@ -378,6 +382,23 @@ export default function CommunityMarketDetail({
     }
   };
 
+  const handleCompleteFreeSharing = async () => {
+    if (!canCompleteFreeSharing || freeCompleteLoading) return;
+    if (!confirm('무료 나눔을 완료 처리할까요?')) return;
+
+    setFreeCompleteLoading(true);
+    try {
+      const response = await completeFreeProduct(product.productId);
+      setProductStatus(response.product.productStatus);
+      alert('나눔완료로 변경되었습니다.');
+    } catch (err) {
+      console.error('나눔완료 처리 실패:', err);
+      alert(getApiErrorMessage(err, '나눔완료 처리에 실패했습니다.'));
+    } finally {
+      setFreeCompleteLoading(false);
+    }
+  };
+
   const handlePayment = async () => {
     if (!memberId) {
       alert('로그인이 필요합니다.');
@@ -389,6 +410,10 @@ export default function CommunityMarketDetail({
     }
     if (effectiveProductStatus !== 'SALE') {
       alert('판매중인 상품만 결제할 수 있습니다.');
+      return;
+    }
+    if (isFreeSharing) {
+      alert('무료 나눔 상품은 결제 없이 판매자가 나눔완료 처리합니다.');
       return;
     }
     if (sold || paymentLoading) return;
@@ -617,7 +642,7 @@ export default function CommunityMarketDetail({
                       className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary py-2 text-[13px] font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-sm active:translate-y-0 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
-                      {isOwner ? '내 채팅방 보기' : '채팅으로 거래하기'}
+                      {isOwner ? '내 채팅방 보기' : isFreeSharing ? '무료 나눔 채팅하기' : '채팅으로 거래하기'}
                     </button>
                   </div>
 
@@ -629,7 +654,25 @@ export default function CommunityMarketDetail({
                     </div>
                   )}
 
-                  {!canManageProduct && purchasable && (
+                  {canCompleteFreeSharing && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCompleteFreeSharing()}
+                      disabled={freeCompleteLoading}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-600 hover:shadow-md active:translate-y-0 disabled:opacity-40"
+                    >
+                      <PackageOpen className="size-4" />
+                      {freeCompleteLoading ? '처리중' : '나눔완료'}
+                    </button>
+                  )}
+
+                  {!canManageProduct && purchasable && isFreeSharing && (
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-[13px] font-semibold text-primary">
+                      무료 나눔 상품입니다. 결제 없이 판매자가 나눔완료를 누르면 거래가 완료됩니다.
+                    </div>
+                  )}
+
+                  {!canManageProduct && purchasable && !isFreeSharing && (
                     <div className="mt-3 rounded-lg border border-border bg-slate-50 p-3">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-[12px] font-bold text-slate-700">

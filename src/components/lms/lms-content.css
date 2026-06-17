@@ -1,0 +1,89 @@
+/* ─────────────────────────────────────────────────────────────
+   LMS 리치텍스트 공용 콘텐츠 스타일 (.lms-content)
+   - 교수 에디터(Tiptap) 편집 영역과 학생 뷰(추후) 양쪽에 동일 적용 → 표시 동일성 보장
+   - Tailwind preflight가 h1/ul 등 기본 태그 스타일을 리셋하므로 여기서 명시 복원
+   - 색상은 슬레이트 계열(교수 화면 컨벤션) 기준
+   ───────────────────────────────────────────────────────────── */
+.lms-content {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #1e293b; /* slate-800 */
+  /* 긴 무공백 문자열(특히 한글 연속 — word-break:normal에선 안 끊김)이 컨테이너 폭에서
+     자동 줄바꿈되도록. 미설정 시 에디터/뷰가 가로로 늘어나 모달·레이아웃이 잘림. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.lms-content p {
+  margin: 0.25rem 0;
+}
+.lms-content h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0.8rem 0 0.3rem;
+}
+.lms-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.25rem;
+}
+.lms-content h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.6rem 0 0.2rem;
+}
+.lms-content ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+.lms-content ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+.lms-content blockquote {
+  border-left: 3px solid #cbd5e1; /* slate-300 */
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  color: #475569; /* slate-600 */
+}
+.lms-content code {
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.8em;
+}
+.lms-content pre {
+  background: #0f172a; /* slate-900 */
+  color: #e2e8f0; /* slate-200 */
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.lms-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.lms-content hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0; /* slate-200 */
+  margin: 0.75rem 0;
+}
+.lms-content strong {
+  font-weight: 700;
+}
+.lms-content em {
+  font-style: italic;
+}
+.lms-content s {
+  text-decoration: line-through;
+}
+
+/* 에디터(편집 영역) 전용 보정 — 뷰어에는 영향 없음 */
+.lms-editor .ProseMirror {
+  min-height: 7rem;
+  outline: none;
+  padding: 0.5rem 0.75rem;
+}

@@ -26,7 +26,13 @@ export interface ProductListResponse {
 export const getProductList = async (
   params: ProductSearchParams = {},
 ): Promise<ProductListResponse> => {
-  const res = await api.get('/api/market/products', { params });
+  const res = await api.get('/api/market/products', {
+    params: {
+      page: 0,
+      size: 10,
+      ...params,
+    },
+  });
   return res.data;
 };
 
@@ -46,6 +52,7 @@ export interface ProductCreatePayload {
   place: string;
   category: string;
   productStatus?: string;
+  univId?: number;
 }
 
 export const createProduct = async (
@@ -113,6 +120,12 @@ export const deleteProduct = async (
   productId: number,
 ): Promise<{ success: boolean; message: string }> => {
   const res = await api.delete(`/api/market/products/${productId}`);
+  return res.data;
+};
+export const completeFreeProduct = async (
+  productId: number,
+): Promise<{ success: boolean; product: Product }> => {
+  const res = await api.patch(`/api/market/products/${productId}/free-complete`);
   return res.data;
 };
 
@@ -283,5 +296,12 @@ export const completeTradeChatPayment = async (
   payload: ChatPaymentCompletePayload,
 ): Promise<PaymentCompleteResponse> => {
   const res = await api.post('/api/market/chats/payments/complete', payload);
+  return res.data;
+};
+
+export const completeFreeTradeChat = async (
+  roomId: number,
+): Promise<TradeChatRoom> => {
+  const res = await api.patch(`/api/market/chats/${roomId}/free-complete`);
   return res.data;
 };

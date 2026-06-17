@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
     Bell,
-    BookOpen,
+    BookPlus,
     Building2,
     CreditCard,
     Home,
     LayoutDashboard,
+    Library,
     LogOut,
     Megaphone,
     MessageCircle,
@@ -26,7 +29,8 @@ import NoticesView from "./_views/NoticesView";
 import BillingView from "./_views/BillingView";
 import SettingsView from "./_views/SettingsView";
 import InquiriesView from "./_views/InquiriesView";
-import LectureCodesView from "./_views/LectureCodesView";
+import LectureManageView from "./_views/LectureManageView";
+import LectureAssignView from "./_views/LectureAssignView";
 import ChatView from "./_views/ChatView";
 
 const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -34,7 +38,8 @@ const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ classN
     { label: "회원 관리", view: "members", icon: Users },
     { label: "공지 관리", view: "notices", icon: Megaphone },
     { label: "문의사항", view: "inquiries", icon: MessageSquareText },
-    { label: "강의코드 관리", view: "lectureCodes", icon: BookOpen },
+    { label: "강의 관리", view: "lectureManage", icon: Library },
+    { label: "강의 배정", view: "lectureAssign", icon: BookPlus },
     { label: "구독·결제", view: "billing", icon: CreditCard },
     { label: "학교 설정", view: "settings", icon: Settings },
     { label: "채팅", view: "chat", icon: MessageCircle },
@@ -45,21 +50,62 @@ const SECTION_LABEL: Record<View, string> = {
     members: "회원 관리",
     notices: "공지 관리",
     inquiries: "문의사항",
-    lectureCodes: "강의코드 관리",
+    lectureManage: "강의 관리",
+    lectureAssign: "강의 배정",
     billing: "구독·결제",
     settings: "학교 설정",
     chat: "채팅",
 };
 
-export default function SchoolAdminDashboardPage() {
+const VALID_VIEWS = new Set(Object.keys(SECTION_LABEL) as View[]);
+
+function SchoolAdminDashboard() {
     const router = useRouter();
-    const { logoutAction, memberName } = useAuthStore();
-    const [view, setView] = useState<View>("dashboard");
+    const searchParams = useSearchParams();
+    const { logoutAction, memberName, isInitialized, role } = useAuthStore();
+    const [accessChecked, setAccessChecked] = useState(false);
+
+    useEffect(() => {
+        if (!isInitialized) return;
+        if (role !== "ADM") {
+            setAccessChecked(true);
+            return;
+        }
+
+        let active = true;
+        void getSubscriptionStatus()
+            .then((status) => {
+                if (!active) return;
+                if (!status.serviceAccessible) {
+                    router.replace("/subscribe");
+                    return;
+                }
+                setAccessChecked(true);
+            })
+            .catch(() => {
+                if (active) setAccessChecked(true);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [isInitialized, role, router]);
+
+    const rawView = searchParams.get("view") as View | null;
+    const view: View = rawView && VALID_VIEWS.has(rawView) ? rawView : "dashboard";
+
+    const setView = (v: View) => {
+        router.push(`/dashboard/school-admin?view=${v}`);
+    };
 
     const handleLogout = async () => {
         await logoutAction();
         router.push("/landing");
     };
+
+    if (!accessChecked) {
+        return null;
+    }
 
     return (
         <RoleGuard allowedRoles={["ADM"]}>
@@ -67,7 +113,7 @@ export default function SchoolAdminDashboardPage() {
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
-                            <Image src="/univusicon.png" alt="Univ us" width={28} height={28} className="rounded-lg" />
+                            <img src="/univusicon.png" alt="Univ us" className="w-7 h-7 rounded-lg" />
                             <span className="text-lg font-black tracking-wide">
                                 <span className="text-white">Univ</span>
                                 <span className="text-white"> · </span><span className="text-teal-300">us</span>
@@ -92,7 +138,7 @@ export default function SchoolAdminDashboardPage() {
 
                     <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">운영</p>
                     <nav className="mt-2 flex-1 space-y-0.5">
-                        {NAV_ITEMS.slice(0, 5).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(0, 6).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -104,7 +150,7 @@ export default function SchoolAdminDashboardPage() {
                         ))}
 
                         <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">시스템</p>
-                        {NAV_ITEMS.slice(5).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(6).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -150,7 +196,8 @@ export default function SchoolAdminDashboardPage() {
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}
                         {view === "inquiries" && <InquiriesView />}
-                        {view === "lectureCodes" && <LectureCodesView />}
+                        {view === "lectureManage" && <LectureManageView />}
+                        {view === "lectureAssign" && <LectureAssignView />}
                         {view === "billing" && <BillingView />}
                         {view === "settings" && <SettingsView />}
                         {view === "chat" && <ChatView />}
@@ -158,5 +205,13 @@ export default function SchoolAdminDashboardPage() {
                 </div>
             </main>
         </RoleGuard>
+    );
+}
+
+export default function SchoolAdminDashboardPage() {
+    return (
+        <Suspense>
+            <SchoolAdminDashboard />
+        </Suspense>
     );
 }

@@ -12,6 +12,7 @@
 // ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
+import { truncateLectureName } from "@/lib/lmsLectureName";
 
 // ── 타입 (BE 응답 형태) ────────────────────────────────────
 export interface Semester {
@@ -202,8 +203,12 @@ export const getCommonCodeMap = async (
 export const semesterLabel = (sem: Semester, termMap: Record<string, string>) =>
   `${sem.year}년 ${termMap[sem.termCode] ?? sem.termCode}`;
 
+// 강의명 길이 제한은 공용 유틸로 통일(교수 화면 전 드롭다운 공유). Enrollee page 호환 위해 re-export.
+export { LECTURE_NAME_MAX } from "./lmsLectureName";
+
 /**
  * 강의 드롭다운 라벨: "웹프로그래밍 · 2026년 1학기 (강의진행중)"
+ * - 강의명이 LECTURE_NAME_MAX 초과 시 '…'로 자름(드롭다운 목록 가로 폭 폭주 방지). 전체명은 option title로.
  * - 학기: '전체' 선택 시 동명 강의 구분 (year + termCode→SEM_TERM)
  * - 상태: lecValStatus→LEC_VAL_STATUS (폐강·종료 구분). 값 없으면 생략.
  */
@@ -212,7 +217,7 @@ export const lectureLabel = (
   termMap: Record<string, string>,
   statusMap: Record<string, string> = {}
 ) => {
-  let label = lec.lecName;
+  let label = truncateLectureName(lec.lecName);
   if (lec.year != null && lec.termCode) {
     label += ` · ${lec.year}년 ${termMap[lec.termCode] ?? lec.termCode}`;
   }

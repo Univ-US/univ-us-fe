@@ -12,7 +12,9 @@ import {
   updateProductImages,
   uploadProductImages,
 } from '@/lib/marketApi';
+import { getUniversities, type University } from '@/lib/homeApi';
 import { API_BASE_URL } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import type { ProductCategory, ProductImage, TradeStatus } from '@/types/community';
 
 // ── 카테고리 목록 ──────────────────────────────────────
@@ -88,8 +90,13 @@ export default function CommunityMarketWrite() {
   const [initialExistingImageIds, setInitialExistingImageIds] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [targetUnivId, setTargetUnivId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const role = useAuthStore((state) => state.role);
+  const authUnivId = useAuthStore((state) => state.univId);
   const totalImageCount = existingImages.length + images.length;
+  const isSuperAdmin = role === 'SUA';
 
   const handleBack = useCallback(() => router.push('/community/market'), [router]);
 
@@ -101,6 +108,19 @@ export default function CommunityMarketWrite() {
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [images]);
+
+  useEffect(() => {
+    if (!isSuperAdmin || isEdit) return;
+
+    getUniversities()
+      .then((items) => {
+        setUniversities(items);
+        setTargetUnivId((current) => current ?? items[0]?.univId ?? null);
+      })
+      .catch((error) => {
+        console.error('Failed to load universities:', error);
+      });
+  }, [isEdit, isSuperAdmin]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -180,8 +200,14 @@ export default function CommunityMarketWrite() {
       return;
     }
 
+    if (isSuperAdmin && !isEdit && targetUnivId == null) {
+      alert('상품을 등록할 학교를 선택해줘.');
+      return;
+    }
+
     setSubmitting(true);
     try {
+      const selectedUnivId = isSuperAdmin ? targetUnivId ?? undefined : authUnivId ?? undefined;
       const payload = {
         productName: productName.trim(),
         price: isFree ? 0 : Number(price.replace(/[^0-9]/g, '')),
@@ -189,6 +215,7 @@ export default function CommunityMarketWrite() {
         place: place.trim(),
         category,
         productStatus: isEdit ? productStatus : 'SALE',
+        univId: selectedUnivId,
       };
 
       const res = isEdit
@@ -249,6 +276,24 @@ export default function CommunityMarketWrite() {
             <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-primary">
               Market Form
             </p>
+            {isSuperAdmin && !isEdit && (
+              <div className="mb-3">
+                <label className="mb-2 block text-[13px] font-bold text-slate-800">
+                  대상 학교
+                </label>
+                <select
+                  value={targetUnivId ?? ''}
+                  onChange={(event) => setTargetUnivId(Number(event.target.value))}
+                  className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-[14px] outline-none transition-colors focus:border-primary"
+                >
+                  {universities.map((university) => (
+                    <option key={university.univId} value={university.univId}>
+                      {university.univName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-900">
               {isEdit ? '상품 수정' : '상품 등록'}
             </h2>

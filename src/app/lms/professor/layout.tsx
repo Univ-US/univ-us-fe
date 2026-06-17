@@ -10,10 +10,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
+import { useLmsProfessorChatStore } from "@/store/lms/lmsProfessorChatStore";
 import LmsGuard from "@/components/auth/LmsGuard";
+import { ROLE, type Role } from "@/lib/rolecode";
+import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
-// PLM(교수 LMS) 접근 허용 역할: 서비스/학교 관리자 + 교수
-const PROFESSOR_LMS_ROLES = ["SUA", "ADM", "PROF"];
+// PLM(교수 LMS) 접근 허용 역할: 교수 전용 — 관리자(ADM·SUA)는 LMS 미진입(BO에서 데이터 관리)
+const PROFESSOR_LMS_ROLES: Role[] = [ROLE.PROF];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
 const resolveImg = (u?: string | null) =>
@@ -29,7 +32,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "강의 관리",
     items: [
-      { label: "강의 내역", icon: "📖" },
+      { label: "강의 내역", icon: "📖", href: "/lms/professor/courses" },
       { label: "수강생 현황", icon: "👥", href: "/lms/professor/Enrollee" },
       // '채점 현황' 배지는 하드코딩 X — 실제 미채점 건수(overview.totalUngraded)를 스토어에서 주입(아래 렌더)
       { label: "채점 현황", icon: "✅", href: "/lms/professor/grading" },
@@ -38,17 +41,17 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "콘텐츠",
     items: [
-      { label: "강의 업로드", icon: "🎬" },
-      { label: "과제 관리", icon: "📄" },
-      { label: "공지사항", icon: "📢" },
-      { label: "출결 확인", icon: "🗓️" },
+      { label: "강의 업로드", icon: "🎬", href: "/lms/professor/upload" },
+      { label: "과제 관리", icon: "📄", href: "/lms/professor/assignments" },
+      { label: "공지사항", icon: "📢", href: "/lms/professor/notice" },
+      { label: "출결 확인", icon: "🗓️", href: "/lms/professor/attendance" },
     ],
   },
   {
     title: "커뮤니케이션",
     items: [
-      { label: "채팅", icon: "💬", badge: 2 },
-      { label: "캘린더", icon: "📅" },
+      { label: "채팅", icon: "💬", href: "/lms/professor/chat" },
+      { label: "캘린더", icon: "📅", href: "/lms/professor/calendar" },
     ],
   },
 ];
@@ -61,20 +64,49 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   // 사이드바 헤더(학교/이름/소속/역할/아바타) — 공유 스토어 구독 (폼과 1회 공유, 저장 시 자동 갱신)
   const profile = useProfessorProfileStore((s) => s.profile);
   const loadProfile = useProfessorProfileStore((s) => s.load);
+  const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
 
   // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
   const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
   const loadUngradedCount = useLmsGradingStore((s) => s.loadUngradedCount);
+  const chatUnreadCount = useLmsProfessorChatStore((s) => s.unreadCount);
+  const loadChatUnreadCount = useLmsProfessorChatStore((s) => s.loadUnreadCount);
 
   useEffect(() => {
-    loadProfile().catch(() => setLoadFailed(true));
-  }, [loadProfile]);
+    let active = true;
+    void getSubscriptionStatus()
+      .then((status) => {
+        if (!active) return;
+        if (!status.serviceAccessible) {
+          router.replace("/unauthorized");
+          return;
+        }
+        setAccessChecked(true);
+      })
+      .catch(() => {
+        if (active) setAccessChecked(true);
+      });
 
-  // 미채점 건수는 PROF 본인 강의 한정(SUA/ADM은 403 → 조회 생략, 배지 없음)
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
   useEffect(() => {
-    if (role === "PROF") loadUngradedCount();
+    if (accessChecked) {
+      loadProfile().catch(() => setLoadFailed(true));
+    }
+  }, [accessChecked, loadProfile]);
+
+  // 미채점 건수 조회 — 가드가 PROF 전용이라 role 체크는 이중 안전장치
+  useEffect(() => {
+    if (role === ROLE.PROF) loadUngradedCount();
   }, [role, loadUngradedCount]);
+
+  useEffect(() => {
+    if (role === ROLE.PROF) void loadChatUnreadCount();
+  }, [role, loadChatUnreadCount]);
 
   const handleLogout = async () => {
     try {
@@ -89,12 +121,19 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const avatar = resolveImg(profile?.lmsProfessorProfileImageUrl ?? null);
   const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
 
+  if (!accessChecked) return null;
+
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* 사이드바 */}
-      <aside className="flex w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
-        {/* 브랜드: 학교명(API) + UniVUs */}
-        <div className="flex items-center gap-3 px-5 py-5">
+      {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
+          높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
+      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
+        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 LMS 메인(강의 내역)으로 이동 (홈은 하단 '홈으로') */}
+        <Link
+          href="/lms/professor/courses"
+          title="강의 내역"
+          className="flex items-center gap-3 px-5 py-5 transition-colors hover:bg-slate-800/60"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
           <div className="min-w-0">
@@ -107,7 +146,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           <span className="ml-auto rounded-md border border-slate-600 px-2 py-0.5 text-xs text-slate-300">
             {profile?.lmsProfessorProfileRole || "교수"}
           </span>
-        </div>
+        </Link>
 
         {/* 사용자 카드 */}
         <div className="mx-3 mb-4 flex items-center gap-3 rounded-xl bg-slate-800/70 px-3 py-3">
@@ -152,7 +191,11 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                   item.href && stripSlash(pathname) === stripSlash(item.href);
                 // '채점 현황'은 실제 미채점 건수 주입, 나머지는 정적 badge. 0/미로딩이면 숨김.
                 const badge =
-                  item.href === "/lms/professor/grading" ? ungradedCount : item.badge;
+                  item.href === "/lms/professor/grading"
+                    ? ungradedCount
+                    : item.href === "/lms/professor/chat"
+                      ? chatUnreadCount
+                      : item.badge;
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
@@ -192,14 +235,22 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        {/* 로그아웃 */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center gap-2.5 px-5 py-4 text-sm text-slate-300 hover:text-white"
-        >
-          <span className="text-base">↩</span> 로그아웃
-        </button>
+        {/* 하단 액션: 홈으로(/home) + 로그아웃 */}
+        <div className="py-2">
+          <Link
+            href="/home"
+            className="flex items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white"
+          >
+            <span className="text-base">🏠</span> 홈으로
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white"
+          >
+            <span className="text-base">↩</span> 로그아웃
+          </button>
+        </div>
       </aside>
 
       {/* 콘텐츠 */}

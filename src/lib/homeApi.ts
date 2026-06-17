@@ -1,4 +1,12 @@
-import api from "@/lib/api";
+import api, { API_BASE_URL } from "@/lib/api";
+import type { HomeWidgetConfig } from "@/lib/adminApi";
+
+export const getHomeConfig = async (): Promise<HomeWidgetConfig> => {
+    const res = await api.get<HomeWidgetConfig>("/api/home/config");
+    return res.data;
+};
+
+export type { HomeWidgetConfig };
 
 export interface HomeProfile {
     univId: number;
@@ -6,6 +14,7 @@ export interface HomeProfile {
     phoneNumber: string;
     youtubeUrl: string | null;
     clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 export const getHomeProfile = async (): Promise<HomeProfile> => {
@@ -19,6 +28,9 @@ export interface University {
     schoolPhone: string;
     homepage: string | null;
     address: string | null;
+    youtubeUrl: string | null;
+    clubUrl: string | null;
+    snsUrl: string | null;
 }
 
 export const getUniversities = async (): Promise<University[]> => {
@@ -26,10 +38,59 @@ export const getUniversities = async (): Promise<University[]> => {
     return res.data;
 };
 
-export const sendChatMessage = async (message: string): Promise<string> => {
-    const res = await api.post<{ response: string }>("/api/ai", { message });
-    return res.data.response;
-};
+async function refreshAccessToken(): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+    });
+    if (!res.ok) throw new Error("Refresh failed");
+}
+
+function buildStreamRequest(message: string): Request {
+    return new Request(`${API_BASE_URL}/api/ai/stream`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+    });
+}
+
+export async function* streamChatMessage(message: string): AsyncGenerator<string> {
+    let res = await fetch(buildStreamRequest(message));
+
+    if (res.status === 401) {
+        try {
+            await refreshAccessToken();
+            res = await fetch(buildStreamRequest(message));
+        } catch {
+            throw new Error("UNAUTHORIZED");
+        }
+    }
+
+    if (res.status === 401) {
+        throw new Error("UNAUTHORIZED");
+    }
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.body) throw new Error("body is null");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            const content = line.slice(5);
+            if (content && content !== "[DONE]") yield content;
+        }
+    }
+}
 
 export interface Notice {
     noticeId: number;

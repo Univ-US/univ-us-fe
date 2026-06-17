@@ -20,6 +20,7 @@ export type { Semester } from "@/lib/lmsProfessorStudentsApi";
 export interface AssignmentRow {
   assignmentId: number;
   courseName: string; // 데이터구조 및 알고리즘
+  lecSection: number | null; // 분반 (LECTURE.LEC_SECTION) — "N반" 표기
   title: string; // 알고리즘 구현 #3
   dueDate: string; // 2026.05.25
   submittedCount: number; // 제출 수 (미제출 제외)
@@ -50,14 +51,21 @@ export interface Submission {
   graded: boolean; // score 있음 여부
 }
 
-/** 채점 현황 개요 (PLM-004 상단) */
+/** 채점 현황 개요 배너 (PLM-004 상단) — 선택 필터 범위의 미채점 합·과목별. 목록은 페이지 API로 분리 */
 export interface GradingOverview {
-  year: number; // 2026
-  termCode: string; // SM1/SM2/SMR/WNT → SEM_TERM 공통코드로 "1학기" 매핑
-  totalUngraded: number; // 미채점 제출 건수 합
+  totalUngraded: number; // 미채점 제출 건수 합 (필터 범위)
   byCourse: { courseName: string; count: number }[]; // 과목별 미채점 건수
-  assignments: AssignmentRow[]; // 미채점 과제 (ungradedCount>0)
-  gradedAssignments: AssignmentRow[]; // 채점완료 과제 (ungradedCount==0)
+}
+
+/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 }
 
 /** 채점 상세 (선택 과제) */
@@ -73,13 +81,37 @@ export interface GradingDetail {
 }
 
 // ── API 호출 ───────────────────────────────────────────────
-/** GET 채점 개요 (semesterId 생략 시 최신 학기) */
+/** GET 채점 개요 배너 (년도/학기 null이면 전체 범위) */
 export const getGradingOverview = async (
-  semesterId?: number
+  year?: number | null,
+  termCode?: string | null
 ): Promise<GradingOverview> => {
-  const res = await api.get<GradingOverview>("/api/lms/professor/grading/overview", {
-    params: semesterId != null ? { semesterId } : undefined,
-  });
+  const params: Record<string, string> = {};
+  if (year != null) params.year = String(year);
+  if (termCode != null) params.termCode = termCode;
+  const res = await api.get<GradingOverview>("/api/lms/professor/grading/overview", { params });
+  return res.data;
+};
+
+/** GET 과제 목록 1페이지 (서버 페이지네이션 — graded=false 미채점/true 채점완료, 년도/학기 필터). page 0-based */
+export const getGradingAssignments = async (params: {
+  graded: boolean;
+  page: number;
+  size: number;
+  year?: number | null;
+  termCode?: string | null;
+}): Promise<PageResponse<AssignmentRow>> => {
+  const query: Record<string, string> = {
+    graded: String(params.graded),
+    page: String(params.page),
+    size: String(params.size),
+  };
+  if (params.year != null) query.year = String(params.year);
+  if (params.termCode != null) query.termCode = params.termCode;
+  const res = await api.get<PageResponse<AssignmentRow>>(
+    "/api/lms/professor/grading/assignments",
+    { params: query }
+  );
   return res.data;
 };
 
@@ -135,39 +167,7 @@ export const downloadSubmissionFile = async (file: SubmissionFile): Promise<void
   URL.revokeObjectURL(url);
 };
 
-/**
- * '전체' 학기 합산 — overview는 semesterId 생략 시 '최신 학기'(전체 아님)만 주므로,
- * 학기별 overview를 합쳐 진짜 '전체'를 만든다. year/termCode는 단일 학기 전제라 sentinel(전체).
- * assignmentId는 전역 유일이라 concat 안전. byCourse는 과목명 기준 합산.
- */
-export const mergeGradingOverviews = (list: GradingOverview[]): GradingOverview => {
-  const byCourse = new Map<string, number>();
-  let totalUngraded = 0;
-  const assignments: AssignmentRow[] = [];
-  const gradedAssignments: AssignmentRow[] = [];
-  for (const ov of list) {
-    totalUngraded += ov.totalUngraded;
-    ov.byCourse.forEach((c) => byCourse.set(c.courseName, (byCourse.get(c.courseName) ?? 0) + c.count));
-    assignments.push(...ov.assignments);
-    gradedAssignments.push(...ov.gradedAssignments);
-  }
-  return {
-    year: 0,
-    termCode: "ALL", // sentinel — 화면은 selectedSemId==="all"이면 "전체" 라벨 사용
-    totalUngraded,
-    byCourse: [...byCourse].map(([courseName, count]) => ({ courseName, count })),
-    assignments,
-    gradedAssignments,
-  };
-};
-
 // ── 표시 헬퍼 ──────────────────────────────────────────────
-/** 학기 라벨: "2026년 1학기" (termCode는 SEM_TERM 공통코드 맵으로) */
-export const gradingSemesterLabel = (
-  o: Pick<GradingOverview, "year" | "termCode">,
-  termMap: Record<string, string>
-): string => `${o.year}년 ${termMap[o.termCode] ?? o.termCode}`;
-
 /** 파일 크기(bytes) → "2.3MB" / "640.0KB" / "512B" */
 export const formatFileSize = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return "-";

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
     ArrowRight,
     Building2,
@@ -15,7 +16,9 @@ import {
     UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getSubscriptionPlans } from "@/lib/subscriptionApi";
 import { useAuthStore } from "@/store/authStore";
+import type { SubscriptionPlan } from "@/types/subscription";
 
 const features = [
     {
@@ -40,34 +43,30 @@ const features = [
     },
 ];
 
-const plans = [
-    {
-        name: "베이직",
-        price: "49,000원",
-        caption: "학생 500명",
-    },
-    {
-        name: "프로",
-        price: "149,000원",
-        caption: "학생 5,000명",
-        featured: true,
-    },
-    {
-        name: "엔터프라이즈",
-        price: "맞춤 견적",
-        caption: "무제한",
-    },
-];
-
 const getDashboardPathByRole = (role: string | null) => {
     switch (role) {
         case "SUA":
-            return "/dashboard/service-admin";
+            return "/service-admin";
         case "ADM":
             return "/dashboard/school-admin";
         default:
             return null;
     }
+};
+
+const formatPlanPrice = (price: number) =>
+    `${price.toLocaleString("ko-KR")}원`;
+
+const formatPlanCaption = (plan: SubscriptionPlan) => {
+    if (plan.description) {
+        return plan.description;
+    }
+
+    if (plan.maxMemberCount == null) {
+        return "회원 수 제한 없음";
+    }
+
+    return `최대 ${plan.maxMemberCount.toLocaleString("ko-KR")}명`;
 };
 
 export default function LandingPage() {
@@ -77,6 +76,47 @@ export default function LandingPage() {
     const role = useAuthStore((state) => state.role);
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const dashboardPath = getDashboardPathByRole(role);
+    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [plansLoading, setPlansLoading] = useState(true);
+    const [plansError, setPlansError] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        getSubscriptionPlans()
+            .then((response) => {
+                if (active) {
+                    setPlans(response);
+                    setPlansError(false);
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setPlansError(true);
+                }
+            })
+            .finally(() => {
+                if (active) {
+                    setPlansLoading(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const getSubscriptionPath = (planId?: number) => {
+        if (!isLoggedIn) {
+            return "/login";
+        }
+
+        if (dashboardPath) {
+            return dashboardPath;
+        }
+
+        return planId ? `/subscribe?planId=${planId}` : "/subscribe";
+    };
 
     const handleLogout = async () => {
         await logoutAction();
@@ -157,7 +197,7 @@ export default function LandingPage() {
 
                 <div className="mt-8 flex justify-center gap-3">
                     <Button asChild size="lg" className="h-11 px-6 text-base font-bold shadow-lg shadow-primary/20">
-                        <Link href={isLoggedIn ? "/subscribe" : "/login"}>
+                        <Link href={getSubscriptionPath()}>
                             구독 신청하기
                             <ArrowRight className="size-4" />
                         </Link>
@@ -228,17 +268,31 @@ export default function LandingPage() {
                     </p>
                 </div>
 
+                {plansLoading ? (
+                    <div className="mt-10 rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                        구독 플랜을 불러오는 중입니다.
+                    </div>
+                ) : plansError ? (
+                    <div className="mt-10 rounded-xl border border-red-100 bg-red-50 p-8 text-center text-sm text-red-600">
+                        구독 플랜을 불러오지 못했습니다.
+                    </div>
+                ) : (
                 <div className="mt-10 grid gap-4 lg:grid-cols-3">
-                    {plans.map((plan) => (
+                    {plans.map((plan, index) => {
+                        const featured =
+                            plan.planName.toUpperCase() === "PRO" ||
+                            (plans.length > 1 && index === 1);
+
+                        return (
                         <article
-                            key={plan.name}
+                            key={plan.planId}
                             className={`rounded-xl border bg-white p-6 shadow-sm ${
-                                plan.featured ? "border-primary shadow-primary/10" : "border-slate-200"
+                                featured ? "border-primary shadow-primary/10" : "border-slate-200"
                             }`}
                         >
                             <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-extrabold">{plan.name}</h3>
-                                {plan.featured && (
+                                <h3 className="text-xl font-extrabold">{plan.planName}</h3>
+                                {featured && (
                                     <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary">
                     추천
                   </span>
@@ -247,25 +301,27 @@ export default function LandingPage() {
 
                             <div className="mt-7">
                 <span className="text-3xl font-black tracking-tight">
-                  {plan.price}
+                  {formatPlanPrice(plan.price)}
                 </span>
-                                {plan.price.includes("원") && (
-                                    <span className="ml-1 text-lg font-extrabold">/ 월</span>
-                                )}
+                                <span className="ml-1 text-lg font-extrabold">/ 월</span>
                             </div>
 
-                            <p className="mt-5 text-sm text-slate-500">{plan.caption}</p>
+                            <p className="mt-5 text-sm text-slate-500">{formatPlanCaption(plan)}</p>
 
                             <Button
                                 asChild
-                                variant={plan.featured ? "default" : "outline"}
+                                variant={featured ? "default" : "outline"}
                                 className="mt-6 h-11 w-full text-base font-bold"
                             >
-                                <Link href={isLoggedIn ? "/subscribe" : "/login"}>구독 신청</Link>
+                                <Link href={getSubscriptionPath(plan.planId)}>
+                                    {dashboardPath ? "대시보드로 이동" : "구독 신청"}
+                                </Link>
                             </Button>
                         </article>
-                    ))}
+                        );
+                    })}
                 </div>
+                )}
             </section>
 
             <section className="mx-auto max-w-[1180px] px-6 py-20">

@@ -10,3 +10,24 @@ service:
 ingress:
   entryPoint: web
   pathPrefix: /
+
+  # ── TLS(HTTPS·443) 라우팅 — 듀얼 도메인(SNI 분리). BE 차트와 동일 ─────
+  # 위 entryPoint(web/80, 평문)은 유지하고, 443(websecure)용 TLS 라우트를 추가 생성.
+  # 🔴 HTTP→HTTPS 301·HSTS 금지(www 자체서명이라 경고통과가 막혀 사이트 잠김) → 평문/TLS 공존.
+  #   selfSigned : www.univus.com·univus.com → 자체서명 Secret(univus-tls), LAN 데모
+  #   letsEncrypt: univus.duckdns.org        → Traefik ACME certResolver `le`(prod), webhook·외부
+  # (Secret `univus-tls`·certResolver `le`·websecure NodePort = Traefik helm 에 박힌 '차트 밖' 선행조건)
+  tls:
+    enabled: true
+    entryPoint: websecure          # 443(TLS) 진입점(Traefik ports.websecure NodePort 30724)
+    selfSigned:
+      enabled: true
+      secretName: univus-tls       # kubernetes.io/tls Secret(ns univus, 수동 선생성, SAN www·univus.com)
+      hosts:
+        - www.univus.com
+        - univus.com
+    letsEncrypt:
+      enabled: true
+      certResolver: le             # Traefik certificatesResolvers.le (Let's Encrypt prod)
+      hosts:
+        - univus.duckdns.org

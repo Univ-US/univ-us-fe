@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",
+    "@tiptap/extension-text-style": "^3.26.0",
+    "@tiptap/react": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
     "axios": "^1.16.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.9",
     "lucide-react": "^1.17.0",
     "next": "16.2.6",
     "radix-ui": "^1.4.3",
