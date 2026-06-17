@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { getCommunityDisplayName, getCommunityInitial } from '@/lib/communityProfileDisplay';
 import { getMyPageSummary, getMyProfile } from '@/lib/cmypageApi';
 import { useAuthStore } from '@/store/authStore';
 import type { MyPageSummary, UserProfile } from '@/types/mypage';
@@ -28,10 +29,6 @@ const EMPTY_SUMMARY: MyPageSummary = {
   tradeCount: 0,
   wishlistCount: 0,
 };
-
-function firstLetter(value: string) {
-  return Array.from(value.trim() || 'U')[0];
-}
 
 function formatJoinDate(value?: string | null) {
   if (!value) return '가입일 정보 없음';
@@ -72,14 +69,22 @@ export default function MyPageProfileCard() {
   }, []);
 
   const displayName = profile?.memberName ?? memberName ?? '사용자';
-  const displayNickname = communityNickname ?? profile?.communityNickname ?? displayName;
+  const displayNickname = getCommunityDisplayName({
+    communityNickname: profile?.communityNickname ?? communityNickname,
+    memberName: displayName,
+  });
   const displaySchool = profile?.univName ?? univName ?? '소속 대학 정보 없음';
   const joinDate = formatJoinDate(profile?.createdAt);
 
   return (
     <div className={S.container}>
       <div className={S.profileGroup}>
-        <div className={S.avatar}>{firstLetter(displayNickname)}</div>
+        <div className={S.avatar}>
+          {getCommunityInitial({
+            communityNickname: displayNickname,
+            memberName: displayName,
+          })}
+        </div>
         <div>
           <div className={S.infoGroup}>
             <h1 className={S.nickname}>{displayNickname}</h1>

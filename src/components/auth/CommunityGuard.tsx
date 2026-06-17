@@ -99,5 +99,32 @@ export default function CommunityGuard({
         );
     }
 
+    if (status === 'SUSPENDED') {
+        return (
+            <div className='flex min-h-screen w-full items-center justify-center bg-slate-50 px-4'>
+                <div className='w-full max-w-[400px] rounded-2xl border border-border bg-white p-6 shadow-2xl'>
+                    <div className='flex flex-col items-center justify-center text-center'>
+                        <h2 className='text-[20px] font-extrabold text-slate-900'>
+                            커뮤니티 이용이 제한되었습니다
+                        </h2>
+                        <p className='mt-3 text-[14px] font-medium leading-relaxed text-slate-500'>
+                            운영 정책 위반 등의 이유로 커뮤니티 이용이 정지되었습니다.<br/>
+                            자세한 사항은 학교 관리자에게 문의해주세요.
+                        </p>
+                    </div>
+                    <div className='mt-6'>
+                        <button
+                            type='button'
+                            onClick={() => router.replace('/home')}
+                            className='flex h-12 w-full items-center justify-center rounded-xl bg-slate-100 text-[15px] font-bold text-slate-600 transition-colors hover:bg-slate-200'
+                        >
+                            메인 홈으로 돌아가기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return <>{children}</>;
 }
