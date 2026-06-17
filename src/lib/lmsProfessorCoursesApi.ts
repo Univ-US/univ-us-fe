@@ -13,7 +13,7 @@ import api from "@/lib/api";
 export interface ProfessorCourseRow {
   lecId: number;
   courseName: string; // 과목명 (LECTURE_CODE.LEC_COD_NAME)
-  section: number; // 분반 (LECTURE.LEC_SECTION)
+  lecSection: number; // 분반 (LECTURE.LEC_SECTION)
   studentCount: number; // 수강생 수 (명, DRP 제외)
   schedule: string; // 강의 시간 ("월 10:00 · 수 10:00"), 시간표 없으면 "" (FE는 `|| "-"`)
   attendanceRate: number; // 평균 출석률 (%)
@@ -22,8 +22,8 @@ export interface ProfessorCourseRow {
 
 /** 한 학기 묶음 (학기별 카드) */
 export interface ProfessorSemesterCourses {
-  year: number;
-  termCode: string; // 공통코드 SEM_TERM (SM1/SMR/SM2/WNT)
+  semYear: number;
+  semTerm: string; // 공통코드 SEM_TERM (SM1/SMR/SM2/WNT)
   semesterLabel: string; // "2026년 1학기"
   inProgress: boolean; // 진행중 학기 여부 (false면 '마감')
   courseCount: number; // 과목 수

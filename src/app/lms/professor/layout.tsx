@@ -126,8 +126,8 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
 
   useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
-  const avatar = resolveImg(profile?.lmsProfessorProfileImageUrl ?? null);
-  const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
+  const avatar = resolveImg(profile?.imageUrl ?? null);
+  const initial = profile?.name?.trim()?.[0] ?? "U";
 
   if (!accessChecked) return null;
 
@@ -147,12 +147,12 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           <div className="min-w-0">
             <p className="truncate text-[11px] text-slate-400">
               {/* 학교명: BE 제공(계정 미설정이면 null) */}
-              {profile?.lmsProfessorProfileUniversityName || "—"}
+              {profile?.universityName || "—"}
             </p>
             <p className="text-lg font-bold text-white">UniVUs</p>
           </div>
           <span className="ml-auto rounded-md border border-slate-600 px-2 py-0.5 text-xs text-slate-300">
-            {profile?.lmsProfessorProfileRole || "교수"}
+            {profile?.role || "교수"}
           </span>
         </Link>
 
@@ -168,13 +168,13 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">
-              {profile?.lmsProfessorProfileName ?? "교수"} {profile?.lmsProfessorProfileRole || "교수"}
+              {profile?.name ?? "교수"} {profile?.role || "교수"}
             </p>
             <p className="truncate text-xs text-slate-400">
               {/* 학과 · 사번 (학생 사이드바의 학과·학번과 동일 패턴) */}
-              {profile?.lmsProfessorProfileDepartment ?? "—"}
-              {profile?.lmsProfessorProfileEmployeeNo
-                ? ` · ${profile.lmsProfessorProfileEmployeeNo}`
+              {profile?.department ?? "—"}
+              {profile?.employeeNo
+                ? ` · ${profile.employeeNo}`
                 : ""}
             </p>
           </div>
@@ -293,14 +293,14 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {profile?.lmsProfessorProfileName ?? "교수"}{" "}
-                  {profile?.lmsProfessorProfileRole || "교수"}
+                  {profile?.name ?? "교수"}{" "}
+                  {profile?.role || "교수"}
                 </p>
                 <p className="truncate text-xs text-slate-500">
                   {/* 학과 · 사번 (사이드바 사용자 카드와 동일 패턴) */}
-                  {profile?.lmsProfessorProfileDepartment ?? "-"}
-                  {profile?.lmsProfessorProfileEmployeeNo
-                    ? ` · ${profile.lmsProfessorProfileEmployeeNo}`
+                  {profile?.department ?? "-"}
+                  {profile?.employeeNo
+                    ? ` · ${profile.employeeNo}`
                     : ""}
                 </p>
               </div>

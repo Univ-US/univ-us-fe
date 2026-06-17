@@ -62,7 +62,7 @@ export default function ProfessorCoursesPage() {
   }, []);
 
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters],
   );
   // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시). 미로드 시 TERM_ORDER 상수 fallback.
@@ -76,8 +76,8 @@ export default function ProfessorCoursesPage() {
     () =>
       semesters.filter(
         (s) =>
-          (yearFilter === "all" || s.year === yearFilter) &&
-          (termFilter === "all" || s.termCode === termFilter),
+          (yearFilter === "all" || s.semYear === yearFilter) &&
+          (termFilter === "all" || s.semTerm === termFilter),
       ),
     [semesters, yearFilter, termFilter],
   );
@@ -169,7 +169,7 @@ export default function ProfessorCoursesPage() {
       ) : (
         <div className="space-y-6">
           {visible.map((sem) => (
-            <SemesterCard key={`${sem.year}-${sem.termCode}`} sem={sem} />
+            <SemesterCard key={`${sem.semYear}-${sem.semTerm}`} sem={sem} />
           ))}
         </div>
       )}
@@ -260,7 +260,7 @@ function CourseRow({ course, closed }: { course: ProfessorCourseRow; closed: boo
           {course.courseName}
         </p>
         <p className="mt-0.5 truncate text-xs text-slate-400">
-          {course.section}반
+          {course.lecSection}반
         </p>
       </td>
       <td className="px-2 py-3 text-slate-600">{course.studentCount}명</td>
