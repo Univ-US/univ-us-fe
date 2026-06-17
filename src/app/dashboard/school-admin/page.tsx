@@ -290,7 +290,7 @@ function SchoolAdminDashboard() {
                         {view === "inquiries" && <InquiriesView />}
                         {view === "lectureManage" && <LectureManageView />}
                         {view === "lectureAssign" && <LectureAssignView />}
-                        {view === "billing" && <BillingView />}
+                        {view === "billing" && <BillingView onNavigate={(v) => setView(v as View)} />}
                         {view === "settings" && <SettingsView />}
                         {view === "chat" && <ChatView />}
                     </section>
