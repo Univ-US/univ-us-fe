@@ -17,8 +17,22 @@ export function formatHour(hour: number) {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
+function splitReservationDateTime(dateTime: string) {
+  const normalized = dateTime.trim();
+  const [date = '', time = ''] = normalized.includes('T')
+    ? normalized.split('T')
+    : normalized.split(' ');
+
+  return { date, time };
+}
+
+function formatClockTime(dateTime: string) {
+  const { time } = splitReservationDateTime(dateTime);
+  return time.split('.')[0].slice(0, 5);
+}
+
 export function formatIsoTime(dateTime: string) {
-  return dateTime.split('T')[1]?.slice(0, 5) ?? '';
+  return formatClockTime(dateTime);
 }
 
 export function formatRoomType(roomType: string) {
@@ -85,13 +99,13 @@ export function isRoomSlotSelected(
 }
 
 export function formatReservationPeriod(startTime: string, endTime: string) {
-  const [startDate, startClock = ''] = startTime.split('T');
-  const [endDate, endClock = ''] = endTime.split('T');
+  const { date: startDate } = splitReservationDateTime(startTime);
+  const { date: endDate } = splitReservationDateTime(endTime);
   const startDateLabel = startDate.split('-').join('.');
   const endDateLabel =
     endDate && endDate !== startDate ? `${endDate.split('-').join('.')} ` : '';
 
-  return `${startDateLabel} ${startClock.slice(0, 5)} ~ ${endDateLabel}${endClock.slice(0, 5)}`;
+  return `${startDateLabel} ${formatClockTime(startTime)} ~ ${endDateLabel}${formatClockTime(endTime)}`;
 }
 
 export function getReservationStatusLabel(status: string) {
