@@ -12,6 +12,7 @@ import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 import { useLmsProfessorChatStore } from "@/store/lms/lmsProfessorChatStore";
 import LmsGuard from "@/components/auth/LmsGuard";
+import useEscapeClose from "@/components/lms/useEscapeClose";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
@@ -66,6 +67,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const loadProfile = useProfessorProfileStore((s) => s.load);
   const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
+  const [logoutOpen, setLogoutOpen] = useState(false); // PLM-011 로그아웃 확인 모달
 
   // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
   const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
@@ -108,15 +110,21 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
     if (role === ROLE.PROF) void loadChatUnreadCount();
   }, [role, loadChatUnreadCount]);
 
+  // PLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 홈(/) 이동
   const handleLogout = async () => {
+    // 로그아웃 플래그 → LmsGuard가 "로그인이 안되어있습니다" alert를 건너뛰게 함(커뮤니티 패턴)
+    sessionStorage.setItem("lmsLogout", "true");
     try {
       await logoutAction();
     } catch {
       /* 무시 */
     } finally {
+      alert("로그아웃되었습니다.");
       router.push("/");
     }
   };
+
+  useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
   const avatar = resolveImg(profile?.lmsProfessorProfileImageUrl ?? null);
   const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
@@ -245,7 +253,8 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setLogoutOpen(true)}
+            title="로그아웃"
             className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white"
           >
             <span className="text-base">↩</span> 로그아웃
@@ -255,6 +264,68 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
 
       {/* 콘텐츠 */}
       <div className="flex-1 overflow-x-hidden">{children}</div>
+
+      {/* PLM-011 로그아웃 확인 모달 — 사이드바(w-60) 제외 본문 기준 중앙 */}
+      {logoutOpen && (
+        <div
+          className="fixed inset-y-0 right-0 left-60 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="로그아웃 확인"
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
+            {/* §13 교수 화면 = 슬레이트 톤(설계서 teal 아이콘 박스 → slate-100 치환) */}
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
+              🚪
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">로그아웃 하시겠습니까?</h3>
+            <p className="mt-1 text-sm text-slate-500">아래 계정에서 로그아웃됩니다.</p>
+
+            {/* 계정 카드 */}
+            <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-left">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-sm font-semibold text-white">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatar} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span>{initial}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">
+                  {profile?.lmsProfessorProfileName ?? "교수"}{" "}
+                  {profile?.lmsProfessorProfileRole || "교수"}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {/* 학과 · 사번 (사이드바 사용자 카드와 동일 패턴) */}
+                  {profile?.lmsProfessorProfileDepartment ?? "-"}
+                  {profile?.lmsProfessorProfileEmployeeNo
+                    ? ` · ${profile.lmsProfessorProfileEmployeeNo}`
+                    : ""}
+                </p>
+              </div>
+            </div>
+
+            {/* 액션 — 취소 / 로그아웃(로즈) */}
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLogoutOpen(false)}
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+              >
+                ↩ 로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

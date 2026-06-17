@@ -112,13 +112,16 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
     }
   }, [accessChecked, loadProfile, loadSubmittableAssignmentCount, loadChatUnreadCount]);
 
-  // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
+  // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 홈(/) 이동
   const handleLogout = async () => {
+    // 로그아웃 플래그 → LmsGuard가 "로그인이 안되어있습니다" alert를 건너뛰게 함(커뮤니티 패턴)
+    sessionStorage.setItem("lmsLogout", "true");
     try {
       await logoutAction();
     } catch {
       /* 무시 */
     } finally {
+      alert("로그아웃되었습니다.");
       router.push("/");
     }
   };
