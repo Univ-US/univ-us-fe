@@ -100,4 +100,41 @@ export interface SubscriptionAccessStatus {
   accessStatus: SubscriptionAccessState;
   serviceAccessible: boolean;
   resubscribeAvailable: boolean;
+  planId: number | null;
+  planName: string | null;
+  price: number | null;
+  billingCycle: string | null;
+}
+
+export interface SubscriptionPaymentMethodInfo {
+  registered: boolean;
+  paymentMethodType: SubscriptionPaymentMethod | null;
+  maskedCardNumber: string | null;
+  cardIssuer: string | null;
+  status: string | null;
+}
+
+export type SubscriptionPaymentHistoryStatus =
+  | "READY"
+  | "PAID"
+  | "FAILED"
+  | "CANCELED"
+  | "REFUNDED";
+
+export type SubscriptionPaymentType = "INITIAL" | "RECURRING";
+
+export interface SubscriptionPaymentHistory {
+  historyId: number;
+  planName: string | null;
+  billingCycle: string | null;
+  amount: number;
+  status: SubscriptionPaymentHistoryStatus;
+  paymentMethod: SubscriptionPaymentMethod;
+  paymentType: SubscriptionPaymentType;
+  createdAt: string;
+  paidAt: string | null;
+  failReason: string | null;
+  nextBillingAt: string | null;
+  refundedAt: string | null;
+  refundAmount: number | null;
 }
