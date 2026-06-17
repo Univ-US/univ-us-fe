@@ -639,9 +639,12 @@ export default function CommunityMarketDetail({
                     <button
                       disabled={sold && !isOwner}
                       onClick={handleOpenChat}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary py-2 text-[13px] font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-sm active:translate-y-0 disabled:opacity-40"
+                      className="relative flex flex-1 items-center justify-center gap-2 rounded-lg border border-primary py-2 text-[13px] font-semibold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-sm active:translate-y-0 disabled:opacity-40"
                     >
                       <MessageCircle className="size-4" />
+                      {product.hasUnreadTradeChat && (
+                        <span className="absolute right-3 top-2 size-2.5 rounded-full bg-primary shadow-sm shadow-primary/30 ring-2 ring-white" />
+                      )}
                       {isOwner ? '내 채팅방 보기' : isFreeSharing ? '무료 나눔 채팅하기' : '채팅으로 거래하기'}
                     </button>
                   </div>

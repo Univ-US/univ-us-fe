@@ -36,6 +36,7 @@ import {
   getPaymentConfig,
   getTradeChatMessages,
   getTradeChatRooms,
+  markTradeChatMessagesAsRead,
   sendTradeChatMessage,
   updateTradeChatNegotiatedPrice,
 } from '@/lib/marketApi';
@@ -257,12 +258,22 @@ export default function CommunityMarketChatDrawer({
 
   const activeRoomId = activeRoom?.roomId ?? null;
   const targetProductId = targetProduct?.productId ?? null;
+  const displayedRooms = useMemo(
+    () =>
+      targetProductId
+        ? rooms.filter((room) => room.productId === targetProductId)
+        : rooms,
+    [rooms, targetProductId],
+  );
   const isSeller = Boolean(activeRoom && memberId === activeRoom.sellerId);
   const isBuyer = Boolean(activeRoom && memberId === activeRoom.buyerId);
   const isDone =
     activeRoom?.status === 'DONE' || activeRoom?.productStatus === 'DONE';
   const isClosed = activeRoom?.status === 'CLOSED';
   const isChatLocked = isDone || isClosed;
+  const canStartNewChatFromClosedRoom = Boolean(
+    targetProductId && activeRoom && isClosed && memberId !== activeRoom.sellerId,
+  );
   const activePrice = Number(activeRoom?.negotiatedPrice ?? targetProduct?.price ?? 0);
   const isFreeSharing = activePrice <= 0;
 
@@ -323,7 +334,11 @@ export default function CommunityMarketChatDrawer({
     try {
       const data = sortRoomsByRecentMessage(await getTradeChatRooms());
       setRooms(data);
-      setActiveRoom((current) => current ?? data[0] ?? null);
+      setActiveRoom((current) =>
+        current && data.some((room) => room.roomId === current.roomId)
+          ? current
+          : null,
+      );
     } catch (loadError) {
       console.error(loadError);
       setRooms([]);
@@ -364,9 +379,10 @@ export default function CommunityMarketChatDrawer({
       return;
     }
 
-    const existingRoom = rooms.find((room) => room.productId === targetProductId);
-    setActiveRoom(existingRoom ?? null);
-    if (!existingRoom) {
+    setActiveRoom((current) =>
+      current?.productId === targetProductId ? current : null,
+    );
+    if (!rooms.some((room) => room.productId === targetProductId)) {
       setMessages([]);
     }
   }, [open, rooms, targetProductId]);
@@ -379,6 +395,41 @@ export default function CommunityMarketChatDrawer({
 
     void loadMessages(activeRoomId);
   }, [activeRoomId, loadMessages, open]);
+
+  useEffect(() => {
+    if (!open || !activeRoomId) {
+      return;
+    }
+
+    const readTimer = window.setTimeout(() => {
+      void markTradeChatMessagesAsRead(activeRoomId)
+        .then(({ readCount }) => {
+          if (readCount <= 0) {
+            return;
+          }
+
+          setMessages((current) =>
+            current.map((message) =>
+              message.senderId === memberId
+                ? message
+                : { ...message, isRead: 1 },
+            ),
+          );
+          setRooms((current) =>
+            current.map((room) =>
+              room.roomId === activeRoomId
+                ? { ...room, unreadCount: 0 }
+                : room,
+            ),
+          );
+        })
+        .catch((readError) => {
+          console.error(readError);
+        });
+    }, 1000);
+
+    return () => window.clearTimeout(readTimer);
+  }, [activeRoomId, memberId, open]);
 
   useEffect(() => {
     setNegotiatedPriceInput(String(activeRoom?.negotiatedPrice ?? ''));
@@ -496,6 +547,13 @@ export default function CommunityMarketChatDrawer({
       setSending(false);
       focusMessageInput();
     }
+  }
+
+  function handleStartNewChat() {
+    setActiveRoom(null);
+    setMessages([]);
+    setMessageText('');
+    setError('');
   }
 
   async function handleSaveNegotiatedPrice() {
@@ -684,7 +742,7 @@ export default function CommunityMarketChatDrawer({
       await deleteTradeChatRoom(deletingRoomId);
       const nextRooms = rooms.filter((room) => room.roomId !== deletingRoomId);
       setRooms(nextRooms);
-      setActiveRoom(nextRooms[0] ?? null);
+      setActiveRoom(null);
       setMessages([]);
       onRoomsChanged?.();
     } catch (deleteError) {
@@ -768,14 +826,15 @@ export default function CommunityMarketChatDrawer({
                   새로고침
                 </button>
               </div>
-              {rooms.length === 0 ? (
+              {displayedRooms.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-slate-50 px-4 py-3 text-[12px] font-semibold text-slate-400">
                   {emptyMessage}
                 </div>
               ) : (
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {rooms.map((room) => {
+                  {displayedRooms.map((room) => {
                     const selected = activeRoom?.roomId === room.roomId;
+                    const unreadCount = room.unreadCount ?? 0;
 
                     return (
                       <button
@@ -805,7 +864,10 @@ export default function CommunityMarketChatDrawer({
                             )}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-[12px] font-extrabold text-slate-900">
+                            <div className={cn(
+                              'truncate text-[12px] font-extrabold text-slate-900',
+                              unreadCount > 0 && 'text-primary',
+                            )}>
                               {room.productName ?? '상품'}
                             </div>
                             <div className="mt-0.5 truncate text-[11px] font-bold text-slate-400">
@@ -814,6 +876,11 @@ export default function CommunityMarketChatDrawer({
                                 : room.sellerName ?? '상대방'}
                             </div>
                           </div>
+                          {unreadCount > 0 && (
+                            <span className="flex min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-extrabold text-white shadow-sm shadow-primary/20">
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-400">
                           <span className="truncate">
@@ -857,6 +924,16 @@ export default function CommunityMarketChatDrawer({
 
                 {activeRoom && (
                   <div className="mt-3 rounded-lg border border-border bg-slate-50 p-3">
+                    {canStartNewChatFromClosedRoom && (
+                      <button
+                        type="button"
+                        onClick={handleStartNewChat}
+                        className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10 active:translate-y-0"
+                      >
+                        <MessageCircle className="size-3.5" />
+                        새 채팅 시작
+                      </button>
+                    )}
                     <div className="mb-2 flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">
                         <span className="flex size-6 items-center justify-center rounded-md bg-white text-primary">

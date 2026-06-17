@@ -160,7 +160,12 @@ function ProductCard({
             {likeCount}
           </span>
           <span className="flex items-center gap-1">
-            <MessageCircle className="size-3" />
+            <span className="relative inline-flex">
+              <MessageCircle className="size-3" />
+              {product.hasUnreadTradeChat && (
+                <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-primary ring-1 ring-white" />
+              )}
+            </span>
             {product.chatCount}
           </span>
           <span className="flex items-center gap-1">
@@ -288,6 +293,7 @@ export default function CommunityMarketList({
     category === '전체' ? true : p.category === category,
   );
   if (onlyLiked) filtered = filtered.filter((p) => likedSet.has(p.productId));
+  const hasUnreadTradeChat = products.some((product) => product.hasUnreadTradeChat);
 
   const handleOpenChatList = () => {
     if (!memberId) {
@@ -341,9 +347,12 @@ export default function CommunityMarketList({
           <div className="flex gap-2">
             <button
               onClick={handleOpenChatList}
-              className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0"
+              className="relative flex items-center justify-center gap-1.5 rounded-md border border-border bg-white px-3.5 py-1.5 text-[13px] font-semibold text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0"
             >
               <MessageCircle className="size-3.5" />
+              {hasUnreadTradeChat && (
+                <span className="absolute -right-1 -top-1 size-2.5 rounded-full bg-primary shadow-sm shadow-primary/30 ring-2 ring-white" />
+              )}
               채팅방
             </button>
             <button

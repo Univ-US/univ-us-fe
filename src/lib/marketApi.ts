@@ -253,6 +253,13 @@ export const getTradeChatMessages = async (
   return res.data;
 };
 
+export const markTradeChatMessagesAsRead = async (
+  roomId: number,
+): Promise<{ success: boolean; readCount: number }> => {
+  const res = await api.patch(`/api/market/chats/${roomId}/read`);
+  return res.data;
+};
+
 export const sendTradeChatMessage = async (
   roomId: number,
   content: string,
