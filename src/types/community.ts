@@ -89,6 +89,7 @@ export interface Product {
   chatCount: number;         // TRADE_CHAT_ROOM COUNT
   reportCount?: number;      // PRODUCT_REPORT COUNT
   isBlind?: number;          // reportCount >= 5
+  hasUnreadTradeChat?: boolean;
 
   // PRODUCT_IMAGE JOIN
   images?: ProductImage[];
