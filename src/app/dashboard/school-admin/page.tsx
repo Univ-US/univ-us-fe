@@ -14,6 +14,7 @@ import {
     LayoutDashboard,
     LogOut,
     Megaphone,
+    MessageCircle,
     MessageSquareText,
     Settings,
     Users,
@@ -26,6 +27,7 @@ import BillingView from "./_views/BillingView";
 import SettingsView from "./_views/SettingsView";
 import InquiriesView from "./_views/InquiriesView";
 import LectureCodesView from "./_views/LectureCodesView";
+import ChatView from "./_views/ChatView";
 
 const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ className?: string }> }[] = [
     { label: "대시보드", view: "dashboard", icon: LayoutDashboard },
@@ -35,6 +37,7 @@ const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ classN
     { label: "강의코드 관리", view: "lectureCodes", icon: BookOpen },
     { label: "구독·결제", view: "billing", icon: CreditCard },
     { label: "학교 설정", view: "settings", icon: Settings },
+    { label: "채팅", view: "chat", icon: MessageCircle },
 ];
 
 const SECTION_LABEL: Record<View, string> = {
@@ -45,6 +48,7 @@ const SECTION_LABEL: Record<View, string> = {
     lectureCodes: "강의코드 관리",
     billing: "구독·결제",
     settings: "학교 설정",
+    chat: "채팅",
 };
 
 export default function SchoolAdminDashboardPage() {
@@ -149,6 +153,7 @@ export default function SchoolAdminDashboardPage() {
                         {view === "lectureCodes" && <LectureCodesView />}
                         {view === "billing" && <BillingView />}
                         {view === "settings" && <SettingsView />}
+                        {view === "chat" && <ChatView />}
                     </section>
                 </div>
             </main>
