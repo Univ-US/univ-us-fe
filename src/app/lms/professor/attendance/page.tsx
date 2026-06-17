@@ -60,7 +60,14 @@ export default function ProfessorAttendancePage() {
       try {
         const lecs = await getAttendanceLectures();
         setLectures(lecs);
-        const lecId = matchLectures("all", "all", lecs)[0]?.lecId ?? null;
+        // 딥링크(강의 내역 PLM-002 '출결 관리'): ?lecId= 가 담당 강의에 있으면 그 강의, 없으면 첫 강의
+        const all = matchLectures("all", "all", lecs);
+        const requested = new URLSearchParams(window.location.search).get("lecId");
+        const requestedId = requested ? Number(requested) : null;
+        const lecId =
+          requestedId != null && all.some((l) => l.lecId === requestedId)
+            ? requestedId
+            : all[0]?.lecId ?? null;
         setSelectedLecId(lecId);
         if (lecId == null) setLoading(false);
       } catch (e) {
