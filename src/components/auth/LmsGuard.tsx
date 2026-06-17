@@ -32,6 +32,12 @@ export default function LmsGuard({
         if (!isInitialized) return;
 
         if (!isLoggedIn) {
+            // 의도적 로그아웃이면 가드의 "미로그인" alert·리다이렉트를 건너뛴다
+            // (레이아웃 handleLogout이 "로그아웃되었습니다" 안내 + 이동을 담당 — 커뮤니티 가드 패턴 미러).
+            if (sessionStorage.getItem("lmsLogout") === "true") {
+                sessionStorage.removeItem("lmsLogout");
+                return;
+            }
             const currentPath = `${window.location.pathname}${window.location.search}`;
             window.alert("로그인이 안되어있습니다");
             router.replace(`/home/login?redirect=${encodeURIComponent(currentPath)}`);
