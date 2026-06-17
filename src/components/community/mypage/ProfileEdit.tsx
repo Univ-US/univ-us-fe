@@ -2,6 +2,12 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/lib/apiError';
+import {
+  getCommunityDisplayName,
+  getCommunityInitial,
+  getCommunityNicknameValue,
+  normalizeProfileText,
+} from '@/lib/communityProfileDisplay';
 import { getMyProfile, updateMyProfile } from '@/lib/cmypageApi';
 import { useAuthStore } from '@/store/authStore';
 import type { UserProfile } from '@/types/mypage';
@@ -24,18 +30,17 @@ const S = {
   message: 'mt-4 rounded-xl px-4 py-3 text-[13px] font-bold',
   success: 'bg-emerald-50 text-emerald-700',
   error: 'bg-rose-50 text-rose-700',
+  toast: 'fixed right-6 top-6 z-50 max-w-[calc(100vw-3rem)] rounded-xl border px-4 py-3 text-[13px] font-bold shadow-lg',
+  toastSuccess: 'border-emerald-200 bg-white text-emerald-700',
+  toastError: 'border-rose-200 bg-white text-rose-700',
   footer: 'border-t border-border bg-slate-50 p-4 text-right',
   saveBtn: 'rounded-xl bg-primary px-6 py-2.5 text-[14px] font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none',
 };
 
-type MessageState = {
+type FeedbackState = {
   type: 'success' | 'error';
   text: string;
 } | null;
-
-function firstLetter(value: string) {
-  return Array.from(value.trim() || 'U')[0];
-}
 
 function statusLabel(status?: string | null) {
   if (status === 'ACTIVE') return '활성';
@@ -50,10 +55,23 @@ export default function ProfileEdit() {
   const updateCommunityNickname = useAuthStore((s) => s.updateCommunityNickname);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [nickname, setNickname] = useState(communityNickname ?? memberName ?? '');
+  const [nickname, setNickname] = useState(communityNickname ?? '');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<MessageState>(null);
+  const [message, setMessage] = useState<FeedbackState>(null);
+  const [toast, setToast] = useState<FeedbackState>(null);
+
+  const showFeedback = (next: Exclude<FeedbackState, null>) => {
+    setMessage(next);
+    setToast(next);
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     let mounted = true;
@@ -64,10 +82,10 @@ export default function ProfileEdit() {
         if (!mounted) return;
 
         setProfile(data);
-        setNickname(data.communityNickname ?? data.memberName ?? '');
+        setNickname(getCommunityNicknameValue(data));
       } catch (error) {
         if (!mounted) return;
-        setMessage({
+        showFeedback({
           type: 'error',
           text: getApiErrorMessage(error, '프로필 정보를 불러오지 못했습니다.'),
         });
@@ -85,19 +103,36 @@ export default function ProfileEdit() {
     };
   }, []);
 
-  const baseNickname = profile?.communityNickname ?? communityNickname ?? '';
-  const displayName = profile?.memberName ?? memberName ?? '사용자';
-  const displayNickname = nickname.trim() || baseNickname || displayName;
+  const savedNickname = profile
+    ? getCommunityNicknameValue(profile)
+    : getCommunityNicknameValue({ communityNickname });
+  const nextNickname = nickname.trim();
+  const displayName =
+    normalizeProfileText(profile?.memberName) ??
+    normalizeProfileText(memberName) ??
+    '사용자';
+  const displayNickname = getCommunityDisplayName({
+    communityNickname: nextNickname || savedNickname,
+    memberName: displayName,
+  });
   const schoolText = profile?.univName ?? univName ?? '소속 대학 정보 없음';
   const deptText = profile?.deptName ?? '학과 정보 없음';
-  const isUnchanged = nickname.trim() === baseNickname.trim();
+  const isUnchanged = nextNickname === savedNickname.trim();
+  const isSaveDisabled = isLoading || isSaving || !nextNickname || isUnchanged;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextNickname = nickname.trim();
+    if (!nextNickname) {
+      showFeedback({
+        type: 'error',
+        text: '커뮤니티 닉네임을 입력해주세요.',
+      });
+      return;
+    }
+
     if (nextNickname.length < 2 || nextNickname.length > 20) {
-      setMessage({
+      showFeedback({
         type: 'error',
         text: '닉네임은 2자 이상 20자 이하로 입력해주세요.',
       });
@@ -105,7 +140,7 @@ export default function ProfileEdit() {
     }
 
     if (isUnchanged) {
-      setMessage({
+      showFeedback({
         type: 'success',
         text: '변경된 내용이 없습니다.',
       });
@@ -119,17 +154,17 @@ export default function ProfileEdit() {
       const updatedProfile = await updateMyProfile({
         communityNickname: nextNickname,
       });
-      const updatedNickname = updatedProfile.communityNickname ?? nextNickname;
+      const updatedNickname = getCommunityNicknameValue(updatedProfile) || nextNickname;
 
       setProfile(updatedProfile);
       setNickname(updatedNickname);
       updateCommunityNickname(updatedNickname);
-      setMessage({
+      showFeedback({
         type: 'success',
         text: '프로필이 저장되었습니다.',
       });
     } catch (error) {
-      setMessage({
+      showFeedback({
         type: 'error',
         text: getApiErrorMessage(error, '프로필 저장에 실패했습니다.'),
       });
@@ -140,13 +175,26 @@ export default function ProfileEdit() {
 
   return (
     <>
+      {toast && (
+        <div
+          aria-live='polite'
+          className={`${S.toast} ${toast.type === 'success' ? S.toastSuccess : S.toastError}`}
+        >
+          {toast.text}
+        </div>
+      )}
       <SectionTitle sub='커뮤니티에서 사용할 닉네임과 내 정보를 확인하세요.'>
         프로필 수정
       </SectionTitle>
       <form className={S.container} onSubmit={handleSubmit}>
         <div className={S.content}>
           <div className={S.avatarRow}>
-            <div className={S.avatar}>{firstLetter(displayNickname)}</div>
+            <div className={S.avatar}>
+              {getCommunityInitial({
+                communityNickname: displayNickname,
+                memberName: displayName,
+              })}
+            </div>
             <div className={S.avatarText}>
               <strong className={S.avatarTitle}>{displayNickname}</strong>
               <span className={S.avatarSub}>{displayName}</span>
@@ -165,6 +213,7 @@ export default function ProfileEdit() {
                 onChange={(event) => setNickname(event.target.value)}
                 className={S.input}
                 maxLength={20}
+                placeholder='닉네임을 입력해주세요.'
                 disabled={isLoading || isSaving}
               />
               <p className={S.hint}>2자 이상 20자 이하로 입력해주세요.</p>
@@ -205,7 +254,7 @@ export default function ProfileEdit() {
           <button
             type='submit'
             className={S.saveBtn}
-            disabled={isLoading || isSaving || !nickname.trim()}
+            disabled={isSaveDisabled}
           >
             {isSaving ? '저장 중...' : '저장하기'}
           </button>
