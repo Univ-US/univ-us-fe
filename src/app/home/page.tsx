@@ -133,6 +133,7 @@ function useWeather() {
 
 export default function CampusHomePage() {
     const router = useRouter();
+    const isInitialized = useAuthStore((s) => s.isInitialized);
     const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
     const role = useAuthStore((s) => s.role);
     const memberName = useAuthStore((s) => s.memberName);
