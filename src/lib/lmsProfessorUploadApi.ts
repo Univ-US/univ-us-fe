@@ -18,8 +18,8 @@ export interface Lecture {
   lecId: number;
   courseName: string;        // LECTURE_CODE.LEC_COD_NAME
   lecSection: number | null; // 분반
-  year: number;              // SEMESTERS.SEM_YEAR
-  termCode: string;          // SM1/SM2/SMR/WNT (공통코드 SEM_TERM)
+  semYear: number;           // SEMESTERS.SEM_YEAR
+  semTerm: string;           // SM1/SM2/SMR/WNT (공통코드 SEM_TERM)
   lecValStatus: string;      // OPEN/PROG/CLSD/CNCL (공통코드 LEC_VAL_STATUS)
 }
 
@@ -37,11 +37,11 @@ export interface Material {
   lecId: number;
   courseName: string;
   lecSection: number | null; // LECTURE.LEC_SECTION 분반 (2026-06-13 추가 — 목록 분반 컬럼)
-  year: number;     // 강의 학기 연도 (SEMESTERS.SEM_YEAR) — 목록 년도/학기 필터용 (2026-06-11 추가)
-  termCode: string; // SM1/SMR/SM2/WNT (공통코드 SEM_TERM — 라벨은 termMap 매핑)
-  title: string;
-  content: string | null; // 에디터 HTML
-  uploadedAt: string;     // "YYYY-MM-DD"
+  semYear: number;     // 강의 학기 연도 (SEMESTERS.SEM_YEAR) — 목록 년도/학기 필터용
+  semTerm: string;     // SM1/SMR/SM2/WNT (공통코드 SEM_TERM — 라벨은 termMap 매핑)
+  lecUplTitle: string;      // LECTURE_UPLOADING.LEC_UPL_TITLE
+  lecUplContent: string | null; // LEC_UPL_CONTENT (에디터 HTML)
+  lecUplRegDate: string;    // LEC_UPL_REG_DATE "YYYY-MM-DD"
   attachments: Attachment[];
 }
 
@@ -109,8 +109,8 @@ export interface PageResponse<T> {
 
 /** 목록 필터 옵션용 학기 (자료 보유 년도/학기) */
 export interface SemesterOption {
-  year: number;
-  termCode: string;
+  semYear: number;
+  semTerm: string;
 }
 
 /** 목록 메타 — 전체 건수(필터 무관) + 필터 옵션 */
@@ -158,8 +158,8 @@ export const createUpload = async (
 ): Promise<Material> => {
   const formData = new FormData();
   formData.append("lecId", String(lecId));
-  formData.append("title", input.title);
-  formData.append("content", input.content);
+  formData.append("lecUplTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecUplTitle (멀티파트 form key)
+  formData.append("lecUplContent", input.content); // BE *.lecUplContent
   input.files.forEach((f) => formData.append("files", f));
   const res = await api.post<Material>("/api/lms/professor/uploads", formData, progressConfig(onProgress));
   return res.data;
@@ -172,8 +172,8 @@ export const updateUpload = async (
   onProgress?: (pct: number) => void
 ): Promise<Material> => {
   const formData = new FormData();
-  formData.append("title", input.title);
-  formData.append("content", input.content);
+  formData.append("lecUplTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecUplTitle (멀티파트 form key)
+  formData.append("lecUplContent", input.content); // BE *.lecUplContent
   input.files.forEach((f) => formData.append("files", f));
   (input.removeAttachmentIds ?? []).forEach((id) =>
     formData.append("removeAttachmentIds", String(id))

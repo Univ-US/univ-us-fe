@@ -171,7 +171,7 @@ export default function ProfessorMaterialUploadForm({
 
   // 드롭다운 라벨: 과목명(20자 제한) · N반 · 연도 학기(공통코드 라벨)
   const lectureLabel = (l: Lecture) =>
-    `${truncateLectureName(l.courseName)} · ${l.lecSection ?? "-"}반 · ${l.year} ${termMap[l.termCode] ?? l.termCode}`;
+    `${truncateLectureName(l.courseName)} · ${l.lecSection ?? "-"}반 · ${l.semYear} ${termMap[l.semTerm] ?? l.semTerm}`;
 
   // 업로드 버튼 활성 조건 — 등록: 전부 빈칸이면 비활성 / 수정: 변경(텍스트·추가 파일·제거 예약) 없으면 비활성
   const dirty =

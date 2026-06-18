@@ -70,8 +70,8 @@ export default function ProfessorMaterialUploadDialog({
               edit
                 ? {
                     lecId: edit.lecId,
-                    title: edit.title,
-                    content: edit.content ?? "",
+                    title: edit.lecUplTitle,
+                    content: edit.lecUplContent ?? "",
                   }
                 : undefined
             }
