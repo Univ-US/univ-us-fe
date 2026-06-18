@@ -5,6 +5,7 @@ import type {
   ReadingSeatAvailability,
   ReadingSeatReservation,
   ReservationDateOption,
+  ReservationPenaltyStatus,
 } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
 import AvailabilityRing from './AvailabilityRing';
@@ -26,6 +27,7 @@ type SeatReservationSectionProps = {
   cancelingReservationId: number | null;
   checkingInReservationId?: number | null;
   extendingReservationId?: number | null;
+  penaltyStatus: ReservationPenaltyStatus | null;
   onCancelReservation: (reservationId: number) => void;
   onCheckInReservation?: (reservationId: number) => void;
   onExtendReservation?: (reservationId: number) => void;
@@ -61,6 +63,7 @@ export default function SeatReservationSection({
   cancelingReservationId,
   checkingInReservationId = null,
   extendingReservationId = null,
+  penaltyStatus,
   onCancelReservation,
   onCheckInReservation,
   onExtendReservation,
@@ -100,6 +103,7 @@ export default function SeatReservationSection({
         cancelingReservationId={cancelingReservationId}
         checkingInReservationId={checkingInReservationId}
         extendingReservationId={extendingReservationId}
+        penaltyStatus={penaltyStatus}
         onCancel={onCancelReservation}
         onCheckIn={onCheckInReservation}
         onExtend={onExtendReservation}

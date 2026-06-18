@@ -12,6 +12,7 @@ import { BookOpen, Monitor } from 'lucide-react';
 import {
   cancelRoomReservation,
   cancelReadingSeatReservation,
+  checkInRoomReservation,
   checkInReadingSeatReservation,
   extendReadingSeatReservation,
   getMyReadingSeatReservations,
@@ -181,6 +182,8 @@ export default function CommunityReservation() {
     number | null
   >(null);
   const [checkingInReservationId, setCheckingInReservationId] = useState<number | null>(null);
+  const [checkingInRoomReservationId, setCheckingInRoomReservationId] =
+    useState<number | null>(null);
   const [extendingReservationId, setExtendingReservationId] = useState<number | null>(null);
   const [roomReservationModalOpen, setRoomReservationModalOpen] = useState(false);
   const [roomReservationPurpose, setRoomReservationPurpose] = useState('');
@@ -870,6 +873,28 @@ export default function CommunityReservation() {
     }
   }
 
+  async function handleCheckInRoomReservation(reservationId: number) {
+    setCheckingInRoomReservationId(reservationId);
+    try {
+      await checkInRoomReservation(reservationId);
+      await Promise.all([
+        loadMyRoomReservations(),
+        refreshRoomAvailability().catch(console.error),
+      ]);
+      setToast({ type: 'success', message: '회의실 입실 처리되었습니다.' });
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(
+        error,
+        '회의실 입실 처리에 실패했습니다.',
+      );
+      await loadMyRoomReservations().catch(console.error);
+      setToast({ type: 'error', message });
+    } finally {
+      setCheckingInRoomReservationId(null);
+    }
+  }
+
   function updateRoomSlotSelection(
     room: RoomAvailability,
     anchorIndex: number,
@@ -1168,6 +1193,7 @@ export default function CommunityReservation() {
             cancelingReservationId={cancelingReservationId}
             checkingInReservationId={checkingInReservationId}
             extendingReservationId={extendingReservationId}
+            penaltyStatus={penaltyStatus}
             onCancelReservation={handleOpenCancelReservationModal}
             onCheckInReservation={handleCheckInReservation}
             onExtendReservation={handleExtendReservation}
@@ -1196,7 +1222,10 @@ export default function CommunityReservation() {
             reservationsLoading={myRoomReservationsLoading}
             reservationError={myRoomReservationError}
             cancelingReservationId={cancelingRoomReservationId}
+            checkingInReservationId={checkingInRoomReservationId}
+            penaltyStatus={penaltyStatus}
             onCancelReservation={handleOpenCancelRoomReservationModal}
+            onCheckInReservation={handleCheckInRoomReservation}
             onRefreshReservations={loadMyRoomReservations}
             availabilityError={roomAvailabilityError}
             availabilityLoading={roomAvailabilityLoading}
