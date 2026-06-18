@@ -94,8 +94,11 @@ export interface SubscriptionAccessStatus {
   homepage: string | null;
   subscriptionId: number | null;
   subscriptionStatus: string | null;
-  pendingAction: string | null;
+  pendingAction: "PLAN_CHANGE" | "CANCEL" | null;
+  pendingPlanId: number | null;
+  pendingPlanName: string | null;
   cancellationEffectiveAt: string | null;
+  nextBillingAt: string | null;
   endedAt: string | null;
   accessStatus: SubscriptionAccessState;
   serviceAccessible: boolean;

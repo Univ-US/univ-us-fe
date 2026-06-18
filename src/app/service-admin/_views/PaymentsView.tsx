@@ -455,9 +455,10 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                 ) : (
                     <>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
+                            <table className="w-full min-w-[1320px] table-fixed text-left text-sm">
                                 <colgroup>
                                     <col className="w-[170px]" />
+                                    <col className="w-[150px]" />
                                     <col className="w-[220px]" />
                                     <col className="w-[235px]" />
                                     <col className="w-[125px]" />
@@ -468,6 +469,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                 <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                                     <tr>
                                         <th className="px-5 py-3">요청 일시</th>
+                                        <th className="px-5 py-3">다음 결제일</th>
                                         <th className="px-5 py-3">학교</th>
                                         <th className="px-5 py-3">주문번호</th>
                                         <th className="px-5 py-3">플랜</th>
@@ -479,7 +481,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                 <tbody className="divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={7} className="px-5 py-16 text-center">
+                                            <td colSpan={8} className="px-5 py-16 text-center">
                                                 <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
                                             </td>
                                         </tr>
@@ -496,6 +498,9 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                             >
                                                 <td className="whitespace-nowrap px-5 py-4 text-slate-500">
                                                     {formatDateTime(payment.createdAt)}
+                                                </td>
+                                                <td className="whitespace-nowrap px-5 py-4 text-slate-500">
+                                                    {formatDateTime(payment.nextBillingAt)}
                                                 </td>
                                                 <td className="px-5 py-4">
                                                     <button
@@ -536,7 +541,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                     )}
                                     {!loading && result?.content.length === 0 && (
                                         <tr>
-                                            <td colSpan={7} className="px-5 py-16 text-center font-bold text-slate-400">
+                                            <td colSpan={8} className="px-5 py-16 text-center font-bold text-slate-400">
                                                 조건에 맞는 결제 내역이 없습니다.
                                             </td>
                                         </tr>
