@@ -16,12 +16,12 @@ export interface ChatRoom {
 }
 
 export interface ChatMessage {
-  id: number;
+  messageId: number;
   roomId: number;
   senderLmsPrfId: number;
   sender: "me" | "professor";
-  text: string;
-  sentAt: string;
+  chtRomMsgContent: string;
+  chtRomMsgDate: string;
   read?: boolean;
 }
 
@@ -90,7 +90,7 @@ const normalizeRoom = (room: Omit<ChatRoom, "avatarInitial" | "avatarColor">): C
 
 const normalizeMessage = (message: ChatMessage): ChatMessage => ({
   ...message,
-  text: message.text ?? "",
+  chtRomMsgContent: message.chtRomMsgContent ?? "",
   read: Boolean(message.read),
 });
 
