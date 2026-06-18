@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { Clock, RefreshCw, Trash2, CheckCircle2, Clock4, Info } from 'lucide-react';
 
-import type { ReadingSeatReservation } from '@/lib/reservationApi';
+import type {
+  ReadingSeatReservation,
+  ReservationPenaltyStatus,
+} from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
+import ReservationPenaltyBadge from '../ReservationPenaltyBadge';
 import {
   formatReservationPeriod,
   getReservationStatusClassName,
@@ -30,6 +34,7 @@ type MyReadingSeatReservationsProps = {
   cancelingReservationId: number | null;
   checkingInReservationId?: number | null;
   extendingReservationId?: number | null;
+  penaltyStatus: ReservationPenaltyStatus | null;
   onCancel: (reservationId: number) => void;
   onCheckIn?: (reservationId: number) => void;
   onExtend?: (reservationId: number) => void;
@@ -43,6 +48,7 @@ export default function MyReadingSeatReservations({
   cancelingReservationId,
   checkingInReservationId = null,
   extendingReservationId = null,
+  penaltyStatus,
   onCancel,
   onCheckIn,
   onExtend,
@@ -67,7 +73,7 @@ export default function MyReadingSeatReservations({
 
   return (
     <div className='mb-5 rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md'>
-      <div className='mb-4 flex items-center justify-between gap-3'>
+      <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
         <div>
           <div className='text-[14px] font-bold text-slate-900'>
             내 좌석 예약
@@ -76,16 +82,19 @@ export default function MyReadingSeatReservations({
             {reservations.length > 0 ? `${reservations.length}건` : '예약 없음'}
           </div>
         </div>
-        <button
-          type='button'
-          onClick={onRefresh}
-          disabled={loading}
-          title='내 예약 새로고침'
-          aria-label='내 예약 새로고침'
-          className='flex size-9 items-center justify-center rounded-lg border border-border bg-white text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-sm hover:text-primary active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
-        >
-          <RefreshCw className={cn('size-4', loading && 'animate-spin')} />
-        </button>
+        <div className='flex items-center gap-2'>
+          <ReservationPenaltyBadge status={penaltyStatus} />
+          <button
+            type='button'
+            onClick={onRefresh}
+            disabled={loading}
+            title='내 예약 새로고침'
+            aria-label='내 예약 새로고침'
+            className='flex size-9 items-center justify-center rounded-lg border border-border bg-white text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-sm hover:text-primary active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
+          >
+            <RefreshCw className={cn('size-4', loading && 'animate-spin')} />
+          </button>
+        </div>
       </div>
 
       {error ? (

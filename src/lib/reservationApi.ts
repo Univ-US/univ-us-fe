@@ -105,6 +105,8 @@ export type RoomReservation = {
   endTime: string;
   status: string;
   createdAt: string | null;
+  checkInState: 'BEFORE' | 'AVAILABLE' | 'EXPIRED' | null;
+  checkInDeadline: string | null;
 };
 
 export type ReservationMutationResponse = {
@@ -309,6 +311,14 @@ export async function reserveRoom(request: RoomReservationRequest) {
 export async function cancelRoomReservation(reservationId: number) {
   const res = await api.delete<ReservationMutationResponse>(
     `/api/reservations/rooms/${reservationId}`,
+  );
+
+  return res.data;
+}
+
+export async function checkInRoomReservation(reservationId: number) {
+  const res = await api.post<ReservationMutationResponse>(
+    `/api/reservations/rooms/${reservationId}/checkin`,
   );
 
   return res.data;

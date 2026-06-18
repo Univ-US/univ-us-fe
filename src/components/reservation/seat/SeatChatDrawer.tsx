@@ -344,7 +344,7 @@ export default function SeatChatDrawer({
         }
 
         setRealtimeStatus('connected');
-        client.subscribe(`/sub/seat-chats/${activeRoomId}`, (message) => {
+        client.subscribe(`/user/queue/seat-chats/${activeRoomId}`, (message) => {
           if (!message.body) {
             return;
           }
