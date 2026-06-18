@@ -144,6 +144,7 @@ export type SeatChatRoom = {
   createdAt: string;
   lastMessageText: string | null;
   lastMessageAt: string | null;
+  unreadCount: number;
 };
 
 export type SeatChatMessage = {
@@ -158,6 +159,17 @@ export type SeatChatMessage = {
 export type SeatChatContext = {
   activeReservation: ActiveSeatReservation | null;
   rooms: SeatChatRoom[];
+  totalUnreadCount: number;
+};
+
+export type SeatChatNotification = {
+  roomId: number;
+  messageId: number;
+  senderReservationId: number;
+  senderRoomName: string;
+  senderSeatNumber: string;
+  messageText: string;
+  createdAt: string;
 };
 
 export async function getReservationDateOptions(days = 5) {
@@ -214,6 +226,10 @@ export async function getSeatChatMessages(roomId: number) {
   );
 
   return res.data;
+}
+
+export async function markSeatChatMessagesRead(roomId: number) {
+  await api.patch(`/api/reservations/seat-chats/${roomId}/read`);
 }
 
 export async function sendSeatChatMessage(

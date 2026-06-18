@@ -19,6 +19,8 @@ import { getCommunityDisplayName } from '@/lib/communityProfileDisplay';
 import { useAuthStore } from '@/store/authStore';
 import { getPostList } from '@/lib/postApi';
 import { ROLE } from '@/lib/rolecode';
+import SeatChatNotificationCenter from '@/components/reservation/seat/SeatChatNotificationCenter';
+import { useSeatChatNotificationStore } from '@/store/reservation/seatChatNotificationStore';
 
 const NOTICE_BOARD_ID = 3;
 
@@ -49,6 +51,15 @@ export default function CommunityHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const serviceMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const seatChatActiveReservation = useSeatChatNotificationStore(
+    (state) => state.activeReservation,
+  );
+  const seatChatUnreadCount = useSeatChatNotificationStore(
+    (state) => state.totalUnreadCount,
+  );
+  const requestSeatChatOpen = useSeatChatNotificationStore(
+    (state) => state.requestOpen,
+  );
   const univName = useAuthStore((s) => s.univName);
   const { memberName, communityNickname, logoutAction, role } = useAuthStore();
   const displayName = getCommunityDisplayName({ communityNickname, memberName });
@@ -128,7 +139,9 @@ export default function CommunityHeader() {
   }, []);
 
   return (
-    <header className='sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm'>
+    <>
+      <SeatChatNotificationCenter />
+      <header className='sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm'>
       <div className='mx-auto flex h-16 max-w-[1300px] items-center gap-2 px-6'>
         {/* 로고 */}
         <Link
@@ -266,6 +279,32 @@ export default function CommunityHeader() {
             />
           </div>
 
+          {seatChatActiveReservation && (
+            <button
+              type='button'
+              onClick={() => {
+                requestSeatChatOpen();
+                router.push('/community/reservation');
+              }}
+              aria-label={
+                seatChatUnreadCount > 0
+                  ? `좌석 채팅 열기, 읽지 않은 메시지 ${seatChatUnreadCount}개`
+                  : '좌석 채팅 열기'
+              }
+              title='좌석 채팅'
+              className='relative flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-md active:translate-y-0'
+            >
+              <MessageCircle className='size-[18px]' />
+              {seatChatUnreadCount > 0 && (
+                <span className='absolute -right-1.5 -top-1.5 flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
+                  {seatChatUnreadCount > 99
+                    ? '99+'
+                    : seatChatUnreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* 알림 버튼 */}
           <div className='hidden' ref={notificationRef}>
             <button
@@ -398,6 +437,7 @@ export default function CommunityHeader() {
           </div>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 }
