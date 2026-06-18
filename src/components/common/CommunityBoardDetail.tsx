@@ -42,8 +42,11 @@ export default function CommunityBoardDetail({
   const [reporting, setReporting] = useState(false);
   const [alreadyReported, setAlreadyReported] = useState(false);
   const [reportToast, setReportToast] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const handleReportClick = () => {
+    if (memberId != null && post.memberId === memberId) return;
+    if (role === 'SUA' || role === 'ADM') return;
     if (alreadyReported) {
       setReportToast(true);
       setTimeout(() => setReportToast(false), 3000);
@@ -64,6 +67,7 @@ export default function CommunityBoardDetail({
           ...data,
           viewCount: Math.max(data.viewCount ?? 0, prev.viewCount ?? 0),
         }));
+        setSelectedImageIndex(0);
         setLiked(likeStatus.liked);
         setAlreadyReported(reportStatus.reported);
       } catch {
@@ -91,6 +95,8 @@ export default function CommunityBoardDetail({
   }, [initialPost.postId]);
 
   const handleLike = async () => {
+    if (isPostOwner) return;
+    if (isAdminUser) return;
     try {
       const result = await togglePostLike(post.postId);
       setLiked(result.liked);
@@ -104,9 +110,14 @@ export default function CommunityBoardDetail({
   };
 
   const isPostOwner = memberId != null && post.memberId === memberId;
+  const isAdminUser = role === 'SUA' || role === 'ADM';
+  const isAdminNotice = post.isAdminNotice === 1 || post.isPinned === 1;
+  const canReactToPost = !isPostOwner && !isAdminUser;
   const canManagePost = isPostOwner || role === 'SUA' || role === 'ADM';
   const anonymousPostLabel =
-    isAnon ? `익명 1${memberId != null && post.memberId === memberId ? ' (나)' : ''}` : post.authorName;
+    isAdminNotice ? '관리자' : isAnon ? `익명 1${memberId != null && post.memberId === memberId ? ' (나)' : ''}` : post.authorName;
+  const postImages = post.images ?? [];
+  const selectedImage = postImages[selectedImageIndex] ?? postImages[0];
 
   const handleEdit = () => router.push(`/community/${board}/write?postId=${post.postId}`);
 
@@ -233,41 +244,74 @@ export default function CommunityBoardDetail({
               {post.content ?? '본문 내용이 여기에 표시됩니다.'}
             </p>
 
-            {post.images && post.images.length > 0 && (
-              <div className='mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3'>
-                {post.images.map((image) => (
-                  <div key={image.imageId} className='group/image overflow-hidden rounded-xl border border-border bg-slate-100 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={resolveImageUrl(image.imageUrl)}
-                      alt='게시글 첨부 이미지'
-                      className='aspect-square w-full object-cover transition-transform duration-500 group-hover/image:scale-105'
-                    />
+            {selectedImage && (
+              <div className='mb-6'>
+                <div className='group/image overflow-hidden rounded-xl border border-border bg-slate-100 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md'>
+                  <img
+                    src={resolveImageUrl(selectedImage.imageUrl)}
+                    alt='게시글 첨부 이미지'
+                    className='aspect-[16/10] w-full object-contain transition-transform duration-500 group-hover/image:scale-[1.01]'
+                  />
+                </div>
+                {postImages.length > 1 && (
+                  <div className='mt-2.5 flex gap-2 overflow-x-auto pb-1'>
+                    {postImages.map((image, i) => (
+                      <button
+                        key={image.imageId}
+                        type='button'
+                        onClick={() => setSelectedImageIndex(i)}
+                        className={cn(
+                          'size-[72px] shrink-0 overflow-hidden rounded-lg border-2 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:scale-105',
+                          i === selectedImageIndex
+                            ? 'scale-[1.03] border-primary shadow-sm'
+                            : 'border-transparent opacity-60 hover:opacity-90',
+                        )}
+                      >
+                        <img
+                          src={resolveImageUrl(image.imageUrl)}
+                          alt={`게시글 첨부 이미지 ${i + 1}`}
+                          className='size-full object-cover'
+                        />
+                      </button>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
 
             {/* 하단 액션 */}
             <div className='flex items-center justify-between border-t border-border pt-4'>
-              <button
-                onClick={handleLike}
-                className={cn(
-                  'flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
-                  liked
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-slate-500 hover:border-primary hover:text-primary',
-                )}
-              >
-                <Heart className={cn('size-4 transition-transform duration-200', liked && 'scale-110 fill-current')} />
-                좋아요 {post.likeCount}
-              </button>
+              {!canReactToPost ? (
+                <div className='flex items-center gap-2 rounded-full border border-border bg-slate-50 px-4 py-2 text-[11px] font-semibold text-slate-500'>
+                  <Heart className='size-4' />
+                  좋아요 {post.likeCount}
+                </div>
+              ) : (
+                <button
+                  onClick={handleLike}
+                  className={cn(
+                    'flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+                    liked
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-slate-500 hover:border-primary hover:text-primary',
+                  )}
+                >
+                  <Heart className={cn('size-4 transition-transform duration-200', liked && 'scale-110 fill-current')} />
+                  좋아요 {post.likeCount}
+                </button>
+              )}
               <button
                 onClick={handleReportClick}
-                className='flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3.5 py-1.5 text-[12px] font-semibold text-red-400 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-500 hover:shadow-sm active:translate-y-0'
+                disabled={!canReactToPost}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-200 active:translate-y-0',
+                  !canReactToPost
+                    ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300'
+                    : 'border-red-200 bg-red-50 text-red-400 hover:-translate-y-0.5 hover:bg-red-100 hover:text-red-500 hover:shadow-sm',
+                )}
               >
                 <Flag className='size-3.5' />
-                {alreadyReported ? '신고완료' : '신고'}
+                {isPostOwner ? '내 게시글' : isAdminUser ? '관리자 계정' : alreadyReported ? '신고완료' : '신고'}
               </button>
             </div>
           </div>
