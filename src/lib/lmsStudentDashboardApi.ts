@@ -122,7 +122,9 @@ const buildAvailableSemesters = (
     }
   };
 
-  courseSemesters.forEach(add);
+  courseSemesters.forEach((s) =>
+    add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
+  );
   assignmentSemesters.forEach(add);
   attendanceSemesters.forEach(add);
 
@@ -142,7 +144,12 @@ const pickSemester = (
   if (requested) return requested;
 
   const inProgressCourse = courseSemesters.find((s) => s.inProgress);
-  if (inProgressCourse) return inProgressCourse;
+  if (inProgressCourse)
+    return {
+      year: inProgressCourse.semYear,
+      termCode: inProgressCourse.semTerm,
+      semesterLabel: inProgressCourse.semesterLabel,
+    };
 
   const inProgressAttendance = attendanceSemesters.find((s) => s.inProgress);
   if (inProgressAttendance) return inProgressAttendance;
@@ -223,7 +230,7 @@ export const getStudentDashboard = async (
     semesterLabel: semesterLabel(fallbackYear, "SM1"),
   };
   const key = semesterKey(selected.year, selected.termCode);
-  const courseSemester = courseSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
+  const courseSemester = courseSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
   const assignmentSemester = assignmentSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
   const attendanceSemester = attendanceSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
   const attendanceByLecId = new Map(
@@ -233,7 +240,7 @@ export const getStudentDashboard = async (
   const courses: DashboardCourse[] = (courseSemester?.courses ?? []).map((course) => ({
     lecId: course.lecId,
     courseName: course.courseName,
-    credit: course.credit,
+    credit: course.lecCredit,
     professor: course.professor,
     times: parseSchedule(course.schedule),
     attendanceRate: attendanceByLecId.get(course.lecId) ?? 0,

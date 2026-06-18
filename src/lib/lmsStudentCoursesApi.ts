@@ -4,14 +4,14 @@ export interface CourseRow {
   lecId: number;
   courseName: string;
   lecSection?: number | null;
-  credit: number;
+  lecCredit: number;
   professor: string;
   schedule: string;
 }
 
 export interface SemesterCourses {
-  year: number;
-  termCode: string;
+  semYear: number;
+  semTerm: string;
   semesterLabel: string;
   inProgress: boolean;
   courseCount: number;
