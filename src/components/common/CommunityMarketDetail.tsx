@@ -770,7 +770,10 @@ export default function CommunityMarketDetail({
             setProductStatus(room.productStatus);
           }
         }}
-        onTradeCompleted={onBack}
+        onTradeCompleted={() => {
+          setPaymentDone(true);
+          setProductStatus('DONE');
+        }}
       />
 
       {reportToast && (
