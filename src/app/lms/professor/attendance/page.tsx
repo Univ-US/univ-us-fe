@@ -34,7 +34,7 @@ const matchLectures = (
   term: string | "all",
   lecs: AttendanceLecture[]
 ): AttendanceLecture[] =>
-  lecs.filter((l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term));
+  lecs.filter((l) => (year === "all" || l.semYear === year) && (term === "all" || l.semTerm === term));
 
 export default function ProfessorAttendancePage() {
   const [lectures, setLectures] = useState<AttendanceLecture[]>([]);
@@ -100,12 +100,12 @@ export default function ProfessorAttendancePage() {
 
   // 년도/학기 옵션(담당 강의에서 유도 — 강의 있는 년도/학기만) + 필터링된 강의
   const yearOptions = useMemo(
-    () => [...new Set(lectures.map((l) => l.year))].sort((a, b) => b - a),
+    () => [...new Set(lectures.map((l) => l.semYear))].sort((a, b) => b - a),
     [lectures]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(lectures.map((l) => l.termCode))].sort(
+      [...new Set(lectures.map((l) => l.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [lectures]
@@ -465,7 +465,7 @@ function AttendanceDateCell({
       </span>
     );
   }
-  const dates = sessions.filter((s) => s.status === status).map((s) => s.date);
+  const dates = sessions.filter((s) => s.stdEnrAtdStsCode === status).map((s) => s.stdEnrAtdRegDate);
   return (
     <span className="relative inline-block">
       {/* 클릭 어포던스 = 테두리 칩 + ▾ 캐럿 (클릭 불가한 '출석'은 평범한 텍스트라 한눈에 구분) */}
