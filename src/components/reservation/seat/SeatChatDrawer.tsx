@@ -25,6 +25,7 @@ import {
   createOrGetSeatChatRoom,
   getSeatChatContext,
   getSeatChatMessages,
+  markSeatChatMessagesRead,
   sendSeatChatMessage,
   type ActiveSeatReservation,
   type ReadingSeatAvailability,
@@ -32,11 +33,13 @@ import {
   type SeatChatRoom,
 } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
+import { useSeatChatNotificationStore } from '@/store/reservation/seatChatNotificationStore';
 import { formatIsoTime, formatReservationPeriod } from '../reservationUtils';
 
 type SeatChatDrawerProps = {
   open: boolean;
   targetSeat: ReadingSeatAvailability | null;
+  initialRoomId?: number | null;
   onClose: () => void;
 };
 
@@ -69,6 +72,7 @@ function getRoomLabel(room: SeatChatRoom | null) {
 export default function SeatChatDrawer({
   open,
   targetSeat,
+  initialRoomId = null,
   onClose,
 }: SeatChatDrawerProps) {
   const [activeReservation, setActiveReservation] =
@@ -87,6 +91,18 @@ export default function SeatChatDrawer({
   const handledTargetReservationRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const markRoomRead = useSeatChatNotificationStore(
+    (state) => state.markRoomRead,
+  );
+  const setDrawerState = useSeatChatNotificationStore(
+    (state) => state.setDrawerState,
+  );
+  const refreshNotificationContext = useSeatChatNotificationStore(
+    (state) => state.refreshContext,
+  );
+  const notificationRooms = useSeatChatNotificationStore(
+    (state) => state.rooms,
+  );
 
   const activeRoomId = activeRoom?.roomId ?? null;
   const activeReservationId = activeReservation?.reservationId ?? null;
@@ -122,6 +138,17 @@ export default function SeatChatDrawer({
     );
   }, []);
 
+  const clearRoomUnread = useCallback((roomId: number) => {
+    setRooms((current) =>
+      current.map((room) =>
+        room.roomId === roomId
+          ? { ...room, unreadCount: 0 }
+          : room,
+      ),
+    );
+    markRoomRead(roomId);
+  }, [markRoomRead]);
+
   const loadMessages = useCallback(async (roomId: number) => {
     setMessagesLoading(true);
     setError('');
@@ -129,6 +156,13 @@ export default function SeatChatDrawer({
     try {
       const data = await getSeatChatMessages(roomId);
       setMessages(data);
+      try {
+        await markSeatChatMessagesRead(roomId);
+        clearRoomUnread(roomId);
+        void refreshNotificationContext();
+      } catch (readError) {
+        console.error(readError);
+      }
     } catch (loadError) {
       console.error(loadError);
       setMessages([]);
@@ -141,7 +175,7 @@ export default function SeatChatDrawer({
     } finally {
       setMessagesLoading(false);
     }
-  }, []);
+  }, [clearRoomUnread, refreshNotificationContext]);
 
   const loadContext = useCallback(async () => {
     setLoading(true);
@@ -165,7 +199,14 @@ export default function SeatChatDrawer({
           return null;
         }
 
-        return current ?? nextRooms[0] ?? null;
+        const requestedRoom = initialRoomId
+          ? nextRooms.find((room) => room.roomId === initialRoomId)
+          : null;
+        const currentRoom = current
+          ? nextRooms.find((room) => room.roomId === current.roomId)
+          : null;
+
+        return requestedRoom ?? currentRoom ?? nextRooms[0] ?? null;
       });
     } catch (contextError) {
       console.error(contextError);
@@ -181,7 +222,7 @@ export default function SeatChatDrawer({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [initialRoomId]);
 
   const startChatWithSeat = useCallback(async (reservationId: number) => {
     setRoomLoading(true);
@@ -237,6 +278,40 @@ export default function SeatChatDrawer({
   }, [activeRoomId, loadMessages, open]);
 
   useEffect(() => {
+    if (!open || !initialRoomId) return;
+    const requestedRoom = rooms.find(
+      (room) => room.roomId === initialRoomId,
+    );
+    if (requestedRoom) {
+      setActiveRoom(requestedRoom);
+    }
+  }, [initialRoomId, open, rooms]);
+
+  useEffect(() => {
+    if (!open || notificationRooms.length === 0) return;
+    setRooms((current) =>
+      sortRoomsByRecentMessage([
+        ...notificationRooms,
+        ...current.filter(
+          (room) =>
+            !notificationRooms.some(
+              (item) => item.roomId === room.roomId,
+            ),
+        ),
+      ]),
+    );
+  }, [notificationRooms, open]);
+
+  useEffect(() => {
+    setDrawerState(open, open ? activeRoomId : null);
+  }, [activeRoomId, open, setDrawerState]);
+
+  useEffect(
+    () => () => setDrawerState(false),
+    [setDrawerState],
+  );
+
+  useEffect(() => {
     if (!open || !activeRoomId) {
       setRealtimeStatus('disconnected');
       return;
@@ -262,7 +337,16 @@ export default function SeatChatDrawer({
           }
 
           try {
-            appendMessage(JSON.parse(message.body) as SeatChatMessage);
+            const payload = JSON.parse(message.body) as SeatChatMessage;
+            appendMessage(payload);
+            if (payload.senderReservationId !== activeReservationId) {
+              void markSeatChatMessagesRead(activeRoomId)
+                .then(() => {
+                  clearRoomUnread(activeRoomId);
+                  void refreshNotificationContext();
+                })
+                .catch(() => {});
+            }
           } catch {
             // malformed realtime payloads should not break the drawer.
           }
@@ -281,7 +365,14 @@ export default function SeatChatDrawer({
       setRealtimeStatus('disconnected');
       void client.deactivate();
     };
-  }, [activeRoomId, appendMessage, open]);
+  }, [
+    activeReservationId,
+    activeRoomId,
+    appendMessage,
+    clearRoomUnread,
+    open,
+    refreshNotificationContext,
+  ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: 'end' });
@@ -418,6 +509,7 @@ export default function SeatChatDrawer({
                 <div className='flex gap-2 overflow-x-auto pb-1'>
                   {rooms.map((room) => {
                     const selected = activeRoom?.roomId === room.roomId;
+                    const unreadCount = room.unreadCount ?? 0;
 
                     return (
                       <button
@@ -431,8 +523,15 @@ export default function SeatChatDrawer({
                             : 'border-border bg-white hover:border-primary',
                         )}
                       >
-                        <div className='truncate text-[12px] font-extrabold text-slate-900'>
-                          {getRoomLabel(room)}
+                        <div className='flex items-center gap-2'>
+                          <span className='min-w-0 flex-1 truncate text-[12px] font-extrabold text-slate-900'>
+                            {getRoomLabel(room)}
+                          </span>
+                          {unreadCount > 0 && (
+                            <span className='flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          )}
                         </div>
                         <div className='mt-1 truncate text-[11px] font-semibold text-slate-400'>
                           {room.lastMessageText || '아직 메시지가 없습니다'}
