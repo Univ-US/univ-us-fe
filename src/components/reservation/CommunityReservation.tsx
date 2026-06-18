@@ -191,6 +191,7 @@ export default function CommunityReservation() {
     useState<ReadingSeatReservation | null>(null);
   const [cancelReservationError, setCancelReservationError] = useState('');
   const [seatChatOpen, setSeatChatOpen] = useState(false);
+  const [seatChatActivationId, setSeatChatActivationId] = useState(0);
   const [seatChatInitialRoomId, setSeatChatInitialRoomId] =
     useState<number | null>(null);
   const [seatChatTargetSeat, setSeatChatTargetSeat] =
@@ -212,6 +213,7 @@ export default function CommunityReservation() {
     setSeatChatTargetSeat(null);
     setSeatChatInitialRoomId(requestedSeatChatRoomId);
     setSeatChatOpen(true);
+    setSeatChatActivationId((current) => current + 1);
     consumeSeatChatOpenRequest();
   }, [
     consumeSeatChatOpenRequest,
@@ -729,6 +731,7 @@ export default function CommunityReservation() {
     setSeatChatTargetSeat(seat);
     setSeatChatInitialRoomId(null);
     setSeatChatOpen(true);
+    setSeatChatActivationId((current) => current + 1);
   }
 
   async function handleReserveSeat() {
@@ -1250,6 +1253,7 @@ export default function CommunityReservation() {
           open={seatChatOpen}
           targetSeat={seatChatTargetSeat}
           initialRoomId={seatChatInitialRoomId}
+          activationId={seatChatActivationId}
           onClose={() => {
             setSeatChatOpen(false);
             setSeatChatTargetSeat(null);

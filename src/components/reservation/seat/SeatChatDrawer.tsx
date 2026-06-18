@@ -3,6 +3,7 @@
 import { Client, type IStompSocket } from '@stomp/stompjs';
 import {
   MessageCircle,
+  Minus,
   RefreshCw,
   Send,
   Wifi,
@@ -40,6 +41,7 @@ type SeatChatDrawerProps = {
   open: boolean;
   targetSeat: ReadingSeatAvailability | null;
   initialRoomId?: number | null;
+  activationId?: number;
   onClose: () => void;
 };
 
@@ -61,18 +63,17 @@ function upsertRoom(rooms: SeatChatRoom[], room: SeatChatRoom) {
   ]);
 }
 
-function getRoomLabel(room: SeatChatRoom | null) {
-  if (!room) {
-    return '좌석 이용자';
-  }
-
-  return `${room.targetRoomName} ${room.targetSeatNumber}번`;
+function getSeatLabel(room: SeatChatRoom | null) {
+  return room?.targetSeatNumber
+    ? `${room.targetSeatNumber}번 좌석`
+    : '좌석 이용자';
 }
 
 export default function SeatChatDrawer({
   open,
   targetSeat,
   initialRoomId = null,
+  activationId = 0,
   onClose,
 }: SeatChatDrawerProps) {
   const [activeReservation, setActiveReservation] =
@@ -88,6 +89,7 @@ export default function SeatChatDrawer({
   const [error, setError] = useState('');
   const [realtimeStatus, setRealtimeStatus] =
     useState<RealtimeStatus>('disconnected');
+  const [minimized, setMinimized] = useState(false);
   const handledTargetReservationRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -108,6 +110,17 @@ export default function SeatChatDrawer({
   const activeReservationId = activeReservation?.reservationId ?? null;
   const targetReservationId = targetSeat?.reservationId ?? null;
   const hasActiveReservation = Boolean(activeReservation);
+  const expanded = open && !minimized;
+  const totalUnreadCount = rooms.reduce(
+    (total, room) => total + (room.unreadCount ?? 0),
+    0,
+  );
+
+  useEffect(() => {
+    if (open) {
+      setMinimized(false);
+    }
+  }, [activationId, open]);
 
   const focusMessageInput = useCallback(() => {
     window.setTimeout(() => {
@@ -303,8 +316,8 @@ export default function SeatChatDrawer({
   }, [notificationRooms, open]);
 
   useEffect(() => {
-    setDrawerState(open, open ? activeRoomId : null);
-  }, [activeRoomId, open, setDrawerState]);
+    setDrawerState(expanded, expanded ? activeRoomId : null);
+  }, [activeRoomId, expanded, setDrawerState]);
 
   useEffect(
     () => () => setDrawerState(false),
@@ -312,7 +325,7 @@ export default function SeatChatDrawer({
   );
 
   useEffect(() => {
-    if (!open || !activeRoomId) {
+    if (!expanded || !activeRoomId) {
       setRealtimeStatus('disconnected');
       return;
     }
@@ -370,7 +383,7 @@ export default function SeatChatDrawer({
     activeRoomId,
     appendMessage,
     clearRoomUnread,
-    open,
+    expanded,
     refreshNotificationContext,
   ]);
 
@@ -379,10 +392,10 @@ export default function SeatChatDrawer({
   }, [messages, activeRoomId]);
 
   useEffect(() => {
-    if (open && activeRoomId) {
+    if (expanded && activeRoomId) {
       focusMessageInput();
     }
-  }, [activeRoomId, focusMessageInput, open]);
+  }, [activeRoomId, expanded, focusMessageInput]);
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -428,15 +441,36 @@ export default function SeatChatDrawer({
     return null;
   }
 
-  return (
-    <div className='fixed inset-0 z-50'>
+  if (minimized) {
+    return (
       <button
         type='button'
-        aria-label='좌석 채팅 닫기'
-        className='absolute inset-0 bg-slate-950/35'
-        onClick={onClose}
-      />
-      <aside className='absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col bg-white shadow-2xl'>
+        onClick={() => setMinimized(false)}
+        className='fixed bottom-5 right-5 z-50 flex h-12 w-[280px] max-w-[calc(100vw-2.5rem)] items-center gap-3 rounded-xl border border-primary/20 bg-white px-4 text-left shadow-xl transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-2xl'
+        aria-label='좌석 채팅창 펼치기'
+      >
+        <span className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+          <MessageCircle className='size-4' />
+        </span>
+        <span className='min-w-0 flex-1'>
+          <span className='block text-[12px] font-extrabold text-slate-900'>
+            좌석 간 익명 채팅
+          </span>
+          <span className='block truncate text-[11px] font-semibold text-slate-400'>
+            {activeRoom ? getSeatLabel(activeRoom) : '채팅창 열기'}
+          </span>
+        </span>
+        {totalUnreadCount > 0 && (
+          <span className='flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
+            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <aside className='fixed bottom-2 right-2 z-50 flex h-[min(78vh,680px)] w-[calc(100vw-16px)] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-2xl md:bottom-5 md:right-5 md:h-[min(680px,calc(100vh-96px))] md:w-[min(720px,calc(100vw-40px))]'>
         <div className='flex items-start justify-between gap-3 border-b border-border px-5 py-4'>
           <div className='min-w-0'>
             <div className='flex items-center gap-2 text-[15px] font-extrabold text-slate-900'>
@@ -467,6 +501,15 @@ export default function SeatChatDrawer({
             </span>
             <button
               type='button'
+              onClick={() => setMinimized(true)}
+              aria-label='좌석 채팅 최소화'
+              title='최소화'
+              className='flex size-9 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary'
+            >
+              <Minus className='size-4' />
+            </button>
+            <button
+              type='button'
               onClick={onClose}
               aria-label='닫기'
               className='flex size-9 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary'
@@ -485,8 +528,8 @@ export default function SeatChatDrawer({
             {emptyMessage}
           </div>
         ) : (
-          <>
-            <div className='border-b border-border px-5 py-3'>
+          <div className='grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[190px_minmax(0,1fr)]'>
+            <div className='border-b border-border px-4 py-3 md:min-h-0 md:border-b-0 md:border-r'>
               <div className='mb-2 flex items-center justify-between gap-3'>
                 <span className='text-[12px] font-extrabold text-slate-500'>
                   채팅방
@@ -506,7 +549,7 @@ export default function SeatChatDrawer({
                   {emptyMessage}
                 </div>
               ) : (
-                <div className='flex gap-2 overflow-x-auto pb-1'>
+                <div className='flex gap-2 overflow-x-auto pb-1 md:max-h-[calc(100%-34px)] md:flex-col md:overflow-y-auto md:pr-1'>
                   {rooms.map((room) => {
                     const selected = activeRoom?.roomId === room.roomId;
                     const unreadCount = room.unreadCount ?? 0;
@@ -517,21 +560,27 @@ export default function SeatChatDrawer({
                         type='button'
                         onClick={() => setActiveRoom(room)}
                         className={cn(
-                          'min-w-[150px] rounded-xl border px-3 py-2 text-left transition-colors',
+                          'min-w-[150px] rounded-lg border px-3 py-2 text-left transition-colors md:w-full md:min-w-0',
                           selected
                             ? 'border-primary bg-primary/5'
                             : 'border-border bg-white hover:border-primary',
                         )}
                       >
                         <div className='flex items-center gap-2'>
-                          <span className='min-w-0 flex-1 truncate text-[12px] font-extrabold text-slate-900'>
-                            {getRoomLabel(room)}
+                          <span className='min-w-0 flex-1 text-[13px] font-extrabold text-slate-900'>
+                            {getSeatLabel(room)}
                           </span>
                           {unreadCount > 0 && (
                             <span className='flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </span>
                           )}
+                        </div>
+                        <div
+                          title={room.targetRoomName}
+                          className='mt-0.5 truncate text-[10px] font-bold text-primary'
+                        >
+                          {room.targetRoomName}
                         </div>
                         <div className='mt-1 truncate text-[11px] font-semibold text-slate-400'>
                           {room.lastMessageText || '아직 메시지가 없습니다'}
@@ -545,8 +594,18 @@ export default function SeatChatDrawer({
 
             <div className='flex min-h-0 flex-1 flex-col'>
               <div className='border-b border-border px-5 py-3'>
-                <div className='text-[12px] font-extrabold text-slate-900'>
-                  {activeRoom ? getRoomLabel(activeRoom) : '좌석 이용자'}
+                <div className='flex min-w-0 items-center gap-2'>
+                  <span className='shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[12px] font-extrabold text-primary'>
+                    {activeRoom ? getSeatLabel(activeRoom) : '좌석 이용자'}
+                  </span>
+                  {activeRoom && (
+                    <span
+                      title={activeRoom.targetRoomName}
+                      className='min-w-0 truncate text-[12px] font-bold text-slate-600'
+                    >
+                      {activeRoom.targetRoomName}
+                    </span>
+                  )}
                 </div>
                 <div className='mt-1 text-[11px] font-semibold text-slate-400'>
                   {activeReservation
@@ -649,9 +708,8 @@ export default function SeatChatDrawer({
                 </button>
               </form>
             </div>
-          </>
+          </div>
         )}
-      </aside>
-    </div>
+    </aside>
   );
 }
