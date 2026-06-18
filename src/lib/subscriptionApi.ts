@@ -102,3 +102,25 @@ export async function getSubscriptionPaymentHistory() {
   );
   return response.data;
 }
+
+export async function changeSubscriptionPlan(planId: number) {
+  const response = await api.patch<SubscriptionAccessStatus>(
+    "/api/subscriptions/plan",
+    { planId },
+  );
+  return response.data;
+}
+
+export async function scheduleSubscriptionCancellation() {
+  const response = await api.patch<SubscriptionAccessStatus>(
+    "/api/subscriptions/cancel",
+  );
+  return response.data;
+}
+
+export async function revertSubscriptionCancellation() {
+  const response = await api.delete<SubscriptionAccessStatus>(
+    "/api/subscriptions/cancel",
+  );
+  return response.data;
+}
