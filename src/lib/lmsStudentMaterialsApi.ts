@@ -11,9 +11,9 @@ export interface Attachment {
 
 export interface Material {
   uploadId: number;
-  title: string;
-  content: string | null;
-  uploadedAt: string;
+  lecUplTitle: string;
+  lecUplContent: string | null;
+  lecUplRegDate: string;
   attachments: Attachment[];
   downloadable: boolean;
   lockedReason?: LockedReason | null;
@@ -27,15 +27,15 @@ export interface CourseMaterials {
 }
 
 export interface SemesterMaterials {
-  year: number;
-  termCode: string;
+  semYear: number;
+  semTerm: string;
   semesterLabel: string;
   courses: CourseMaterials[];
 }
 
 const normalizeMaterial = (material: Material): Material => ({
   ...material,
-  content: material.content ?? "",
+  lecUplContent: material.lecUplContent ?? "",
   attachments: material.attachments ?? [],
   downloadable: material.downloadable ?? true,
   lockedReason: material.lockedReason ?? null,
