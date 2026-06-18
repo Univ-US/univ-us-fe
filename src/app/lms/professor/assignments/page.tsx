@@ -65,7 +65,7 @@ const matchLectures = (
   lecs: AssignmentLecture[]
 ): AssignmentLecture[] =>
   lecs.filter(
-    (l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term)
+    (l) => (year === "all" || l.semYear === year) && (term === "all" || l.semTerm === term)
   );
 
 interface FormState {
@@ -245,12 +245,12 @@ export default function ProfessorAssignmentsPage() {
     [yearFilter, termFilter, lectures]
   );
   const yearOptions = useMemo(
-    () => [...new Set(lectures.map((l) => l.year))].sort((a, b) => b - a),
+    () => [...new Set(lectures.map((l) => l.semYear))].sort((a, b) => b - a),
     [lectures]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(lectures.map((l) => l.termCode))].sort(
+      [...new Set(lectures.map((l) => l.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [lectures]
@@ -267,9 +267,9 @@ export default function ProfessorAssignmentsPage() {
   const dirty = useMemo(() => {
     if (!editing) return true;
     return (
-      form.title !== editing.title ||
-      normalizeHtml(form.description) !== normalizeHtml(editing.description ?? "") ||
-      form.dueDate !== editing.dueDate ||
+      form.title !== editing.lecAsnTitle ||
+      normalizeHtml(form.description) !== normalizeHtml(editing.lecAsnContent ?? "") ||
+      form.dueDate !== editing.lecAsnDueDate ||
       form.files.length > 0 ||
       form.removeAttachmentIds.length > 0
     );
@@ -297,9 +297,9 @@ export default function ProfessorAssignmentsPage() {
     setEditing(a);
     setForm({
       lecId: a.lecId,
-      title: a.title,
-      description: a.description ?? "",
-      dueDate: a.dueDate,
+      title: a.lecAsnTitle,
+      description: a.lecAsnContent ?? "",
+      dueDate: a.lecAsnDueDate,
       files: [],
       removeAttachmentIds: [],
     });
@@ -364,8 +364,8 @@ export default function ProfessorAssignmentsPage() {
   const handleDelete = async (a: Assignment) => {
     const warn =
       a.submittedCount > 0
-        ? `'${a.title}' 과제에 제출물 ${a.submittedCount}건이 있습니다. 정말 삭제할까요?`
-        : `'${a.title}' 과제를 삭제할까요?`;
+        ? `'${a.lecAsnTitle}' 과제에 제출물 ${a.submittedCount}건이 있습니다. 정말 삭제할까요?`
+        : `'${a.lecAsnTitle}' 과제를 삭제할까요?`;
     if (!window.confirm(warn)) return;
     setActionError(null);
     try {
@@ -440,7 +440,7 @@ export default function ProfessorAssignmentsPage() {
                     title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
                   >
                     {truncateLectureName(l.courseName)}
-                    {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.year, l.termCode)}
+                    {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
                   </option>
                 ))
               )}
@@ -472,7 +472,7 @@ export default function ProfessorAssignmentsPage() {
             <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="min-w-0 truncate text-base font-bold text-slate-800">
-                  {editing ? `과제 수정 — ${editing.title}` : "과제 등록"}
+                  {editing ? `과제 수정 — ${editing.lecAsnTitle}` : "과제 등록"}
                 </h2>
                 <button
                   type="button"
@@ -505,7 +505,7 @@ export default function ProfessorAssignmentsPage() {
                         title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
                       >
                         {truncateLectureName(l.courseName)}
-                        {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.year, l.termCode)}
+                        {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
                       </option>
                     ))}
                   </select>
@@ -676,8 +676,8 @@ export default function ProfessorAssignmentsPage() {
                       {/* 제목·설명 모두 1줄 말줄임(컬럼 폭 기준 자동 '...') — 원문은 hover 툴팁.
                           첨부 배지는 truncate 영역 밖(shrink-0)에 둬 긴 설명에 밀려 사라지지 않게 함 */}
                       <div className="flex items-center gap-2">
-                        <p className="min-w-0 truncate font-semibold text-slate-800" title={a.title}>
-                          {a.title}
+                        <p className="min-w-0 truncate font-semibold text-slate-800" title={a.lecAsnTitle}>
+                          {a.lecAsnTitle}
                         </p>
                         {a.attachments.length > 0 && (
                           <span className="shrink-0 rounded bg-slate-100 px-1.5 text-[11px] text-slate-500">
@@ -686,7 +686,7 @@ export default function ProfessorAssignmentsPage() {
                         )}
                       </div>
                       {(() => {
-                        const descText = a.description ? htmlToPlainText(a.description) : "";
+                        const descText = a.lecAsnContent ? htmlToPlainText(a.lecAsnContent) : "";
                         return (
                           <p className="truncate text-xs text-slate-400" title={descText || undefined}>
                             {descText || "—"}
@@ -695,7 +695,7 @@ export default function ProfessorAssignmentsPage() {
                       })()}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600">
-                      {formatDue(a.dueDate)}
+                      {formatDue(a.lecAsnDueDate)}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -720,8 +720,8 @@ export default function ProfessorAssignmentsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadgeClass(a.valStatus)}`}>
-                        {statusMap[a.valStatus] ?? a.valStatus}
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadgeClass(a.lecAsnValStatus)}`}>
+                        {statusMap[a.lecAsnValStatus] ?? a.lecAsnValStatus}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">

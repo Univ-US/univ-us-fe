@@ -18,8 +18,8 @@ export interface AssignmentLecture {
   lecId: number;
   courseName: string;
   lecSection: number | null;
-  year: number;
-  termCode: string; // SM1/SMR/SM2/WNT
+  semYear: number; // SEMESTERS.SEM_YEAR
+  semTerm: string; // SM1/SMR/SM2/WNT (공통코드 SEM_TERM)
   lecValStatus: string; // OPEN/PROG/CLSD/CNCL
 }
 
@@ -37,12 +37,12 @@ export interface Assignment {
   lecId: number;
   courseName: string;
   lecSection: number | null;
-  year: number;
-  termCode: string;
-  title: string;
-  description: string | null; // Tiptap 에디터 HTML — 목록 요약은 htmlToPlainText
-  dueDate: string; // "YYYY-MM-DDTHH:mm" (input datetime-local 호환)
-  valStatus: string; // LEC_ASN_VAL_STATUS 코드
+  semYear: number; // SEMESTERS.SEM_YEAR
+  semTerm: string; // 공통코드 SEM_TERM
+  lecAsnTitle: string; // LECTURE_ASSIGNMENT.LEC_ASN_TITLE
+  lecAsnContent: string | null; // LEC_ASN_CONTENT (Tiptap 에디터 HTML) — 목록 요약은 htmlToPlainText
+  lecAsnDueDate: string; // LEC_ASN_DUE_DATE "YYYY-MM-DDTHH:mm" (input datetime-local 호환)
+  lecAsnValStatus: string; // LEC_ASN_VAL_STATUS 코드
   submittedCount: number;
   totalStudents: number;
   ungradedCount: number;
@@ -127,9 +127,9 @@ export const createAssignment = async (
 ): Promise<Assignment> => {
   const fd = new FormData();
   fd.append("lecId", String(input.lecId));
-  fd.append("title", input.title);
-  fd.append("dueDate", input.dueDate);
-  fd.append("description", input.description);
+  fd.append("lecAsnTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecAsnTitle (멀티파트 form key)
+  fd.append("lecAsnDueDate", input.dueDate); // BE *.lecAsnDueDate
+  fd.append("lecAsnContent", input.description); // BE *.lecAsnContent
   input.files.forEach((f) => fd.append("files", f));
   const res = await api.post<Assignment>("/api/lms/professor/assignments", fd, progressConfig(onProgress));
   return res.data;
@@ -142,9 +142,9 @@ export const updateAssignment = async (
   onProgress?: (pct: number) => void
 ): Promise<Assignment> => {
   const fd = new FormData();
-  fd.append("title", input.title);
-  fd.append("dueDate", input.dueDate);
-  fd.append("description", input.description);
+  fd.append("lecAsnTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecAsnTitle (멀티파트 form key)
+  fd.append("lecAsnDueDate", input.dueDate); // BE *.lecAsnDueDate
+  fd.append("lecAsnContent", input.description); // BE *.lecAsnContent
   input.files.forEach((f) => fd.append("files", f));
   (input.removeAttachmentIds ?? []).forEach((id) => fd.append("removeAttachmentIds", String(id)));
   const res = await api.put<Assignment>(
