@@ -16,7 +16,7 @@ export interface SubmitDraft {
 
 export interface SubmitItem {
   id: number;
-  title: string;
+  lecAsnTitle: string;
   courseName: string;
   dueLabel: string;
   status: SubmitStatus;
