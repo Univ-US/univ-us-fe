@@ -125,7 +125,9 @@ const buildAvailableSemesters = (
   courseSemesters.forEach((s) =>
     add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
   );
-  assignmentSemesters.forEach(add);
+  assignmentSemesters.forEach((s) =>
+    add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
+  );
   attendanceSemesters.forEach(add);
 
   return sortSemesters([...byKey.values()]);
@@ -231,7 +233,7 @@ export const getStudentDashboard = async (
   };
   const key = semesterKey(selected.year, selected.termCode);
   const courseSemester = courseSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
-  const assignmentSemester = assignmentSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
+  const assignmentSemester = assignmentSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
   const attendanceSemester = attendanceSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
   const attendanceByLecId = new Map(
     (attendanceSemester?.courses ?? []).map((course) => [course.lecId, course.attendanceRate])
@@ -249,8 +251,8 @@ export const getStudentDashboard = async (
   const assignments: DashboardAssignment[] = (assignmentSemester?.assignments ?? []).map((assignment) => ({
     id: assignment.id,
     lecId: resolveAssignmentLecId(assignment, courses, courseSemester),
-    title: assignment.title,
-    due: assignment.dueDate,
+    title: assignment.lecAsnTitle,
+    due: assignment.lecAsnDueDate,
     status: assignment.status,
   }));
 

@@ -16,11 +16,11 @@ export interface SubmissionFile {
 }
 
 export interface AssignmentFeedback {
-  score: number;
+  asnSbmEvlScore: number;
   maxScore: number;
   courseName: string;
   professor: string;
-  comment: string;
+  asnSbmEvlFeedback: string;
 }
 
 export interface StudentAssignment {
@@ -29,22 +29,22 @@ export interface StudentAssignment {
   lecId?: number | null;
   courseName: string;
   lecSection?: number | null;
-  title: string;
-  content?: string | null;
-  dueDate: string;
+  lecAsnTitle: string;
+  lecAsnContent?: string | null;
+  lecAsnDueDate: string;
   status: StudentAssignmentStatus;
   overdue?: boolean;
-  score: number | null;
+  asnSbmEvlScore: number | null;
   maxScore: number;
-  submittedAt?: string | null;
-  submissionMemo?: string | null;
+  lecAsnSbmRegDate?: string | null;
+  lecAsnSbmMemo?: string | null;
   file?: SubmissionFile | null;
   feedback?: AssignmentFeedback | null;
 }
 
 export interface SemesterAssignments {
-  year: number;
-  termCode: string;
+  semYear: number;
+  semTerm: string;
   semesterLabel: string;
   assignments: StudentAssignment[];
 }

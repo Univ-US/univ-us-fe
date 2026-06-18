@@ -45,7 +45,7 @@ export default function StudentSubmissionPreviewDialog({
 
   useEffect(() => {
     if (open && assignment) {
-      setMemo(assignment.submissionMemo ?? "");
+      setMemo(assignment.lecAsnSbmMemo ?? "");
       setKeepExisting(true);
       setNewFile(null);
       setDragOver(false);
@@ -60,7 +60,7 @@ export default function StudentSubmissionPreviewDialog({
   const willRevertToNotSubmitted = !!file && !keepExisting && newFile === null;
 
   const dirty =
-    memo !== (assignment.submissionMemo ?? "") || (!!file && !keepExisting) || newFile !== null;
+    memo !== (assignment.lecAsnSbmMemo ?? "") || (!!file && !keepExisting) || newFile !== null;
 
   const pickFiles = (list: FileList | null) => {
     const f = list?.[0];
@@ -132,7 +132,7 @@ export default function StudentSubmissionPreviewDialog({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-800">{file.fileName}</p>
                 <p className="truncate text-xs text-slate-500">
-                  {assignment.title} · 제출 {assignment.submittedAt ?? "-"}
+                  {assignment.lecAsnTitle} · 제출 {assignment.lecAsnSbmRegDate ?? "-"}
                 </p>
               </div>
               <span className="shrink-0 text-xs text-slate-400">{formatFileSize(file.fileSize)}</span>

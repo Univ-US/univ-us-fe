@@ -83,13 +83,13 @@ export default function StudentAssignmentsHistoryPage() {
   }, [statusFilter, yearFilter, termFilter]);
 
   const yearOptions = useMemo(
-    () => (data ? [...new Set(data.semesters.map((s) => s.year))].sort((a, b) => b - a) : []),
+    () => (data ? [...new Set(data.semesters.map((s) => s.semYear))].sort((a, b) => b - a) : []),
     [data]
   );
   const termOptions = useMemo(
     () =>
       data
-        ? [...new Set(data.semesters.map((s) => s.termCode))].sort(
+        ? [...new Set(data.semesters.map((s) => s.semTerm))].sort(
             (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
           )
         : [],
@@ -101,8 +101,8 @@ export default function StudentAssignmentsHistoryPage() {
     return data.semesters
       .filter(
         (sem) =>
-          (yearFilter === "all" || sem.year === yearFilter) &&
-          (termFilter === "all" || sem.termCode === termFilter)
+          (yearFilter === "all" || sem.semYear === yearFilter) &&
+          (termFilter === "all" || sem.semTerm === termFilter)
       )
       .map((sem) => ({
         ...sem,
@@ -221,7 +221,7 @@ export default function StudentAssignmentsHistoryPage() {
           <div className="space-y-6">
             {pagedVisibleSemesters.map((sem) => (
               <SemesterAssignmentTable
-                key={`${sem.year}-${sem.termCode}-${statusFilter}`}
+                key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
                 sem={sem}
                 onViewFile={setFileTarget}
                 onViewFeedback={setFeedbackTarget}
@@ -358,7 +358,7 @@ function SemesterAssignmentTable({
         </thead>
         <tbody>
           {pageRows.map((a) => {
-            const contentText = a.content?.trim() ? htmlToPlainText(a.content) : "";
+            const contentText = a.lecAsnContent?.trim() ? htmlToPlainText(a.lecAsnContent) : "";
             return (
               <tr key={a.id} className="border-b border-slate-50 last:border-0">
                 <td className="px-5 py-3">
@@ -370,8 +370,8 @@ function SemesterAssignmentTable({
                   </span>
                 </td>
                 <td className="px-2 py-3">
-                  <span className="block truncate font-semibold text-slate-800" title={a.title}>
-                    {a.title}
+                  <span className="block truncate font-semibold text-slate-800" title={a.lecAsnTitle}>
+                    {a.lecAsnTitle}
                   </span>
                   {contentText && (
                     <span className="mt-0.5 block truncate text-xs text-slate-400" title={contentText}>
@@ -380,7 +380,7 @@ function SemesterAssignmentTable({
                   )}
                 </td>
                 <td className="px-2 py-3 font-mono text-xs text-slate-600">
-                  {a.dueDate}
+                  {a.lecAsnDueDate}
                 </td>
                 <td className="px-2 py-3">
                   <span
@@ -390,9 +390,9 @@ function SemesterAssignmentTable({
                   </span>
                 </td>
                 <td className="px-2 py-3">
-                  {a.status === "GRD" && a.score != null ? (
+                  {a.status === "GRD" && a.asnSbmEvlScore != null ? (
                     <span className="font-semibold text-slate-900">
-                      {a.score} <span className="text-slate-400">/ {a.maxScore}</span>
+                      {a.asnSbmEvlScore} <span className="text-slate-400">/ {a.maxScore}</span>
                     </span>
                   ) : (
                     <span className="text-slate-300">-</span>
