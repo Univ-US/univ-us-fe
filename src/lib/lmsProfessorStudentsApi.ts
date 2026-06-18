@@ -8,7 +8,7 @@
 //  · GET /api/lms/professor/lectures/{lecId}/students/export?search=&submission=&sort=&order=   (xlsx)
 //  · GET /api/lms/professor/lectures/{lecId}/students/{memberId}/report
 //  · GET /api/common-codes/{groupCode}            (토큰 불필요, 라벨 매핑용)
-// ⚠️ 서버는 "코드값"만 반환(semTerm/submissionStatusCode). 라벨은 공통코드로 FE가 매핑.
+// ⚠️ 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
 // ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
@@ -66,9 +66,9 @@ export interface LectureStudentsResponse {
 
 export interface AssignmentScore {
   assignmentId: number;
-  title: string;
-  score: number | null; // 미채점/미제출이면 null
-  submissionStatusCode: string; // NSB/SBM/GRD/RTN (LEC_ASN_SBM_STATUS)
+  lecAsnTitle: string;
+  asnSbmEvlScore: number | null; // 미채점/미제출이면 null
+  lecAsnSbmStatus: string; // NSB/SBM/GRD/RTN (LEC_ASN_SBM_STATUS)
   submissionStatusLabel?: string | null; // 서버 미채움(null) — FE가 공통코드로 매핑
   submitted: boolean; // 서버 계산 — 분기에 바로 사용
   scored: boolean; // false → "미채점"
