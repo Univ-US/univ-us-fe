@@ -253,7 +253,7 @@ export const getStudentDashboard = async (
       : Math.round(courses.reduce((sum, course) => sum + course.attendanceRate, 0) / courses.length);
 
   return {
-    studentName: profile.lmsStudentProfileName || "학생",
+    studentName: profile.name || "학생",
     semesterLabel: selected.semesterLabel,
     year: selected.year,
     termCode: selected.termCode,

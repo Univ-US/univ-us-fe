@@ -58,7 +58,7 @@ export default function StudentProfilePage() {
   // 스토어 profile이 바뀌면(최초 로드 / 저장 성공) 폼 draft를 동기화
   useEffect(() => {
     if (profile) {
-      setEmail(profile.lmsStudentProfileEmail ?? "");
+      setEmail(profile.lmsPrfEmail ?? "");
       setImageFile(null);
     }
   }, [profile]);
@@ -108,7 +108,7 @@ export default function StudentProfilePage() {
 
   const handleCancel = () => {
     if (profile) {
-      setEmail(profile.lmsStudentProfileEmail ?? "");
+      setEmail(profile.lmsPrfEmail ?? "");
     }
     setImageFile(null);
     setError(null);
@@ -137,12 +137,12 @@ export default function StudentProfilePage() {
   };
 
   const avatarSrc =
-    imagePreview ?? resolveImageUrl(profile?.lmsStudentProfileImageUrl ?? null);
-  const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
+    imagePreview ?? resolveImageUrl(profile?.imageUrl ?? null);
+  const initial = profile?.name?.trim()?.[0] ?? "U";
 
   // 변경사항 여부: 이메일이 저장값과 다르거나 새 이미지를 선택한 경우
   const isDirty =
-    !!imageFile || (profile ? email !== (profile.lmsStudentProfileEmail ?? "") : false);
+    !!imageFile || (profile ? email !== (profile.lmsPrfEmail ?? "") : false);
 
   if (!profile) {
     return (
@@ -215,18 +215,18 @@ export default function StudentProfilePage() {
           {/* 이름 / 학번 (읽기전용) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="이름" note="※ 이름은 관리자를 통해 변경 가능">
-              <input value={profile?.lmsStudentProfileName ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.name ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="학번" note="※ 학번은 관리자를 통해 변경 가능">
-              <input value={profile?.lmsStudentProfileStudentNo ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.studentNo ?? ""} readOnly className={readonlyInput} />
             </Field>
 
             {/* 학과 (읽기전용) / 휴대폰 번호 (읽기전용) */}
             <Field label="학과" note="※ 학과는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsStudentProfileDepartment ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.department ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="휴대폰 번호" note="※ 휴대폰 번호는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsStudentProfilePhoneNumber ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.phoneNumber ?? ""} readOnly className={readonlyInput} />
             </Field>
           </div>
 
