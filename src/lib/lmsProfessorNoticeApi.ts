@@ -45,8 +45,8 @@ export interface NoticeLecture {
   lecId: number;
   courseName: string; // LECTURE_CODE.LEC_COD_NAME (전체 과목명 — BE는 짧은 이름 미제공)
   lecSection?: number; // 분반(LEC_SECTION)
-  year: number; // SEM_YEAR
-  termCode: string; // SEM_TERM
+  semYear: number; // SEM_YEAR
+  semTerm: string; // SEM_TERM
 }
 
 /** 첨부파일 (LECTURE_ANNOUNCEMENT_ATTACHMENT) */
@@ -62,13 +62,13 @@ export interface Notice {
   lecId: number;
   courseName: string;
   lecSection?: number;
-  year: number;
-  termCode: string;
-  title: string;
-  content: string; // Tiptap HTML — 표시 직전 sanitizeLmsHtml 정화
+  semYear: number; // SEM_YEAR
+  semTerm: string; // SEM_TERM
+  lecAnnTitle: string; // LECTURE_ANNOUNCEMENT.LEC_ANN_TITLE
+  lecAnnContent: string; // LEC_ANN_CONTENT (Tiptap HTML) — 표시 직전 sanitizeLmsHtml 정화
   author: string; // 작성 교수 MEMBER_NAME(예 "이민준") — 표시 시 "교수" 접미는 화면에서 부여
-  date: string; // 등록일시 "2026-05-25 16:20" (REG_DATE)
-  listDate: string; // 좌측 목록 날짜 "05.25"
+  lecAnnRegDate: string; // 등록일시 "2026-05-25 16:20" (LEC_ANN_REG_DATE)
+  listDate: string; // 좌측 목록 축약 날짜 "05.25" (REG_DATE 파생)
   attachments: NoticeAttachment[];
 }
 
@@ -84,7 +84,7 @@ export interface NoticeInput {
 // content(CLOB null 가능)·attachments(없으면 빈 배열) 방어 정규화
 const normalizeNotice = (n: Notice): Notice => ({
   ...n,
-  content: n.content ?? "",
+  lecAnnContent: n.lecAnnContent ?? "",
   attachments: n.attachments ?? [],
 });
 
@@ -106,8 +106,8 @@ export const getCourseNotices = async (lecId: number): Promise<Notice[]> => {
 export const createNotice = async (input: NoticeInput): Promise<Notice> => {
   const formData = new FormData();
   formData.append("lecId", String(input.lecId));
-  formData.append("title", input.title);
-  formData.append("content", input.content);
+  formData.append("lecAnnTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecAnnTitle (멀티파트 form key)
+  formData.append("lecAnnContent", input.content); // BE *.lecAnnContent
   input.files.forEach((f) => formData.append("files", f));
   const res = await api.post<Notice>("/api/lms/professor/notices", formData);
   return normalizeNotice(res.data);
@@ -116,8 +116,8 @@ export const createNotice = async (input: NoticeInput): Promise<Notice> => {
 /** PUT /notices/{id} — 수정 (과목 변경 불가 → lecId 미전송. files=추가 / removeAttachmentIds=제거) */
 export const updateNotice = async (noticeId: number, input: NoticeInput): Promise<Notice> => {
   const formData = new FormData();
-  formData.append("title", input.title);
-  formData.append("content", input.content);
+  formData.append("lecAnnTitle", input.title); // BE CreateReqDto/UpdateReqDto.lecAnnTitle (멀티파트 form key)
+  formData.append("lecAnnContent", input.content); // BE *.lecAnnContent
   input.files.forEach((f) => formData.append("files", f));
   input.removeAttachmentIds.forEach((id) => formData.append("removeAttachmentIds", String(id)));
   const res = await api.put<Notice>(`/api/lms/professor/notices/${noticeId}`, formData);
