@@ -93,6 +93,7 @@ export default function CommunityBoardWrite({
   const [existingImages, setExistingImages] = useState<PostImage[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
   const [targetUnivId, setTargetUnivId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const fileInputId = useId();
   const role = useAuthStore((state) => state.role);
   const authUnivId = useAuthStore((state) => state.univId);
@@ -160,6 +161,7 @@ export default function CommunityBoardWrite({
   };
 
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!title.trim()) {
       alert('제목을 입력해 주세요.');
       return;
@@ -189,6 +191,7 @@ export default function CommunityBoardWrite({
       univId:   selectedUnivId,
     };
 
+    setSubmitting(true);
     try {
       if (isEdit) {
         await updatePost(Number(postId), {
@@ -212,6 +215,8 @@ export default function CommunityBoardWrite({
     } catch (err) {
       console.error('writePost error:', err);
       alert(isEdit ? '수정에 실패했습니다. 다시 시도해 주세요.' : '게시글 등록에 실패했습니다. 다시 시도해 주세요.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -366,9 +371,9 @@ export default function CommunityBoardWrite({
           <Button variant='outline' onClick={handleBack}>
             취소
           </Button>
-          <Button onClick={handleSubmit}>
+          <Button onClick={handleSubmit} disabled={submitting}>
             <Send className='size-4' />
-            {isNotice ? '공지 게시' : isEdit ? '수정 완료' : '등록하기'}
+            {submitting ? '처리 중...' : isNotice ? '공지 게시' : isEdit ? '수정 완료' : '등록하기'}
           </Button>
         </div>
       </div>
