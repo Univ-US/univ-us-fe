@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { ChevronRight, Megaphone, Users, X } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getAdminMembers, getAdminUniversity, ROLE_LABEL, STATUS_LABEL, type ApiMember, type ApiUniversity } from "@/lib/adminApi";
+import { BILLING_CYCLE_LABEL, getSubscriptionStatus, SUBSCRIPTION_ACCESS_LABEL } from "@/lib/subscriptionApi";
+import type { SubscriptionAccessStatus } from "@/types/subscription";
 import { Avatar } from "../_components";
 
 export default function DashboardView({ onNavigate }: { onNavigate: (view: string) => void }) {
     const { univId } = useAuthStore();
     const [members, setMembers] = useState<ApiMember[]>([]);
     const [university, setUniversity] = useState<ApiUniversity | null>(null);
+    const [subscription, setSubscription] = useState<SubscriptionAccessStatus | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,10 +21,12 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
         Promise.all([
             getAdminMembers(),
             getAdminUniversity(univId),
-        ]).then(([memberData, univData]) => {
+            getSubscriptionStatus(),
+        ]).then(([memberData, univData, subscriptionData]) => {
             const mine = memberData.list.filter((m) => m.univId === univId);
             setMembers(mine);
             setUniversity(univData);
+            setSubscription(subscriptionData);
         }).catch(console.error).finally(() => setLoading(false));
     }, [univId]);
 
@@ -47,8 +52,15 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
             <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
                 <section className="overflow-hidden rounded-2xl bg-[#064b35] p-6 text-white shadow-sm">
                     <div className="flex items-center justify-between">
-                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">정상 구동중</span>
-                        <span className="text-xs font-bold text-emerald-100">Campus Pro · 월간</span>
+                        <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">
+                            {subscription ? SUBSCRIPTION_ACCESS_LABEL[subscription.accessStatus] : "상태 확인 불가"}
+                        </span>
+                        {subscription?.planName && (
+                            <span className="text-xs font-bold text-emerald-100">
+                                {subscription.planName}
+                                {subscription.billingCycle ? ` · ${BILLING_CYCLE_LABEL[subscription.billingCycle] ?? subscription.billingCycle}` : ""}
+                            </span>
+                        )}
                     </div>
                     <div className="mt-6">
                         {university?.univName && (

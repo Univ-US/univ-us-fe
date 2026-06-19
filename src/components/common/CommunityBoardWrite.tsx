@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useId, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ImagePlus, X, Save, Send } from 'lucide-react';
+import { ArrowLeft, ImagePlus, X, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { createPost, createPostWithImages, updatePost, getPostById, uploadPostImages } from '@/lib/postApi';
+import { API_BASE_URL } from '@/lib/api';
+import { createPost, createPostWithImages, updatePost, getPostById, uploadPostImages, getPostImages } from '@/lib/postApi';
 import { getUniversities, type University } from '@/lib/homeApi';
 import { useAuthStore } from '@/store/authStore';
-import type { BoardType } from '@/types/community';
+import type { BoardType, PostImage } from '@/types/community';
 
 // ── 게시판별 카테고리 ──────────────────────────────────
 const CATEGORIES: Record<BoardType, string[]> = {
@@ -73,6 +74,9 @@ interface CommunityBoardWriteProps {
   board: BoardType;
 }
 
+const resolveImageUrl = (url: string) =>
+  url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
 export default function CommunityBoardWrite({
   board,
 }: CommunityBoardWriteProps) {
@@ -86,6 +90,7 @@ export default function CommunityBoardWrite({
   const [content, setContent] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<PostImage[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
   const [targetUnivId, setTargetUnivId] = useState<number | null>(null);
   const fileInputId = useId();
@@ -101,17 +106,21 @@ export default function CommunityBoardWrite({
     if (!isEdit) return;
     const fetchPost = async () => {
       try {
-        const post = await getPostById(Number(postId));
+        const [post, postImages] = await Promise.all([
+          getPostById(Number(postId)),
+          getPostImages(Number(postId)),
+        ]);
         setTitle(post.title);
         setContent(post.content ?? '');
         if (post.category) setCategory(post.category);
+        setExistingImages(postImages);
       } catch {
         alert('게시글을 불러오는 데 실패했습니다.');
         router.back();
       }
     };
     fetchPost();
-  }, [postId]);
+  }, [isEdit, postId, router]);
 
   useEffect(() => {
     if (!isSuperAdmin || isEdit) return;
@@ -144,7 +153,9 @@ export default function CommunityBoardWrite({
       alert('JPG, PNG, WEBP 이미지만 첨부할 수 있습니다.');
     }
 
-    setImages((prev) => [...prev, ...validImages].slice(0, 10));
+    setImages((prev) =>
+      [...prev, ...validImages].slice(0, Math.max(0, 10 - existingImages.length)),
+    );
     event.target.value = '';
   };
 
@@ -321,12 +332,19 @@ export default function CommunityBoardWrite({
                 className='sr-only'
               />
               {/* 미리보기 — TODO: 파일 업로드 구현 시 교체 */}
-              {imagePreviews.map((img, i) => (
+              {existingImages.map((image) => (
                 <div
-                  key={i}
+                  key={image.imageId}
                   className='relative size-24 overflow-hidden rounded-xl bg-slate-200'
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={resolveImageUrl(image.imageUrl)} alt='기존 첨부 이미지' className='h-full w-full object-cover' />
+                </div>
+              ))}
+              {imagePreviews.map((img, i) => (
+                <div
+                  key={`new-${i}`}
+                  className='relative size-24 overflow-hidden rounded-xl bg-slate-200'
+                >
                   <img src={img} alt={`첨부 이미지 ${i + 1}`} className='h-full w-full object-cover' />
                   <button
                     type='button'
@@ -348,12 +366,6 @@ export default function CommunityBoardWrite({
           <Button variant='outline' onClick={handleBack}>
             취소
           </Button>
-          {!isNotice && (
-            <Button variant='ghost'>
-              <Save className='size-4' />
-              임시저장
-            </Button>
-          )}
           <Button onClick={handleSubmit}>
             <Send className='size-4' />
             {isNotice ? '공지 게시' : isEdit ? '수정 완료' : '등록하기'}

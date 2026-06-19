@@ -144,7 +144,7 @@ function SchoolAdminDashboard() {
 
     return (
         <RoleGuard allowedRoles={["ADM"]}>
-            <main className="min-h-screen bg-[#f4faf7] text-slate-950">
+            <main className={view === "chat" ? "h-screen overflow-hidden bg-[#f4faf7] text-slate-950" : "min-h-screen bg-[#f4faf7] text-slate-950"}>
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
@@ -213,8 +213,8 @@ function SchoolAdminDashboard() {
                     </div>
                 </aside>
 
-                <div className="lg:pl-[220px]">
-                    <header className="sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur">
+                <div className={view === "chat" ? "flex h-full min-h-0 flex-col lg:pl-[220px]" : "lg:pl-[220px]"}>
+                    <header className={view === "chat" ? "shrink-0 border-b border-emerald-900/10 bg-white/85 backdrop-blur" : "sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur"}>
                         <div className="flex h-16 items-center justify-between px-6 lg:px-8">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" />
@@ -283,14 +283,14 @@ function SchoolAdminDashboard() {
                         </div>
                     </header>
 
-                    <section className="px-6 py-8 lg:px-8">
+                    <section className={view === "chat" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 lg:px-8" : "px-6 py-8 lg:px-8"}>
                         {view === "dashboard" && <DashboardView onNavigate={(v) => setView(v as View)} />}
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}
                         {view === "inquiries" && <InquiriesView />}
                         {view === "lectureManage" && <LectureManageView />}
                         {view === "lectureAssign" && <LectureAssignView />}
-                        {view === "billing" && <BillingView />}
+                        {view === "billing" && <BillingView onNavigate={(v) => setView(v as View)} />}
                         {view === "settings" && <SettingsView />}
                         {view === "chat" && <ChatView />}
                     </section>

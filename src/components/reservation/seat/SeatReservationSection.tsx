@@ -5,6 +5,7 @@ import type {
   ReadingSeatAvailability,
   ReadingSeatReservation,
   ReservationDateOption,
+  ReservationPenaltyStatus,
 } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
 import AvailabilityRing from './AvailabilityRing';
@@ -26,6 +27,7 @@ type SeatReservationSectionProps = {
   cancelingReservationId: number | null;
   checkingInReservationId?: number | null;
   extendingReservationId?: number | null;
+  penaltyStatus: ReservationPenaltyStatus | null;
   onCancelReservation: (reservationId: number) => void;
   onCheckInReservation?: (reservationId: number) => void;
   onExtendReservation?: (reservationId: number) => void;
@@ -39,6 +41,7 @@ type SeatReservationSectionProps = {
   onSelectSeat: (seat: ReadingSeatAvailability) => void;
   currentMemberId?: number | null;
   onOpenSeatChat: (seat: ReadingSeatAvailability | null) => void;
+  seatChatUnreadCount: number;
   seatError: string;
   seatLoading: boolean;
   reservationLoading: boolean;
@@ -60,6 +63,7 @@ export default function SeatReservationSection({
   cancelingReservationId,
   checkingInReservationId = null,
   extendingReservationId = null,
+  penaltyStatus,
   onCancelReservation,
   onCheckInReservation,
   onExtendReservation,
@@ -73,6 +77,7 @@ export default function SeatReservationSection({
   onSelectSeat,
   currentMemberId,
   onOpenSeatChat,
+  seatChatUnreadCount,
   seatError,
   seatLoading,
   reservationLoading,
@@ -98,6 +103,7 @@ export default function SeatReservationSection({
         cancelingReservationId={cancelingReservationId}
         checkingInReservationId={checkingInReservationId}
         extendingReservationId={extendingReservationId}
+        penaltyStatus={penaltyStatus}
         onCancel={onCancelReservation}
         onCheckIn={onCheckInReservation}
         onExtend={onExtendReservation}
@@ -151,10 +157,17 @@ export default function SeatReservationSection({
           <button
             type='button'
             onClick={() => onOpenSeatChat(null)}
-            className='flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10 hover:shadow-sm active:translate-y-0'
+            className='relative flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[12px] font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10 hover:shadow-sm active:translate-y-0'
           >
             <MessageCircle className='size-3.5' />
             좌석 채팅
+            {seatChatUnreadCount > 0 && (
+              <span className='flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
+                {seatChatUnreadCount > 99
+                  ? '99+'
+                  : seatChatUnreadCount}
+              </span>
+            )}
           </button>
         </div>
         {seatError ? (

@@ -48,6 +48,7 @@ import type { Product, TradeChatMessage, TradeChatRoom } from '@/types/community
 type CommunityMarketChatDrawerProps = {
   open: boolean;
   targetProduct: Product | null;
+  initialRoomId?: number | null;
   onClose: () => void;
   onRoomCreated?: (room: TradeChatRoom) => void;
   onRoomUpdated?: (room: TradeChatRoom) => void;
@@ -229,6 +230,7 @@ function loadPortOneScript() {
 export default function CommunityMarketChatDrawer({
   open,
   targetProduct,
+  initialRoomId,
   onClose,
   onRoomCreated,
   onRoomUpdated,
@@ -270,9 +272,16 @@ export default function CommunityMarketChatDrawer({
   const isDone =
     activeRoom?.status === 'DONE' || activeRoom?.productStatus === 'DONE';
   const isClosed = activeRoom?.status === 'CLOSED';
-  const isChatLocked = isDone || isClosed;
+  const isChatLocked = isClosed;
+  const canCreateChat = Boolean(
+    targetProductId && targetProduct?.productStatus !== 'DONE',
+  );
   const canStartNewChatFromClosedRoom = Boolean(
-    targetProductId && activeRoom && isClosed && memberId !== activeRoom.sellerId,
+    targetProductId
+      && activeRoom
+      && isClosed
+      && !isDone
+      && memberId !== activeRoom.sellerId,
   );
   const activePrice = Number(activeRoom?.negotiatedPrice ?? targetProduct?.price ?? 0);
   const isFreeSharing = activePrice <= 0;
@@ -386,6 +395,17 @@ export default function CommunityMarketChatDrawer({
       setMessages([]);
     }
   }, [open, rooms, targetProductId]);
+
+  useEffect(() => {
+    if (!open || !initialRoomId) {
+      return;
+    }
+
+    const initialRoom = rooms.find((room) => room.roomId === initialRoomId);
+    if (initialRoom) {
+      setActiveRoom(initialRoom);
+    }
+  }, [initialRoomId, open, rooms]);
 
   useEffect(() => {
     if (!open || !activeRoomId) {
@@ -514,7 +534,7 @@ export default function CommunityMarketChatDrawer({
 
     const trimmedMessage = messageText.trim();
     const submittedMessage = messageText;
-    if ((!activeRoom && !targetProductId) || isChatLocked || !trimmedMessage || sending) {
+    if ((!activeRoom && !canCreateChat) || isChatLocked || !trimmedMessage || sending) {
       return;
     }
 
@@ -523,7 +543,7 @@ export default function CommunityMarketChatDrawer({
 
     try {
       let room = activeRoom;
-      if (!room && targetProductId) {
+      if (!room && canCreateChat && targetProductId) {
         const createdRoom = await createOrGetTradeChatRoom(targetProductId);
         room = createdRoom;
         setRooms((current) => upsertRoom(current, createdRoom));
@@ -557,7 +577,7 @@ export default function CommunityMarketChatDrawer({
   }
 
   async function handleSaveNegotiatedPrice() {
-    if (!activeRoom || !isSeller || isChatLocked || priceSaving) {
+    if (!activeRoom || !isSeller || isChatLocked || isDone || priceSaving) {
       return;
     }
 
@@ -585,7 +605,7 @@ export default function CommunityMarketChatDrawer({
   }
 
   async function handleCompleteFreeSharing() {
-    if (!activeRoom || !isSeller || isChatLocked || freeCompleteLoading) {
+    if (!activeRoom || !isSeller || isChatLocked || isDone || freeCompleteLoading) {
       return;
     }
 
@@ -616,7 +636,7 @@ export default function CommunityMarketChatDrawer({
   }
 
   async function handlePayment() {
-    if (!activeRoom || !memberId || !isBuyer || isChatLocked || paymentLoading) {
+    if (!activeRoom || !memberId || !isBuyer || isChatLocked || isDone || paymentLoading) {
       return;
     }
 
@@ -955,13 +975,13 @@ export default function CommunityMarketChatDrawer({
                           onChange={(event) =>
                             setNegotiatedPriceInput(event.target.value)
                           }
-                          disabled={isChatLocked}
+                          disabled={isChatLocked || isDone}
                           className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-white px-3 text-[13px] font-semibold text-slate-700 outline-none focus:border-primary disabled:opacity-50"
                         />
                         <button
                           type="button"
                           onClick={() => void handleSaveNegotiatedPrice()}
-                          disabled={isChatLocked || priceSaving}
+                          disabled={isChatLocked || isDone || priceSaving}
                           className="flex h-10 items-center justify-center rounded-lg bg-primary px-3 text-[12px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] active:translate-y-0 disabled:bg-slate-200"
                         >
                           {priceSaving ? '저장중' : '가격수정'}
@@ -974,7 +994,7 @@ export default function CommunityMarketChatDrawer({
                             key={value}
                             type="button"
                             onClick={() => setPaymentMethod(value)}
-                            disabled={isChatLocked || paymentLoading}
+                            disabled={isChatLocked || isDone || paymentLoading}
                             className={cn(
                               'flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-lg border bg-white px-2 py-2 text-center transition-all disabled:opacity-50',
                               paymentMethod === value
@@ -1003,7 +1023,7 @@ export default function CommunityMarketChatDrawer({
                       <button
                         type="button"
                         onClick={() => void handlePayment()}
-                        disabled={isChatLocked || paymentLoading}
+                        disabled={isChatLocked || isDone || paymentLoading}
                         className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-hover)] disabled:bg-slate-200"
                       >
                         <CreditCard className="size-4" />
@@ -1013,7 +1033,7 @@ export default function CommunityMarketChatDrawer({
                       </button>
                     )}
 
-                    {isSeller && isFreeSharing && !isChatLocked && (
+                    {isSeller && isFreeSharing && !isChatLocked && !isDone && (
                       <button
                         type="button"
                         onClick={() => void handleCompleteFreeSharing()}
@@ -1026,7 +1046,7 @@ export default function CommunityMarketChatDrawer({
                     )}
 
                     <div className="mt-3 flex gap-2">
-                      {!isDone && !isClosed && (
+                      {!isClosed && (
                         <button
                           type="button"
                           onClick={() => void handleCloseRoom()}
@@ -1037,7 +1057,7 @@ export default function CommunityMarketChatDrawer({
                           {closing ? '종료중' : '대화종료'}
                         </button>
                       )}
-                      {(isClosed || isDone) && (
+                      {isClosed && (
                         <button
                           type="button"
                           onClick={() => void handleDeleteRoom()}
@@ -1151,7 +1171,7 @@ export default function CommunityMarketChatDrawer({
                   ref={messageInputRef}
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
-                  disabled={(!activeRoom && !targetProductId) || isChatLocked}
+                  disabled={(!activeRoom && !canCreateChat) || isChatLocked}
                   rows={2}
                   maxLength={2000}
                   placeholder={isChatLocked ? '더 이상 참여할 수 없는 채팅입니다.' : '메시지 입력'}
@@ -1165,7 +1185,7 @@ export default function CommunityMarketChatDrawer({
                 />
                 <button
                   type="submit"
-                  disabled={(!activeRoom && !targetProductId) || isChatLocked || !messageText.trim() || sending}
+                  disabled={(!activeRoom && !canCreateChat) || isChatLocked || !messageText.trim() || sending}
                   aria-label="메시지 보내기"
                   className="group flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:shadow-none"
                 >

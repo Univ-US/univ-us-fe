@@ -12,6 +12,7 @@ import { BookOpen, Monitor } from 'lucide-react';
 import {
   cancelRoomReservation,
   cancelReadingSeatReservation,
+  checkInRoomReservation,
   checkInReadingSeatReservation,
   extendReadingSeatReservation,
   getMyReadingSeatReservations,
@@ -35,6 +36,7 @@ import {
 import { getApiErrorMessage, isApiErrorStatus } from '@/lib/apiError';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { useSeatChatNotificationStore } from '@/store/reservation/seatChatNotificationStore';
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
@@ -126,6 +128,24 @@ const S = {
 
 export default function CommunityReservation() {
   const currentMemberId = useAuthStore((state) => state.memberId);
+  const seatChatUnreadCount = useSeatChatNotificationStore(
+    (state) => state.totalUnreadCount,
+  );
+  const seatChatOpenRequested = useSeatChatNotificationStore(
+    (state) => state.openRequested,
+  );
+  const requestedSeatChatRoomId = useSeatChatNotificationStore(
+    (state) => state.requestedRoomId,
+  );
+  const seatChatOpenRequestId = useSeatChatNotificationStore(
+    (state) => state.openRequestId,
+  );
+  const consumeSeatChatOpenRequest = useSeatChatNotificationStore(
+    (state) => state.consumeOpenRequest,
+  );
+  const refreshSeatChatContext = useSeatChatNotificationStore(
+    (state) => state.refreshContext,
+  );
   const [tab, setTab] = useState<'seat' | 'room'>('seat');
   const [selDay, setSelDay] = useState(0);
   const [reservationDays, setReservationDays] = useState<ReservationDateOption[]>([]);
@@ -162,6 +182,8 @@ export default function CommunityReservation() {
     number | null
   >(null);
   const [checkingInReservationId, setCheckingInReservationId] = useState<number | null>(null);
+  const [checkingInRoomReservationId, setCheckingInRoomReservationId] =
+    useState<number | null>(null);
   const [extendingReservationId, setExtendingReservationId] = useState<number | null>(null);
   const [roomReservationModalOpen, setRoomReservationModalOpen] = useState(false);
   const [roomReservationPurpose, setRoomReservationPurpose] = useState('');
@@ -172,6 +194,9 @@ export default function CommunityReservation() {
     useState<ReadingSeatReservation | null>(null);
   const [cancelReservationError, setCancelReservationError] = useState('');
   const [seatChatOpen, setSeatChatOpen] = useState(false);
+  const [seatChatActivationId, setSeatChatActivationId] = useState(0);
+  const [seatChatInitialRoomId, setSeatChatInitialRoomId] =
+    useState<number | null>(null);
   const [seatChatTargetSeat, setSeatChatTargetSeat] =
     useState<ReadingSeatAvailability | null>(null);
   const [cancelRoomReservationTarget, setCancelRoomReservationTarget] =
@@ -183,6 +208,22 @@ export default function CommunityReservation() {
   const [penaltyModalOpen, setPenaltyModalOpen] = useState(false);
   const [penaltyLoading, setPenaltyLoading] = useState(false);
   const [penaltyError, setPenaltyError] = useState('');
+
+  useEffect(() => {
+    if (!seatChatOpenRequested) return;
+
+    setTab('seat');
+    setSeatChatTargetSeat(null);
+    setSeatChatInitialRoomId(requestedSeatChatRoomId);
+    setSeatChatOpen(true);
+    setSeatChatActivationId((current) => current + 1);
+    consumeSeatChatOpenRequest();
+  }, [
+    consumeSeatChatOpenRequest,
+    requestedSeatChatRoomId,
+    seatChatOpenRequestId,
+    seatChatOpenRequested,
+  ]);
 
   const selectedDay = reservationDays[selDay] ?? null;
   const reservationDateRangeLabel = useMemo(
@@ -691,7 +732,9 @@ export default function CommunityReservation() {
 
   function handleOpenSeatChat(seat: ReadingSeatAvailability | null) {
     setSeatChatTargetSeat(seat);
+    setSeatChatInitialRoomId(null);
     setSeatChatOpen(true);
+    setSeatChatActivationId((current) => current + 1);
   }
 
   async function handleReserveSeat() {
@@ -711,6 +754,7 @@ export default function CommunityReservation() {
       await Promise.all([
         refreshSelectedSeatAvailability().catch(console.error),
         loadMyReservations(),
+        refreshSeatChatContext(),
       ]);
 
       setSeatReservationModalOpen(false);
@@ -767,6 +811,7 @@ export default function CommunityReservation() {
       await Promise.all([
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
+        refreshSeatChatContext(),
       ]);
       setCancelReservationTarget(null);
       setCancelReservationError('');
@@ -795,6 +840,7 @@ export default function CommunityReservation() {
       await Promise.all([
         loadMyReservations(),
         refreshSelectedSeatAvailability().catch(console.error),
+        refreshSeatChatContext(),
       ]);
       setToast({ type: 'success', message: '입실 처리되었습니다.' });
     } catch (error) {
@@ -824,6 +870,28 @@ export default function CommunityReservation() {
       setToast({ type: 'error', message });
     } finally {
       setExtendingReservationId(null);
+    }
+  }
+
+  async function handleCheckInRoomReservation(reservationId: number) {
+    setCheckingInRoomReservationId(reservationId);
+    try {
+      await checkInRoomReservation(reservationId);
+      await Promise.all([
+        loadMyRoomReservations(),
+        refreshRoomAvailability().catch(console.error),
+      ]);
+      setToast({ type: 'success', message: '회의실 입실 처리되었습니다.' });
+    } catch (error) {
+      console.error(error);
+      const message = getApiErrorMessage(
+        error,
+        '회의실 입실 처리에 실패했습니다.',
+      );
+      await loadMyRoomReservations().catch(console.error);
+      setToast({ type: 'error', message });
+    } finally {
+      setCheckingInRoomReservationId(null);
     }
   }
 
@@ -1125,6 +1193,7 @@ export default function CommunityReservation() {
             cancelingReservationId={cancelingReservationId}
             checkingInReservationId={checkingInReservationId}
             extendingReservationId={extendingReservationId}
+            penaltyStatus={penaltyStatus}
             onCancelReservation={handleOpenCancelReservationModal}
             onCheckInReservation={handleCheckInReservation}
             onExtendReservation={handleExtendReservation}
@@ -1138,6 +1207,7 @@ export default function CommunityReservation() {
             onSelectSeat={setSelSeat}
             currentMemberId={currentMemberId}
             onOpenSeatChat={handleOpenSeatChat}
+            seatChatUnreadCount={seatChatUnreadCount}
             seatError={seatError}
             seatLoading={seatLoading}
             reservationLoading={reservationLoading}
@@ -1152,7 +1222,10 @@ export default function CommunityReservation() {
             reservationsLoading={myRoomReservationsLoading}
             reservationError={myRoomReservationError}
             cancelingReservationId={cancelingRoomReservationId}
+            checkingInReservationId={checkingInRoomReservationId}
+            penaltyStatus={penaltyStatus}
             onCancelReservation={handleOpenCancelRoomReservationModal}
+            onCheckInReservation={handleCheckInRoomReservation}
             onRefreshReservations={loadMyRoomReservations}
             availabilityError={roomAvailabilityError}
             availabilityLoading={roomAvailabilityLoading}
@@ -1208,9 +1281,12 @@ export default function CommunityReservation() {
         <SeatChatDrawer
           open={seatChatOpen}
           targetSeat={seatChatTargetSeat}
+          initialRoomId={seatChatInitialRoomId}
+          activationId={seatChatActivationId}
           onClose={() => {
             setSeatChatOpen(false);
             setSeatChatTargetSeat(null);
+            setSeatChatInitialRoomId(null);
           }}
         />
 

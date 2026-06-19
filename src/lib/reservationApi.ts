@@ -105,6 +105,8 @@ export type RoomReservation = {
   endTime: string;
   status: string;
   createdAt: string | null;
+  checkInState: 'BEFORE' | 'AVAILABLE' | 'EXPIRED' | null;
+  checkInDeadline: string | null;
 };
 
 export type ReservationMutationResponse = {
@@ -144,6 +146,7 @@ export type SeatChatRoom = {
   createdAt: string;
   lastMessageText: string | null;
   lastMessageAt: string | null;
+  unreadCount: number;
 };
 
 export type SeatChatMessage = {
@@ -158,6 +161,17 @@ export type SeatChatMessage = {
 export type SeatChatContext = {
   activeReservation: ActiveSeatReservation | null;
   rooms: SeatChatRoom[];
+  totalUnreadCount: number;
+};
+
+export type SeatChatNotification = {
+  roomId: number;
+  messageId: number;
+  senderReservationId: number;
+  senderRoomName: string;
+  senderSeatNumber: string;
+  messageText: string;
+  createdAt: string;
 };
 
 export async function getReservationDateOptions(days = 5) {
@@ -214,6 +228,10 @@ export async function getSeatChatMessages(roomId: number) {
   );
 
   return res.data;
+}
+
+export async function markSeatChatMessagesRead(roomId: number) {
+  await api.patch(`/api/reservations/seat-chats/${roomId}/read`);
 }
 
 export async function sendSeatChatMessage(
@@ -293,6 +311,14 @@ export async function reserveRoom(request: RoomReservationRequest) {
 export async function cancelRoomReservation(reservationId: number) {
   const res = await api.delete<ReservationMutationResponse>(
     `/api/reservations/rooms/${reservationId}`,
+  );
+
+  return res.data;
+}
+
+export async function checkInRoomReservation(reservationId: number) {
+  const res = await api.post<ReservationMutationResponse>(
+    `/api/reservations/rooms/${reservationId}/checkin`,
   );
 
   return res.data;

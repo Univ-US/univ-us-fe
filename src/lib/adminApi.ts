@@ -98,9 +98,11 @@ export const ROLE_LABEL: Record<string, string> = {
     SUA: "최고관리자",
 };
 
+// INACTIVE는 과거에 커뮤니티 정지 용도로 쓰였던 값으로, 현재는 SUSPENDED와 동일하게 "정지"로 취급합니다.
 export const STATUS_LABEL: Record<string, string> = {
     ACTIVE: "활성",
     SUSPENDED: "정지",
+    INACTIVE: "정지",
     WITHDRAWN: "탈퇴",
 };
 
@@ -109,6 +111,8 @@ export const STATUS_TO_API: Record<string, string> = {
     정지: "SUSPENDED",
     탈퇴: "WITHDRAWN",
 };
+
+export const isSuspendedStatus = (status: string) => status === "SUSPENDED" || status === "INACTIVE";
 
 // 회원 목록 조회 (BE는 univId 필터 미지원 → 클라이언트에서 필터링)
 export const getAdminMembers = async (params?: { memberName?: string }) => {
@@ -121,6 +125,36 @@ export const getAdminMembers = async (params?: { memberName?: string }) => {
 // 회원 상태 변경
 export const updateMemberStatus = async (memberId: number, status: string) => {
     await api.patch(`/api/admin/members/${memberId}/status`, { memberId, status });
+};
+
+export interface BulkSignupMemberInput {
+    loginId: string;
+    password: string;
+    memberName: string;
+    phoneNumber: string;
+    gender: string; // M | F
+    birth: string; // YYYYMMDD
+    role: string; // STU | PROF
+    deptId: number | null;
+}
+
+export interface BulkSignupResultItem {
+    loginId: string;
+    memberName: string;
+    success: boolean;
+    message: string | null; // 실패 시 사유 (예: "이미 사용 중인 로그인ID")
+}
+
+export interface BulkSignupResponse {
+    successCount: number;
+    failCount: number;
+    results: BulkSignupResultItem[];
+}
+
+// 회원 일괄 등록 (엑셀 업로드 기반, BE 미구현 — 아래 계약으로 연동 예정)
+export const bulkCreateMembers = async (members: BulkSignupMemberInput[]): Promise<BulkSignupResponse> => {
+    const res = await api.post<BulkSignupResponse>("/api/admin/members/bulk", { members });
+    return res.data;
 };
 
 // 공지 목록 조회

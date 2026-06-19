@@ -245,10 +245,14 @@ export default function CommunityMarketDetail({
   const selectedImage = productImages[selectedImageIndex] ?? productImages[0];
 
   const isOwner = memberId === product.memberId;
+  const isAdminUser = role === 'SUA' || role === 'ADM';
+  const canReactToProduct = !isOwner && !isAdminUser;
   const canManageProduct = isOwner || role === 'SUA' || role === 'ADM';
   const canCompleteFreeSharing = isOwner && isFreeSharing && !sold;
 
   const handleReportClick = () => {
+    if (isOwner) return;
+    if (isAdminUser) return;
     if (alreadyReported) {
       setReportToast(true);
       setTimeout(() => setReportToast(false), 3000);
@@ -359,6 +363,8 @@ export default function CommunityMarketDetail({
   }
 
   const handleToggleLike = async () => {
+    if (isOwner) return;
+    if (isAdminUser) return;
     if (!memberId) {
       alert('로그인이 필요합니다.');
       return;
@@ -612,29 +618,42 @@ export default function CommunityMarketDetail({
                     )}
                     <button
                       onClick={handleReportClick}
-                      className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700 active:translate-y-0"
+                      disabled={!canReactToProduct}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 active:translate-y-0',
+                        !canReactToProduct
+                          ? 'cursor-not-allowed text-slate-300'
+                          : 'text-slate-500 hover:-translate-y-0.5 hover:bg-slate-100 hover:text-slate-700',
+                      )}
                     >
                       <Flag className="size-3.5" />
-                      {alreadyReported ? '신고완료' : '신고하기'}
+                      {isOwner ? '내 상품' : isAdminUser ? '관리자 계정' : alreadyReported ? '신고완료' : '신고하기'}
                     </button>
                   </div>
 
                   <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={handleToggleLike}
-                      disabled={sold || likeLoading}
-                      className={cn(
-                        'flex items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40',
-                        liked
-                          ? 'border-red-300 bg-red-50 text-red-500'
-                          : 'border-border bg-white text-slate-500 hover:border-red-300 hover:text-red-500',
-                      )}
-                    >
-                      <Heart
-                        className={cn('size-4 transition-transform duration-200', liked && 'fill-current scale-110')}
-                      />
-                      관심 {likeCount}
-                    </button>
+                    {!canReactToProduct ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-border bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-500">
+                        <Heart className="size-4" />
+                        관심 {likeCount}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleToggleLike}
+                        disabled={sold || likeLoading}
+                        className={cn(
+                          'flex items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40',
+                          liked
+                            ? 'border-red-300 bg-red-50 text-red-500'
+                            : 'border-border bg-white text-slate-500 hover:border-red-300 hover:text-red-500',
+                        )}
+                      >
+                        <Heart
+                          className={cn('size-4 transition-transform duration-200', liked && 'fill-current scale-110')}
+                        />
+                        관심 {likeCount}
+                      </button>
+                    )}
 
                     <button
                       disabled={sold && !isOwner}
@@ -751,7 +770,10 @@ export default function CommunityMarketDetail({
             setProductStatus(room.productStatus);
           }
         }}
-        onTradeCompleted={onBack}
+        onTradeCompleted={() => {
+          setPaymentDone(true);
+          setProductStatus('DONE');
+        }}
       />
 
       {reportToast && (

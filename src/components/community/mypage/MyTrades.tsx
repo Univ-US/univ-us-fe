@@ -53,6 +53,7 @@ export default function MyTrades() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatTargetProduct, setChatTargetProduct] = useState<Product | null>(null);
+  const [selectedChatRoomId, setSelectedChatRoomId] = useState<number | null>(null);
   const [chatLoadingProductId, setChatLoadingProductId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -85,11 +86,13 @@ export default function MyTrades() {
 
     if (trade.role === '판매') {
       setChatTargetProduct(null);
+      setSelectedChatRoomId(null);
       setChatOpen(true);
       return;
     }
 
     const productId = getProductId(trade);
+    setSelectedChatRoomId(trade.roomId ?? null);
     setChatLoadingProductId(productId);
 
     try {
@@ -199,6 +202,7 @@ export default function MyTrades() {
       <CommunityMarketChatDrawer
         open={chatOpen}
         targetProduct={chatTargetProduct}
+        initialRoomId={selectedChatRoomId}
         onClose={() => setChatOpen(false)}
         onRoomsChanged={() => void getMyTrades().then(setTrades)}
       />
