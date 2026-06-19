@@ -29,6 +29,7 @@ const refreshClient = axios.create({
 });
 
 let refreshPromise: Promise<void> | null = null;
+const SESSION_ROLE_KEY = "univus:auth-role";
 
 const isAuthApiRequest = (url?: string) => {
     return !!url && url.startsWith("/api/auth/");
@@ -45,6 +46,26 @@ const requestRefreshToken = async () => {
     }
 
     return refreshPromise;
+};
+
+const getSessionExpiredLoginPath = () => {
+    if (typeof window === "undefined") {
+        return "/login";
+    }
+
+    const role = window.sessionStorage.getItem(SESSION_ROLE_KEY);
+    if (role === "SUA" || role === "GUEST") {
+        return "/login";
+    }
+    if (role) {
+        return "/home/login";
+    }
+
+    return window.location.pathname.startsWith("/service-admin") ||
+        window.location.pathname.startsWith("/landing") ||
+        window.location.pathname.startsWith("/signup")
+        ? "/login"
+        : "/home/login";
 };
 
 api.interceptors.request.use(
@@ -93,7 +114,7 @@ api.interceptors.response.use(
             return api(originalRequest);
         } catch (refreshError) {
             if (typeof window !== "undefined") {
-                window.location.href = "/login";
+                window.location.href = getSessionExpiredLoginPath();
             }
 
             return Promise.reject(refreshError);

@@ -27,6 +27,7 @@ export default function RoleGuard({
     const allowedRoleKey = allowedRoles.join("|");
 
     const hasAllowedRole = !!role && allowedRoleKey.split("|").includes(role);
+    const loginPath = allowedRoleKey === "SUA" ? "/login" : "/home/login";
 
     useEffect(() => {
         // AuthProvider가 localStorage 복원을 끝내기 전에는 판단하지 않습니다.
@@ -34,7 +35,7 @@ export default function RoleGuard({
 
         // 로그인하지 않은 사용자는 로그인 페이지로 보냅니다.
         if (!isLoggedIn) {
-            router.replace("/login");
+            router.replace(loginPath);
             return;
         }
 
@@ -42,7 +43,7 @@ export default function RoleGuard({
         if (!hasAllowedRole) {
             router.replace("/landing");
         }
-    }, [hasAllowedRole, isInitialized, isLoggedIn, router]);
+    }, [hasAllowedRole, isInitialized, isLoggedIn, loginPath, router]);
 
     // 인증 상태 복원 전에는 잠깐 아무것도 보여주지 않습니다.
     if (!isInitialized) {

@@ -129,6 +129,20 @@ export interface ServiceAdminMemberPage {
     totalCount: number;
     activeCount: number;
     suspendedCount: number;
+    withdrawnCount: number;
+}
+
+export interface ServiceAdminMemberActivitySummary {
+    noticeCount: number;
+    postCount: number;
+    commentCount: number;
+    inquiryCount: number;
+}
+
+export interface ServiceAdminMemberDetail {
+    member: ServiceAdminMember;
+    summary: ServiceAdminMemberActivitySummary;
+    loginLogs: ServiceAdminUserLoginLog[];
 }
 
 export interface ServiceAdminMemberQuery {
@@ -136,6 +150,136 @@ export interface ServiceAdminMemberQuery {
     keyword?: string;
     status?: MemberStatus;
     sort?: "SCHOOL_ASC" | "NAME_ASC" | "JOINED_DESC";
+}
+
+export type ServiceAdminMemberActivityType =
+    | "notices"
+    | "posts"
+    | "comments"
+    | "inquiries";
+
+export type ServiceAdminUserRole = Exclude<MemberRole, "ADM">;
+
+export interface ServiceAdminUser {
+    memberId: number;
+    univId: number | null;
+    univName: string | null;
+    deptId: number | null;
+    deptName: string | null;
+    loginId: string;
+    memberName: string;
+    role: ServiceAdminUserRole;
+    phoneNumber: number | null;
+    gender: string | null;
+    status: MemberStatus;
+    createdAt: string;
+    logtimeAt: string | null;
+    communityNickname: string | null;
+    birth: string | null;
+}
+
+export interface ServiceAdminUserPage {
+    content: ServiceAdminUser[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+    totalCount: number;
+    activeCount: number;
+    suspendedCount: number;
+    withdrawnCount: number;
+    studentCount: number;
+    professorCount: number;
+    alumniCount: number;
+    guestCount: number;
+}
+
+export interface ServiceAdminUserQuery {
+    page: number;
+    keyword?: string;
+    univId?: number;
+    role?: ServiceAdminUserRole;
+    status?: MemberStatus;
+    sort?:
+        | "JOINED_DESC"
+        | "JOINED_ASC"
+        | "NAME_ASC"
+        | "SCHOOL_ASC"
+        | "ROLE_ASC"
+        | "LOGIN_DESC";
+}
+
+export interface ServiceAdminUserActivitySummary {
+    postCount: number;
+    commentCount: number;
+    courseCount: number;
+    submissionCount: number;
+    reservationCount: number;
+    noShowCount: number;
+    inquiryCount: number;
+}
+
+export interface ServiceAdminUserLoginLog {
+    logId: number;
+    result: string;
+    failReason: string | null;
+    logTime: string;
+}
+
+export interface ServiceAdminUserLoginLogPage {
+    content: ServiceAdminUserLoginLog[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+}
+
+export interface ServiceAdminUserActivityItem {
+    id: string;
+    type: string;
+    title: string | null;
+    description: string | null;
+    status: string | null;
+    occurredAt: string | null;
+}
+
+export type ServiceAdminUserActivityType =
+    | "posts"
+    | "comments"
+    | "courses"
+    | "submissions"
+    | "reservations"
+    | "penalties"
+    | "inquiries";
+
+export interface ServiceAdminUserActivityItemPage {
+    content: ServiceAdminUserActivityItem[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+}
+
+export interface ServiceAdminUserDetail {
+    user: ServiceAdminUser;
+    summary: ServiceAdminUserActivitySummary;
+    loginLogs: ServiceAdminUserLoginLog[];
+    communityActivities: ServiceAdminUserActivityItem[];
+    courseActivities: ServiceAdminUserActivityItem[];
+    submissionActivities: ServiceAdminUserActivityItem[];
+    reservationActivities: ServiceAdminUserActivityItem[];
+    inquiryActivities: ServiceAdminUserActivityItem[];
+}
+
+export interface ServiceAdminForceLogoutResponse {
+    memberId: number;
+    revokedSessionCount: number;
 }
 
 export type ServiceAdminPaymentStatus =
@@ -371,6 +515,36 @@ export async function getServiceAdminMembers(
     return response.data;
 }
 
+export async function getServiceAdminMemberDetail(memberId: number) {
+    const response = await api.get<ServiceAdminMemberDetail>(
+        `/api/service-admin/members/${memberId}`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminMemberLoginLogs(
+    memberId: number,
+    params: { page: number; size?: number },
+) {
+    const response = await api.get<ServiceAdminUserLoginLogPage>(
+        `/api/service-admin/members/${memberId}/login-logs`,
+        { params },
+    );
+    return response.data;
+}
+
+export async function getServiceAdminMemberActivities(
+    memberId: number,
+    activityType: ServiceAdminMemberActivityType,
+    params: { page: number; size?: number },
+) {
+    const response = await api.get<ServiceAdminUserActivityItemPage>(
+        `/api/service-admin/members/${memberId}/activities/${activityType}`,
+        { params },
+    );
+    return response.data;
+}
+
 export async function changeServiceAdminMemberStatus(
     memberId: number,
     status: "ACTIVE" | "SUSPENDED",
@@ -378,6 +552,71 @@ export async function changeServiceAdminMemberStatus(
     const response = await api.patch<ServiceAdminMember>(
         `/api/service-admin/members/${memberId}/status`,
         { status },
+    );
+    return response.data;
+}
+
+export async function forceLogoutServiceAdminMember(memberId: number) {
+    const response = await api.post<ServiceAdminForceLogoutResponse>(
+        `/api/service-admin/members/${memberId}/force-logout`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminUsers(
+    params: ServiceAdminUserQuery,
+) {
+    const response = await api.get<ServiceAdminUserPage>(
+        "/api/service-admin/members/users",
+        { params },
+    );
+    return response.data;
+}
+
+export async function getServiceAdminUserDetail(memberId: number) {
+    const response = await api.get<ServiceAdminUserDetail>(
+        `/api/service-admin/members/users/${memberId}`,
+    );
+    return response.data;
+}
+
+export async function getServiceAdminUserLoginLogs(
+    memberId: number,
+    params: { page: number; size?: number },
+) {
+    const response = await api.get<ServiceAdminUserLoginLogPage>(
+        `/api/service-admin/members/users/${memberId}/login-logs`,
+        { params },
+    );
+    return response.data;
+}
+
+export async function getServiceAdminUserActivities(
+    memberId: number,
+    activityType: ServiceAdminUserActivityType,
+    params: { page: number; size?: number },
+) {
+    const response = await api.get<ServiceAdminUserActivityItemPage>(
+        `/api/service-admin/members/users/${memberId}/activities/${activityType}`,
+        { params },
+    );
+    return response.data;
+}
+
+export async function changeServiceAdminUserStatus(
+    memberId: number,
+    status: MemberStatus,
+) {
+    const response = await api.patch<ServiceAdminUser>(
+        `/api/service-admin/members/users/${memberId}/status`,
+        { status },
+    );
+    return response.data;
+}
+
+export async function forceLogoutServiceAdminUser(memberId: number) {
+    const response = await api.post<ServiceAdminForceLogoutResponse>(
+        `/api/service-admin/members/users/${memberId}/force-logout`,
     );
     return response.data;
 }
