@@ -38,6 +38,7 @@ export default function CommunityBoardDetail({
   const memberId = useAuthStore((s) => s.memberId);
   const role = useAuthStore((s) => s.role);
   const [post, setPost] = useState<Post>(initialPost);
+  const [detailReady, setDetailReady] = useState(false);
   const [liked, setLiked] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [alreadyReported, setAlreadyReported] = useState(false);
@@ -72,6 +73,9 @@ export default function CommunityBoardDetail({
         setAlreadyReported(reportStatus.reported);
       } catch {
         // 실패해도 기존 데이터 유지
+      } finally {
+        // 목록에서 넘어온 캐시된 isBlind는 신뢰하지 않고, 단건 조회 응답이 와야 블라인드 여부를 확정한다
+        setDetailReady(true);
       }
     };
     fetchDetail();
@@ -130,6 +134,15 @@ export default function CommunityBoardDetail({
       alert('삭제에 실패했습니다. 다시 시도해 주세요.');
     }
   };
+
+  // 목록에서 넘어온 post는 isBlind가 최신이 아닐 수 있으므로, 단건 조회가 끝나기 전엔 내용을 보여주지 않는다
+  if (!detailReady) {
+    return (
+      <div className='mx-auto flex max-w-[920px] items-center justify-center py-24 text-[13px] font-medium text-slate-400'>
+        불러오는 중...
+      </div>
+    );
+  }
 
   // 블라인드
   if (post.isBlind) {
