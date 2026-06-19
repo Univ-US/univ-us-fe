@@ -41,8 +41,8 @@ function applyMessageToRooms(
 
       return {
         ...room,
-        lastMessage: message.text,
-        lastAt: message.sentAt,
+        lastMessage: message.chtRomMsgContent,
+        lastAt: message.chtRomMsgDate,
         unread: message.sender === "me" || message.roomId === activeRoomId
           ? 0
           : room.unread + incomingUnread,
@@ -124,10 +124,10 @@ export default function ProfessorChatPage() {
 
       setThread((current) => {
         if (!current || current.roomId !== message.roomId) return current;
-        if (current.messages.some((item) => item.id === message.id)) return current;
+        if (current.messages.some((item) => item.messageId === message.messageId)) return current;
         return {
           ...current,
-          dateLabel: current.dateLabel || formatChatDateLabel(message.sentAt),
+          dateLabel: current.dateLabel || formatChatDateLabel(message.chtRomMsgDate),
           messages: [...current.messages, message],
         };
       });
@@ -363,28 +363,28 @@ export default function ProfessorChatPage() {
                       )}
                       {thread.messages.map((message) =>
                         message.sender === "student" ? (
-                          <div key={message.id} className="flex flex-col items-start">
+                          <div key={message.messageId} className="flex flex-col items-start">
                             <span className="mb-1 text-[11px] text-slate-400">
                               {selectedRoom.studentName}
                             </span>
                             <div className="flex max-w-[85%] items-end gap-2">
                               <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2 text-sm text-slate-700 shadow-sm">
-                                <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                                <p className="whitespace-pre-wrap break-words">{message.chtRomMsgContent}</p>
                               </div>
                               <span className="shrink-0 text-[11px] text-slate-400">
-                                {formatChatMessageTime(message.sentAt)}
+                                {formatChatMessageTime(message.chtRomMsgDate)}
                               </span>
                             </div>
                           </div>
                         ) : (
-                          <div key={message.id} className="flex justify-end">
+                          <div key={message.messageId} className="flex justify-end">
                             <div className="flex max-w-[85%] items-end gap-2">
                               <span className="shrink-0 text-[11px] text-slate-400">
                                 {message.read ? "읽음 " : ""}
-                                {formatChatMessageTime(message.sentAt)}
+                                {formatChatMessageTime(message.chtRomMsgDate)}
                               </span>
                               <div className="rounded-2xl rounded-tr-sm bg-slate-800 px-3.5 py-2 text-sm text-white shadow-sm">
-                                <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                                <p className="whitespace-pre-wrap break-words">{message.chtRomMsgContent}</p>
                               </div>
                             </div>
                           </div>
