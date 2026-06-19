@@ -93,7 +93,10 @@ api.interceptors.response.use(
             return api(originalRequest);
         } catch (refreshError) {
             if (typeof window !== "undefined") {
-                window.location.href = "/login";
+                const isAdminPath =
+                    window.location.pathname.startsWith("/service-admin") ||
+                    window.location.pathname.startsWith("/dashboard");
+                window.location.href = isAdminPath ? "/login" : "/home/login";
             }
 
             return Promise.reject(refreshError);
