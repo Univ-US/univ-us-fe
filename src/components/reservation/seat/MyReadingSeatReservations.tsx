@@ -38,6 +38,7 @@ type MyReadingSeatReservationsProps = {
   onCancel: (reservationId: number) => void;
   onCheckIn?: (reservationId: number) => void;
   onExtend?: (reservationId: number) => void;
+  onOpenPenaltyHistory: () => void;
   onRefresh: () => void;
 };
 
@@ -52,6 +53,7 @@ export default function MyReadingSeatReservations({
   onCancel,
   onCheckIn,
   onExtend,
+  onOpenPenaltyHistory,
   onRefresh,
 }: MyReadingSeatReservationsProps) {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -83,7 +85,10 @@ export default function MyReadingSeatReservations({
           </div>
         </div>
         <div className='flex items-center gap-2'>
-          <ReservationPenaltyBadge status={penaltyStatus} />
+          <ReservationPenaltyBadge
+            status={penaltyStatus}
+            onClick={onOpenPenaltyHistory}
+          />
           <button
             type='button'
             onClick={onRefresh}

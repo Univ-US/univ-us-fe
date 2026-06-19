@@ -22,6 +22,7 @@ type MyRoomReservationsProps = {
   penaltyStatus: ReservationPenaltyStatus | null;
   onCancel: (reservation: RoomReservation) => void;
   onCheckIn: (reservationId: number) => void;
+  onOpenPenaltyHistory: () => void;
   onRefresh: () => void;
 };
 
@@ -34,6 +35,7 @@ export default function MyRoomReservations({
   penaltyStatus,
   onCancel,
   onCheckIn,
+  onOpenPenaltyHistory,
   onRefresh,
 }: MyRoomReservationsProps) {
   return (
@@ -48,7 +50,10 @@ export default function MyRoomReservations({
           </div>
         </div>
         <div className='flex items-center gap-2'>
-          <ReservationPenaltyBadge status={penaltyStatus} />
+          <ReservationPenaltyBadge
+            status={penaltyStatus}
+            onClick={onOpenPenaltyHistory}
+          />
           <button
             type='button'
             onClick={onRefresh}

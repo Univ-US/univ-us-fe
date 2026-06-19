@@ -31,6 +31,7 @@ type SeatReservationSectionProps = {
   onCancelReservation: (reservationId: number) => void;
   onCheckInReservation?: (reservationId: number) => void;
   onExtendReservation?: (reservationId: number) => void;
+  onOpenPenaltyHistory: () => void;
   onRefreshReservations: () => void;
   rooms: ReadingRoomAvailability[];
   currentRoom: ReadingRoomAvailability | undefined;
@@ -67,6 +68,7 @@ export default function SeatReservationSection({
   onCancelReservation,
   onCheckInReservation,
   onExtendReservation,
+  onOpenPenaltyHistory,
   onRefreshReservations,
   rooms,
   currentRoom,
@@ -107,6 +109,7 @@ export default function SeatReservationSection({
         onCancel={onCancelReservation}
         onCheckIn={onCheckInReservation}
         onExtend={onExtendReservation}
+        onOpenPenaltyHistory={onOpenPenaltyHistory}
         onRefresh={onRefreshReservations}
       />
 
