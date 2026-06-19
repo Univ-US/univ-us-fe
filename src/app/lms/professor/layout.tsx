@@ -5,6 +5,7 @@
 // - 네비: '프로필'만 활성(PLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 LMS 페이지(현재는 /lms/professor/profile)
 import { useEffect, useState, type ReactNode } from "react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -69,6 +70,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
   const [accessChecked, setAccessChecked] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false); // 프로필 로드 실패(BE 문제) 표기
   const [logoutOpen, setLogoutOpen] = useState(false); // PLM-011 로그아웃 확인 모달
+  const [sidebarOpen, setSidebarOpen] = useState(false); // 사이드바 접기/펼치기 (학생 사이드바와 동일 동작)
 
   // '채점 현황' 배지용 미채점 건수 — 채점 화면과 같은 스토어 공유(같은 totalUngraded 값)
   const ungradedCount = useLmsGradingStore((s) => s.ungradedCount);
@@ -111,6 +113,21 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
     if (role === ROLE.PROF) void loadChatUnreadCount();
   }, [role, loadChatUnreadCount]);
 
+  // 데스크톱(≥768px)이면 펼침·모바일이면 접힘으로 초기 동기화 (학생 사이드바와 동일)
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const sync = () => setSidebarOpen(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  // 모바일에서 페이지 이동 시 사이드바 자동 접기
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 767px)");
+    if (mobile.matches) setSidebarOpen(false);
+  }, [pathname]);
+
   // PLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 홈(/) 이동
   const handleLogout = async () => {
     // 로그아웃 플래그 → LmsGuard가 "로그인이 안되어있습니다" alert를 건너뛰게 함(커뮤니티 패턴)
@@ -134,31 +151,87 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
-          높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-slate-900 text-slate-300">
-        {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 LMS 메인(강의 내역)으로 이동 (홈은 하단 '홈으로') */}
-        <Link
-          href="/lms/professor/courses"
-          title="강의 내역"
-          className="flex items-center gap-3 px-5 py-5 transition-colors hover:bg-slate-800/60"
+      {!sidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="사이드바 열기"
+          title="사이드바 열기"
+          className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-800 shadow-lg md:hidden"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] text-slate-400">
-              {/* 학교명: BE 제공(계정 미설정이면 null) */}
-              {profile?.universityName || "—"}
-            </p>
-            <p className="text-lg font-bold text-white">UniVUs</p>
-          </div>
-          <span className="ml-auto rounded-md border border-slate-600 px-2 py-0.5 text-xs text-slate-300">
-            {profile?.role || "교수"}
-          </span>
-        </Link>
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+      {sidebarOpen && (
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="사이드바 닫기"
+          className="fixed inset-0 z-30 bg-slate-950/35 md:hidden"
+        />
+      )}
+
+      {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
+          높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤.
+          토글 버튼으로 접기/펼치기(데스크톱 w-60↔w-16 · 모바일 오버레이) — 학생 사이드바와 동일 동작 */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col bg-slate-900 text-slate-300 shadow-xl transition-all duration-200 md:sticky md:top-0 md:z-auto md:shadow-none ${
+          sidebarOpen
+            ? "translate-x-0 md:w-60"
+            : "-translate-x-full md:w-16 md:translate-x-0"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setSidebarOpen((open) => !open)}
+          aria-label={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
+          title={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
+          className="absolute right-0 top-5 z-10 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-slate-700/70 bg-slate-950 text-slate-50 shadow-lg hover:bg-slate-800"
+        >
+          {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+        </button>
+
+        {/* 브랜드: 학교명(API) + UniVUs — 펼침=강의 내역 이동 / 접힘=로고 클릭 시 펼치기 */}
+        <div className={`flex items-center px-3 py-4 ${sidebarOpen ? "gap-2" : "justify-center"}`}>
+          {sidebarOpen ? (
+            <Link
+              href="/lms/professor/courses"
+              title="강의 내역"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-slate-800/60"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
+              <div className="min-w-0">
+                <p className="truncate text-[11px] text-slate-400">
+                  {/* 학교명: BE 제공(계정 미설정이면 null) */}
+                  {profile?.universityName || "—"}
+                </p>
+                <p className="text-lg font-bold text-white">UniVUs</p>
+              </div>
+              <span className="ml-auto rounded-md border border-slate-600 px-2 py-0.5 text-xs text-slate-300">
+                {profile?.role || "교수"}
+              </span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="사이드바 펼치기"
+              title="사이드바 펼치기"
+              className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-slate-800/60"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/univusicon.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
+            </button>
+          )}
+        </div>
 
         {/* 사용자 카드 */}
-        <div className="mx-3 mb-4 flex items-center gap-3 rounded-xl bg-slate-800/70 px-3 py-3">
+        <div
+          className={`mx-3 mb-4 flex items-center rounded-xl bg-slate-800/70 px-3 py-3 ${
+            sidebarOpen ? "gap-3" : "justify-center"
+          }`}
+        >
           <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.employeeNo)} text-sm font-semibold text-white`}>
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -167,22 +240,24 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
               <span>{initial}</span>
             )}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {profile?.name ?? "교수"} {profile?.role || "교수"}
-            </p>
-            <p className="truncate text-xs text-slate-400">
-              {/* 학과 · 사번 (학생 사이드바의 학과·학번과 동일 패턴) */}
-              {profile?.department ?? "—"}
-              {profile?.employeeNo
-                ? ` · ${profile.employeeNo}`
-                : ""}
-            </p>
-          </div>
+          {sidebarOpen && (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">
+                {profile?.name ?? "교수"} {profile?.role || "교수"}
+              </p>
+              <p className="truncate text-xs text-slate-400">
+                {/* 학과 · 사번 (학생 사이드바의 학과·학번과 동일 패턴) */}
+                {profile?.department ?? "—"}
+                {profile?.employeeNo
+                  ? ` · ${profile.employeeNo}`
+                  : ""}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* 프로필 로드 실패 시 (가짜 정보로 가리지 않고 표기) */}
-        {loadFailed && !profile && (
+        {sidebarOpen && loadFailed && !profile && (
           <p className="mx-3 -mt-2 mb-3 text-[11px] text-amber-400">
             ⚠ 프로필 정보를 불러오지 못했습니다 (서버 확인)
           </p>
@@ -192,9 +267,11 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
         <nav className="flex-1 overflow-y-auto px-3">
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="mb-4">
-              <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-slate-500">
-                {section.title}
-              </p>
+              {sidebarOpen && (
+                <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-slate-500">
+                  {section.title}
+                </p>
+              )}
               {section.items.map((item) => {
                 const active =
                   item.href && stripSlash(pathname) === stripSlash(item.href);
@@ -208,16 +285,20 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                 const content = (
                   <>
                     <span className="text-base">{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
+                    {sidebarOpen && <span className="flex-1">{item.label}</span>}
                     {badge != null && badge > 0 && (
-                      <span className="rounded-full bg-emerald-500/90 px-1.5 text-[11px] font-semibold text-white">
+                      <span
+                        className={`rounded-full bg-emerald-500/90 px-1.5 text-[11px] font-semibold text-white ${
+                          sidebarOpen ? "" : "absolute right-0.5 top-0.5"
+                        }`}
+                      >
                         {badge}
                       </span>
                     )}
                   </>
                 );
                 const base =
-                  "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors";
+                  "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors";
                 return item.href ? (
                   <Link
                     key={item.label}
@@ -226,7 +307,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                       active
                         ? "bg-slate-700 font-semibold text-white"
                         : "text-slate-300 hover:bg-slate-800"
-                    }`}
+                    } ${sidebarOpen ? "" : "justify-center"}`}
                   >
                     {content}
                   </Link>
@@ -234,7 +315,9 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-slate-500`}
+                    className={`${base} cursor-not-allowed text-slate-500 ${
+                      sidebarOpen ? "" : "justify-center"
+                    }`}
                   >
                     {content}
                   </div>
@@ -248,17 +331,22 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
         <div className="py-2">
           <Link
             href="/home"
-            className="flex items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white"
+            title="홈으로"
+            className={`flex items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white ${
+              sidebarOpen ? "" : "justify-center px-0"
+            }`}
           >
-            <span className="text-base">🏠</span> 홈으로
+            <span className="text-base">🏠</span> {sidebarOpen && "홈으로"}
           </Link>
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
             title="로그아웃"
-            className="flex w-full items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white"
+            className={`flex w-full items-center gap-2.5 px-5 py-2 text-sm text-slate-300 hover:text-white ${
+              sidebarOpen ? "" : "justify-center px-0"
+            }`}
           >
-            <span className="text-base">↩</span> 로그아웃
+            <span className="text-base">↩</span> {sidebarOpen && "로그아웃"}
           </button>
         </div>
       </aside>
