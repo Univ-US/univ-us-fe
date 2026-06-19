@@ -11,8 +11,8 @@ import {
 import {
   getSubmittableAssignments,
   submitStudentAssignment,
-  type SubmitItem,
 } from "@/lib/lmsStudentSubmitApi";
+import type { SubmitItem } from "@/types/lmsStudentSubmit";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";

@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getUniversities, streamChatMessage, getNotices, getHomeConfig, Notice, type HomeWidgetConfig } from "@/lib/homeApi";
-import { getStudentCalendar, type CalendarEvent } from "@/lib/lmsStudentCalendarApi";
+import { getStudentCalendar } from "@/lib/lmsStudentCalendarApi";
+import type { CalendarEvent } from "@/types/lmsStudentCalendar";
 import { getProfessorCalendar } from "@/lib/lmsProfessorCalendarApi";
 import api from "@/lib/api";
 import { ROLE } from "@/lib/rolecode";

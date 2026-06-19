@@ -11,10 +11,8 @@ import { useEffect, useState } from "react";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { formatFileSize, isVideoExt } from "@/lib/lmsProfessorUploadApi";
 import { sanitizeLmsHtml } from "@/lib/lmsSanitize";
-import {
-  downloadStudentMaterialAttachment,
-  type Material,
-} from "@/lib/lmsStudentMaterialsApi";
+import { downloadStudentMaterialAttachment } from "@/lib/lmsStudentMaterialsApi";
+import type { Material } from "@/types/lmsStudentMaterials";
 import "./lms-content.css"; // 교수 에디터(Tiptap)와 동일한 콘텐츠 스타일 — 표시 동일성
 
 interface StudentMaterialViewDialogProps {

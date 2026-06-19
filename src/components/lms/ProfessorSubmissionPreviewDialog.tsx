@@ -13,8 +13,8 @@ import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
   downloadSubmissionFile,
   formatFileSize,
-  type Submission,
 } from "@/lib/lmsProfessorGradingApi";
+import type { Submission } from "@/types/lmsProfessorGrading";
 import { describeApiError } from "@/lib/lmsApiError";
 
 // 사이드바(w-60=240px) 제외 본문 영역 기준 중앙

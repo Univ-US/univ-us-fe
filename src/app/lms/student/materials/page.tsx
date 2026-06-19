@@ -6,12 +6,12 @@ import { isVideoExt } from "@/lib/lmsProfessorUploadApi"; // 영상 확장자 �
 import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요약(content HTML → plain text)
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import StudentMaterialViewDialog from "@/components/lms/StudentMaterialViewDialog";
-import {
-  getStudentMaterials,
-  type CourseMaterials,
-  type Material,
-  type SemesterMaterials,
-} from "@/lib/lmsStudentMaterialsApi";
+import { getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
+import type {
+  CourseMaterials,
+  Material,
+  SemesterMaterials,
+} from "@/types/lmsStudentMaterials";
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];

@@ -9,11 +9,13 @@ import { htmlToPlainText } from "@/lib/lmsSanitize";
 import {
   getStudentAssignments,
   STUDENT_ASSIGNMENT_STATUS_LABEL,
-  type StudentAssignment,
-  type StudentAssignmentStatus,
-  type StudentAssignmentsResult,
-  type SemesterAssignments,
 } from "@/lib/lmsStudentAssignmentsApi";
+import type {
+  StudentAssignment,
+  StudentAssignmentStatus,
+  StudentAssignmentsResult,
+  SemesterAssignments,
+} from "@/types/lmsStudentAssignments";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 
 type StatusFilter = "all" | StudentAssignmentStatus;

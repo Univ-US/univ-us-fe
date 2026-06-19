@@ -6,7 +6,7 @@
 // - 인접 월 날짜는 회색 비활성 + 이벤트 미표시 / 일요일 빨강·토요일 파랑 / 오늘 강조
 // - 월 이동은 부모가 onPrev/onNext로 처리(데이터 재조회) — 그리드는 표시 전용
 import { cn } from "@/lib/utils";
-import type { CalendarEvent } from "@/lib/lmsStudentCalendarApi";
+import type { CalendarEvent } from "@/types/lmsStudentCalendar";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const pad = (n: number) => String(n).padStart(2, "0");

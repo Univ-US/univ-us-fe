@@ -22,10 +22,8 @@ import {
   getUploads,
   getUploadsMeta,
   isVideoExt,
-  type Lecture,
-  type Material,
-  type SemesterOption,
 } from "@/lib/lmsProfessorUploadApi";
+import type { Lecture, Material, SemesterOption } from "@/types/lmsProfessorUpload";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";

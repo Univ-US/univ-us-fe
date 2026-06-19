@@ -17,12 +17,14 @@ import {
   termLabel,
   ATTENDANCE_STATUS,
   AT_RISK_THRESHOLD,
-  type AttendanceLecture,
-  type AttendanceSession,
-  type AttendanceStatus,
-  type AttendanceStudentRow,
-  type LectureAttendance,
 } from "@/lib/lmsProfessorAttendanceApi";
+import type {
+  AttendanceLecture,
+  AttendanceSession,
+  AttendanceStatus,
+  AttendanceStudentRow,
+  LectureAttendance,
+} from "@/types/lmsProfessorAttendance";
 import { describeApiError } from "@/lib/lmsApiError";
 
 // 학기 정렬 순서(SEM_TERM) — 학기 드롭다운 정렬용

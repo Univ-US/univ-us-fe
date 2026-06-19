@@ -10,12 +10,12 @@
 // ⚠️ 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  getProfessorCourses,
-  type ProfessorCourseRow,
-  type ProfessorSemesterCourses,
-  type ProfessorCoursesOverview,
-} from "@/lib/lmsProfessorCoursesApi";
+import { getProfessorCourses } from "@/lib/lmsProfessorCoursesApi";
+import type {
+  ProfessorCourseRow,
+  ProfessorSemesterCourses,
+  ProfessorCoursesOverview,
+} from "@/types/lmsProfessorCourses";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 
 const TERM_LABEL: Record<string, string> = {

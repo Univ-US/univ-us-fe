@@ -14,10 +14,8 @@ import {
   getChatThread,
   LMS_STUDENT_CHAT_TOPIC_PREFIX,
   sendChatMessage,
-  type ChatMessage,
-  type ChatRoom,
-  type ChatThread,
 } from "@/lib/lmsStudentChatApi";
+import type { ChatMessage, ChatRoom, ChatThread } from "@/types/lmsStudentChat";
 import { getWebSocketEndpointUrl } from "@/lib/realtime";
 import { useLmsStudentChatStore } from "@/store/lms/lmsStudentChatStore";
 

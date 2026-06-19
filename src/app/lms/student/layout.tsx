@@ -19,8 +19,8 @@ import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
   getChatRooms,
   LMS_STUDENT_CHAT_TOPIC_PREFIX,
-  type ChatMessage,
 } from "@/lib/lmsStudentChatApi";
+import type { ChatMessage } from "@/types/lmsStudentChat";
 import { getWebSocketEndpointUrl } from "@/lib/realtime";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";

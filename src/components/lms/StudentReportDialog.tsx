@@ -8,7 +8,8 @@
 // ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import useEscapeClose from "@/components/lms/useEscapeClose";
-import { resolveImageUrl, type StudentReport } from "@/lib/lmsProfessorStudentsApi";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
+import type { StudentReport } from "@/types/lmsProfessorStudents";
 
 interface StudentReportDialogProps {
   open: boolean;

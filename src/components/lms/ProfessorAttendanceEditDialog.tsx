@@ -13,10 +13,12 @@ import {
   ATTENDANCE_STATUS,
   AT_RISK_THRESHOLD,
   tallySessions,
-  type AttendanceSession,
-  type AttendanceStatus,
-  type AttendanceStudentRow,
 } from "@/lib/lmsProfessorAttendanceApi";
+import type {
+  AttendanceSession,
+  AttendanceStatus,
+  AttendanceStudentRow,
+} from "@/types/lmsProfessorAttendance";
 
 interface ProfessorAttendanceEditDialogProps {
   open: boolean;

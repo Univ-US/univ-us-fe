@@ -24,10 +24,8 @@ import {
   formatFileSize,
   isVideoExt,
   updateUpload,
-  type Attachment,
-  type Lecture,
-  type Material,
 } from "@/lib/lmsProfessorUploadApi";
+import type { Attachment, Lecture, Material } from "@/types/lmsProfessorUpload";
 import { describeApiError } from "@/lib/lmsApiError";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 

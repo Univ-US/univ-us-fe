@@ -21,12 +21,14 @@ import {
   getCommonCodeMap,
   getSemesters,
   getUngradedCount,
-  type GradingOverview,
-  type GradingDetail,
-  type AssignmentRow,
-  type Submission,
-  type Semester,
 } from "@/lib/lmsProfessorGradingApi";
+import type {
+  GradingOverview,
+  GradingDetail,
+  AssignmentRow,
+  Submission,
+} from "@/types/lmsProfessorGrading";
+import type { Semester } from "@/types/lmsProfessorStudents";
 import { describeApiError } from "@/lib/lmsApiError";
 import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 
