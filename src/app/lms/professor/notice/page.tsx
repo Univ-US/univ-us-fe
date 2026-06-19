@@ -27,10 +27,8 @@ import {
   updateNotice,
   deleteNotice,
   downloadNoticeAttachment,
-  type Notice,
-  type NoticeAttachment,
-  type NoticeLecture,
 } from "@/lib/lmsProfessorNoticeApi";
+import type { Notice, NoticeAttachment, NoticeLecture } from "@/types/lmsProfessorNotice";
 import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
 
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];

@@ -1,6 +1,21 @@
 import api from "@/lib/api";
+import type {
+  StudentAssignmentStatus,
+  SubmissionFile,
+  StudentAssignmentsResult,
+  UpdateStudentAssignmentSubmissionInput,
+} from "@/types/lmsStudentAssignments";
 
-export type StudentAssignmentStatus = "NSB" | "SBM" | "GRD";
+// 타입은 @/types/lmsStudentAssignments로 분리 — 기존 소비처 호환용 re-export
+export type {
+  StudentAssignmentStatus,
+  SubmissionFile,
+  AssignmentFeedback,
+  StudentAssignment,
+  SemesterAssignments,
+  StudentAssignmentsResult,
+  UpdateStudentAssignmentSubmissionInput,
+} from "@/types/lmsStudentAssignments";
 
 export const STUDENT_ASSIGNMENT_STATUS_LABEL: Record<StudentAssignmentStatus, string> = {
   NSB: "미제출",
@@ -8,64 +23,12 @@ export const STUDENT_ASSIGNMENT_STATUS_LABEL: Record<StudentAssignmentStatus, st
   GRD: "채점완료",
 };
 
-export interface SubmissionFile {
-  fileName: string;
-  fileSize: number;
-  fileUrl?: string | null;
-  contentType?: string | null;
-}
-
-export interface AssignmentFeedback {
-  asnSbmEvlScore: number;
-  maxScore: number;
-  courseName: string;
-  professor: string;
-  asnSbmEvlFeedback: string;
-}
-
-export interface StudentAssignment {
-  id: number;
-  submissionId?: number | null;
-  lecId?: number | null;
-  courseName: string;
-  lecSection?: number | null;
-  lecAsnTitle: string;
-  lecAsnContent?: string | null;
-  lecAsnDueDate: string;
-  status: StudentAssignmentStatus;
-  overdue?: boolean;
-  asnSbmEvlScore: number | null;
-  maxScore: number;
-  lecAsnSbmRegDate?: string | null;
-  lecAsnSbmMemo?: string | null;
-  file?: SubmissionFile | null;
-  feedback?: AssignmentFeedback | null;
-}
-
-export interface SemesterAssignments {
-  semYear: number;
-  semTerm: string;
-  semesterLabel: string;
-  assignments: StudentAssignment[];
-}
-
-export interface StudentAssignmentsResult {
-  semesters: SemesterAssignments[];
-}
-
 export { formatFileSize } from "@/lib/lmsProfessorUploadApi";
 
 export const getStudentAssignments = async (): Promise<StudentAssignmentsResult> => {
   const res = await api.get<StudentAssignmentsResult>("/api/lms/student/assignments");
   return res.data;
 };
-
-export interface UpdateStudentAssignmentSubmissionInput {
-  submissionId: number;
-  memo?: string;
-  file?: File | null;
-  removeExistingFile?: boolean;
-}
 
 export const updateStudentAssignmentSubmission = async (
   input: UpdateStudentAssignmentSubmissionInput,

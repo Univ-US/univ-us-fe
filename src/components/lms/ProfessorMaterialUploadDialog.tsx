@@ -9,7 +9,7 @@
 import { Button } from "@/components/ui/button";
 import ProfessorMaterialUploadForm from "@/components/lms/ProfessorMaterialUploadForm";
 import useEscapeClose from "@/components/lms/useEscapeClose";
-import type { Lecture, Material } from "@/lib/lmsProfessorUploadApi";
+import type { Lecture, Material } from "@/types/lmsProfessorUpload";
 
 interface ProfessorMaterialUploadDialogProps {
   open: boolean;

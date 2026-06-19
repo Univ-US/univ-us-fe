@@ -27,9 +27,8 @@ import {
   getAssignmentLectures,
   getCourseAssignments,
   updateAssignment,
-  type Assignment,
-  type AssignmentLecture,
 } from "@/lib/lmsProfessorAssignmentsApi";
+import type { Assignment, AssignmentLecture } from "@/types/lmsProfessorAssignments";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 
 const selectClass =

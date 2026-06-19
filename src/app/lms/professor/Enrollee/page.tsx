@@ -20,12 +20,14 @@ import {
   LECTURE_NAME_MAX,
   resolveImageUrl,
   EMPTY_LECTURE_STUDENTS,
-  type Lecture,
-  type CourseStudentRow,
-  type LectureStudentsResponse,
-  type StudentReport,
-  type StudentsQuery,
 } from "@/lib/lmsProfessorStudentsApi";
+import type {
+  Lecture,
+  CourseStudentRow,
+  LectureStudentsResponse,
+  StudentReport,
+  StudentsQuery,
+} from "@/types/lmsProfessorStudents";
 import { describeApiError } from "@/lib/lmsApiError";
 
 const PAGE_SIZE = 10;

@@ -5,7 +5,8 @@
 // 색상 = 학생 에메랄드 계열(§13). 월 이동 시 해당 월 범위로 재조회.
 import { useCallback, useEffect, useState } from "react";
 import StudentCalendar, { type CalendarTheme } from "@/components/lms/StudentCalendar";
-import { getStudentCalendar, type CalendarEvent } from "@/lib/lmsStudentCalendarApi";
+import { getStudentCalendar } from "@/lib/lmsStudentCalendarApi";
+import type { CalendarEvent } from "@/types/lmsStudentCalendar";
 
 // 학생 = 에메랄드(강의) + 오렌지(과제 마감) — 설계서 SLM-010 그대로
 const THEME: CalendarTheme = {

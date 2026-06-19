@@ -15,12 +15,14 @@ import {
   LMS_PROFESSOR_CHAT_TOPIC_PREFIX,
   normalizeProfessorMessageForRoom,
   sendProfessorChatMessage,
-  type ProfessorChatMessage,
-  type ProfessorChatRoom,
-  type ProfessorChatThread,
 } from "@/lib/lmsProfessorChatApi";
 import { getWebSocketEndpointUrl } from "@/lib/realtime";
 import { useLmsProfessorChatStore } from "@/store/lms/lmsProfessorChatStore";
+import type {
+  ProfessorChatMessage,
+  ProfessorChatRoom,
+  ProfessorChatThread,
+} from "@/types/lmsProfessorChat";
 
 type RealtimeStatus = "connected" | "disconnected";
 

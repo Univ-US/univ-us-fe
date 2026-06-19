@@ -6,8 +6,8 @@ import {
   downloadStudentAssignmentFile,
   formatFileSize,
   updateStudentAssignmentSubmission,
-  type StudentAssignment,
 } from "@/lib/lmsStudentAssignmentsApi";
+import type { StudentAssignment } from "@/types/lmsStudentAssignments";
 import {
   UPLOAD_ACCEPT,
   UPLOAD_ALLOWED_EXTS,

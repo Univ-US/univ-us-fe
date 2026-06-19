@@ -1,59 +1,26 @@
 import { getStudentAssignments, type SemesterAssignments, type StudentAssignment } from "@/lib/lmsStudentAssignmentsApi";
 import { getStudentAttendance, type SemesterAttendance } from "@/lib/lmsStudentAttendanceApi";
-import { getStudentCourses, type SemesterCourses } from "@/lib/lmsStudentCoursesApi";
+import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+import type { SemesterCourses } from "@/types/lmsStudentCourses";
 import { getStudentProfile } from "@/lib/lmsStudentApi";
+import type {
+  DashboardAssignment,
+  DashboardCourse,
+  DashboardSemesterOption,
+  GetStudentDashboardParams,
+  LectureTime,
+  StudentDashboard,
+} from "@/types/lmsStudentDashboard";
 
-export type { StudentAssignmentStatus } from "@/lib/lmsStudentAssignmentsApi";
-import type { StudentAssignmentStatus } from "@/lib/lmsStudentAssignmentsApi";
-
-export interface LectureTime {
-  dayCode: string;
-  start: string;
-  end: string;
-}
-
-export interface DashboardCourse {
-  lecId: number;
-  courseName: string;
-  credit: number;
-  professor: string;
-  times: LectureTime[];
-  attendanceRate: number;
-}
-
-export interface DashboardAssignment {
-  id: number;
-  lecId: number;
-  title: string;
-  due: string;
-  status: StudentAssignmentStatus;
-}
-
-export interface DashboardSemesterOption {
-  year: number;
-  termCode: string;
-  semesterLabel: string;
-}
-
-export interface StudentDashboard {
-  studentName: string;
-  semesterLabel: string;
-  year: number;
-  termCode: string;
-  availableSemesters: DashboardSemesterOption[];
-  stats: {
-    courseCount: number;
-    totalCredits: number;
-    avgAttendance: number;
-  };
-  courses: DashboardCourse[];
-  assignments: DashboardAssignment[];
-}
-
-export interface GetStudentDashboardParams {
-  year?: number | null;
-  termCode?: string | null;
-}
+export type { StudentAssignmentStatus } from "@/types/lmsStudentAssignments";
+export type {
+  DashboardAssignment,
+  DashboardCourse,
+  DashboardSemesterOption,
+  GetStudentDashboardParams,
+  LectureTime,
+  StudentDashboard,
+} from "@/types/lmsStudentDashboard";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",

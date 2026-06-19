@@ -1,11 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  getStudentCourses,
-  type CourseRow,
-  type SemesterCourses,
-} from "@/lib/lmsStudentCoursesApi";
+import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+import type { CourseRow, SemesterCourses } from "@/types/lmsStudentCourses";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",

@@ -13,6 +13,19 @@
 // ⚠️ 첨부 다운로드 엔드포인트는 BE 미구현 → 상세 화면 다운로드는 준비 중(추후 인증 blob, PLM-004-01 패턴).
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
+import type {
+  Notice,
+  NoticeLecture,
+  NoticeInput,
+} from "@/types/lmsProfessorNotice";
+
+// 타입은 src/types/lmsProfessorNotice.ts로 분리 — 기존 소비처가 이 lib에서 type import하던 호환 유지(re-export)
+export type {
+  NoticeLecture,
+  NoticeAttachment,
+  Notice,
+  NoticeInput,
+} from "@/types/lmsProfessorNotice";
 
 export const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -39,47 +52,6 @@ export const fileExtOf = (name: string): string => {
   const i = name.lastIndexOf(".");
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
 };
-
-/** 공지 작성 대상 = 담당 강의 1개 (BE LectureResDto). 배지·드롭다운은 truncateLectureName으로 축약 */
-export interface NoticeLecture {
-  lecId: number;
-  courseName: string; // LECTURE_CODE.LEC_COD_NAME (전체 과목명 — BE는 짧은 이름 미제공)
-  lecSection?: number; // 분반(LEC_SECTION)
-  semYear: number; // SEM_YEAR
-  semTerm: string; // SEM_TERM
-}
-
-/** 첨부파일 (LECTURE_ANNOUNCEMENT_ATTACHMENT) */
-export interface NoticeAttachment {
-  attachmentId: number;
-  fileName: string;
-  fileSize: number; // bytes (표시는 formatFileSize 정본)
-}
-
-/** 공지 1건 (BE NoticeResDto) — 목록·작성/수정 공용. 첨부는 ACT 전체 배열(없으면 빈 배열) */
-export interface Notice {
-  noticeId: number;
-  lecId: number;
-  courseName: string;
-  lecSection?: number;
-  semYear: number; // SEM_YEAR
-  semTerm: string; // SEM_TERM
-  lecAnnTitle: string; // LECTURE_ANNOUNCEMENT.LEC_ANN_TITLE
-  lecAnnContent: string; // LEC_ANN_CONTENT (Tiptap HTML) — 표시 직전 sanitizeLmsHtml 정화
-  author: string; // 작성 교수 MEMBER_NAME(예 "이민준") — 표시 시 "교수" 접미는 화면에서 부여
-  lecAnnRegDate: string; // 등록일시 "2026-05-25 16:20" (LEC_ANN_REG_DATE)
-  listDate: string; // 좌측 목록 축약 날짜 "05.25" (REG_DATE 파생)
-  attachments: NoticeAttachment[];
-}
-
-/** 작성/수정 입력 */
-export interface NoticeInput {
-  lecId: number;
-  title: string;
-  content: string; // HTML
-  files: File[]; // 신규 첨부
-  removeAttachmentIds: number[]; // 수정 시 제거할 기존 첨부
-}
 
 // content(CLOB null 가능)·attachments(없으면 빈 배열) 방어 정규화
 const normalizeNotice = (n: Notice): Notice => ({

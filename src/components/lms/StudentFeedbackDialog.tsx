@@ -7,7 +7,7 @@
 // - 학생 화면 = 에메랄드 톤(§13). 데이터(assignment)는 부모(페이지)가 주입 — 표시만 담당
 // ─────────────────────────────────────────────────────────────
 import useEscapeClose from "@/components/lms/useEscapeClose";
-import { type StudentAssignment } from "@/lib/lmsStudentAssignmentsApi";
+import type { StudentAssignment } from "@/types/lmsStudentAssignments";
 
 interface StudentFeedbackDialogProps {
   open: boolean;

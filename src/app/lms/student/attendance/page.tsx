@@ -5,12 +5,12 @@
 // - 지각·결석 수치(>0) 클릭 → 해당 날짜(YYYY-MM-DD) 팝오버 / 70% 미만 출석률 강조
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { describeApiError } from "@/lib/lmsApiError";
-import {
-  getStudentAttendance,
-  type AttendanceCourse,
-  type AttendanceRecord,
-  type SemesterAttendance,
-} from "@/lib/lmsStudentAttendanceApi";
+import { getStudentAttendance } from "@/lib/lmsStudentAttendanceApi";
+import type {
+  AttendanceCourse,
+  AttendanceRecord,
+  SemesterAttendance,
+} from "@/types/lmsStudentAttendance";
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];

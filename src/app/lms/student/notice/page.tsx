@@ -8,9 +8,8 @@ import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
   downloadStudentNoticeAttachment,
   getStudentNotices,
-  type Notice,
-  type NoticeAttachment,
 } from "@/lib/lmsStudentNoticeApi";
+import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 import "@/components/lms/lms-content.css";
 
 const TERM_LABEL: Record<string, string> = {
