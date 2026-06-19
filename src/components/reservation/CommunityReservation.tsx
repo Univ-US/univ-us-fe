@@ -40,6 +40,7 @@ import { useSeatChatNotificationStore } from '@/store/reservation/seatChatNotifi
 import RoomCancelModal from './room/RoomCancelModal';
 import RoomReservationModal from './room/RoomReservationModal';
 import RoomReservationSection from './room/RoomReservationSection';
+import ReservationPenaltyHistoryModal from './ReservationPenaltyHistoryModal';
 import ReservationPenaltyPledgeModal from './ReservationPenaltyPledgeModal';
 import SeatChatDrawer from './seat/SeatChatDrawer';
 import SeatCancelModal from './seat/SeatCancelModal';
@@ -205,6 +206,7 @@ export default function CommunityReservation() {
   const [toast, setToast] = useState<ReservationToast>(null);
   const [penaltyStatus, setPenaltyStatus] =
     useState<ReservationPenaltyStatus | null>(null);
+  const [penaltyHistoryOpen, setPenaltyHistoryOpen] = useState(false);
   const [penaltyModalOpen, setPenaltyModalOpen] = useState(false);
   const [penaltyLoading, setPenaltyLoading] = useState(false);
   const [penaltyError, setPenaltyError] = useState('');
@@ -1197,6 +1199,7 @@ export default function CommunityReservation() {
             onCancelReservation={handleOpenCancelReservationModal}
             onCheckInReservation={handleCheckInReservation}
             onExtendReservation={handleExtendReservation}
+            onOpenPenaltyHistory={() => setPenaltyHistoryOpen(true)}
             onRefreshReservations={loadMyReservations}
             rooms={rooms}
             currentRoom={currentRoom}
@@ -1226,6 +1229,7 @@ export default function CommunityReservation() {
             penaltyStatus={penaltyStatus}
             onCancelReservation={handleOpenCancelRoomReservationModal}
             onCheckInReservation={handleCheckInRoomReservation}
+            onOpenPenaltyHistory={() => setPenaltyHistoryOpen(true)}
             onRefreshReservations={loadMyRoomReservations}
             availabilityError={roomAvailabilityError}
             availabilityLoading={roomAvailabilityLoading}
@@ -1339,6 +1343,11 @@ export default function CommunityReservation() {
             onSubmit={handleSubmitPenaltyPledge}
           />
         )}
+
+        <ReservationPenaltyHistoryModal
+          open={penaltyHistoryOpen}
+          onClose={() => setPenaltyHistoryOpen(false)}
+        />
       </div>
     </div>
   );

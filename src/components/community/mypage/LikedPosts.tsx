@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BoardBadge, formatDate, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
@@ -29,13 +29,15 @@ const S = {
 
 export default function LikedPosts() {
   const [posts, setPosts] = useState<MyPost[]>([]);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const data = await getLikedPosts();
-        setPosts(data.map((p: Post) => ({
+  const loadPosts = useCallback(async (nextPage: number, append: boolean) => {
+    setLoadingMore(true);
+    try {
+      const data = await getLikedPosts(nextPage, PAGE_SIZE);
+      const nextPosts = data.content.map((p: Post) => ({
           postId: p.postId,
           boardId: p.boardId,
           title: p.title,
@@ -43,16 +45,22 @@ export default function LikedPosts() {
           createdAt: String(p.createdAt),
           likeCount: p.likeCount,
           commentCount: p.commentCount,
-        })));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchPosts();
+      }));
+      setPosts((current) => append ? [...current, ...nextPosts] : nextPosts);
+      setPage(data.page);
+      setTotalElements(data.totalElements);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMore(false);
+    }
   }, []);
 
-  const visiblePosts = posts.slice(0, visibleCount);
-  const hasMore = visibleCount < posts.length;
+  useEffect(() => {
+    void loadPosts(0, false);
+  }, [loadPosts]);
+
+  const hasMore = posts.length < totalElements;
 
   return (
     <>
@@ -65,11 +73,11 @@ export default function LikedPosts() {
       ) : (
         <>
           <div className={S.listContainer}>
-            {visiblePosts.map((post, i) => (
+            {posts.map((post, i) => (
               <Link
                 key={post.postId}
                 href={getPostDetailHref(post.boardId, post.postId)}
-                className={cn(S.listItem, i < visiblePosts.length - 1 && S.listBorder)}
+                className={cn(S.listItem, i < posts.length - 1 && S.listBorder)}
               >
                 <BoardBadge board={post.board} />
                 <span className={S.title}>{post.title}</span>
@@ -88,9 +96,10 @@ export default function LikedPosts() {
               <button
                 type='button'
                 className={S.moreButton}
-                onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+                disabled={loadingMore}
+                onClick={() => void loadPosts(page + 1, true)}
               >
-                더보기 {visibleCount} / {posts.length}
+                {loadingMore ? '불러오는 중' : `더보기 ${posts.length} / ${totalElements}`}
               </button>
             </div>
           )}

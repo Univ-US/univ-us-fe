@@ -122,6 +122,25 @@ export type ReservationPenaltyStatus = {
   message: string;
 };
 
+export type ReservationPenaltyHistory = {
+  penaltyId: number;
+  penaltyType: string;
+  reason: string;
+  status: 'ACTIVE' | 'PLEDGED' | string;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type ReservationPenaltyHistoryPage = {
+  content: ReservationPenaltyHistory[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+};
+
 export type ActiveSeatReservation = {
   reservationId: number;
   memberId: number;
@@ -188,6 +207,17 @@ export async function getReservationDateOptions(days = 5) {
 export async function getReservationPenaltyStatus() {
   const res = await api.get<ReservationPenaltyStatus>(
     '/api/reservations/penalties/status',
+  );
+
+  return res.data;
+}
+
+export async function getReservationPenaltyHistory(page = 0, size = 5) {
+  const res = await api.get<ReservationPenaltyHistoryPage>(
+    '/api/reservations/penalties/history',
+    {
+      params: { page, size },
+    },
   );
 
   return res.data;

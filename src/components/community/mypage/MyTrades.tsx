@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, MessageCircle, Receipt } from 'lucide-react';
 import CommunityMarketChatDrawer from '@/components/common/CommunityMarketChatDrawer';
@@ -13,6 +13,11 @@ import type { MyTrade } from '@/types/mypage';
 import { StatusBadge, formatPrice, SectionTitle, formatDate } from './shared';
 
 const PAGE_SIZE = 8;
+const ROLE_BY_TAB = {
+  전체: 'ALL',
+  판매: 'SELLER',
+  구매: 'BUYER',
+} as const;
 
 const S = {
   tabContainer: 'mb-4 flex gap-2',
@@ -50,36 +55,44 @@ function getProductId(trade: MyTrade) {
 export default function MyTrades() {
   const [trades, setTrades] = useState<MyTrade[]>([]);
   const [tab, setTab] = useState<'전체' | '판매' | '구매'>('전체');
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatTargetProduct, setChatTargetProduct] = useState<Product | null>(null);
   const [selectedChatRoomId, setSelectedChatRoomId] = useState<number | null>(null);
   const [chatLoadingProductId, setChatLoadingProductId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    const fetchTrades = async () => {
-      try {
-        const data = await getMyTrades();
-        setTrades(data);
-      } catch (err) {
-        setErrorMessage(getApiErrorMessage(err, '거래 내역을 불러오지 못했습니다.'));
+  const loadTrades = useCallback(async (nextPage: number, append: boolean) => {
+    const requestId = ++requestIdRef.current;
+    setLoadingMore(true);
+    setErrorMessage(null);
+    try {
+      const data = await getMyTrades(ROLE_BY_TAB[tab], nextPage, PAGE_SIZE);
+      if (requestId !== requestIdRef.current) return;
+      setTrades((current) => append ? [...current, ...data.content] : data.content);
+      setPage(data.page);
+      setTotalElements(data.totalElements);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      setErrorMessage(getApiErrorMessage(err, '거래 내역을 불러오지 못했습니다.'));
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoadingMore(false);
       }
-    };
-
-    fetchTrades();
-  }, []);
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    }
   }, [tab]);
 
-  const filtered = useMemo(
-    () => trades.filter((trade) => (tab === '전체' ? true : trade.role === tab)),
-    [tab, trades],
-  );
-  const visibleTrades = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  useEffect(() => {
+    setTrades([]);
+    setPage(0);
+    setTotalElements(0);
+    void loadTrades(0, false);
+  }, [loadTrades]);
+
+  const hasMore = trades.length < totalElements;
 
   const handleOpenChat = async (trade: MyTrade) => {
     setErrorMessage(null);
@@ -127,14 +140,14 @@ export default function MyTrades() {
       {errorMessage && <p className={S.errorText}>{errorMessage}</p>}
 
       <div className={S.listContainer}>
-        {visibleTrades.map((trade, index) => {
+        {trades.map((trade, index) => {
           const productId = getProductId(trade);
           const blind = Boolean(trade.isBlind);
 
           return (
             <div
               key={`${trade.role}-${trade.tradeId}-${trade.roomId ?? 'product'}`}
-              className={cn(S.listItem, index < visibleTrades.length - 1 && S.listBorder)}
+              className={cn(S.listItem, index < trades.length - 1 && S.listBorder)}
             >
               <div className={S.itemLeft}>
                 <div className={S.itemTopRow}>
@@ -179,7 +192,7 @@ export default function MyTrades() {
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {trades.length === 0 && !loadingMore && (
           <div className={S.emptyState}>
             <Receipt className={S.emptyIcon} />
             <p className={S.emptyText}>거래 내역이 없습니다.</p>
@@ -192,9 +205,10 @@ export default function MyTrades() {
           <button
             type='button'
             className={S.moreButton}
-            onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+            disabled={loadingMore}
+            onClick={() => void loadTrades(page + 1, true)}
           >
-            더보기 {visibleCount} / {filtered.length}
+            {loadingMore ? '불러오는 중' : `더보기 ${trades.length} / ${totalElements}`}
           </button>
         </div>
       )}
@@ -204,7 +218,7 @@ export default function MyTrades() {
         targetProduct={chatTargetProduct}
         initialRoomId={selectedChatRoomId}
         onClose={() => setChatOpen(false)}
-        onRoomsChanged={() => void getMyTrades().then(setTrades)}
+        onRoomsChanged={() => void loadTrades(0, false)}
       />
     </>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import type { KeyboardEvent, MouseEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Bookmark, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getApiErrorMessage } from '@/lib/apiError';
@@ -37,24 +37,37 @@ export default function MyWishlist() {
   const memberId = useAuthStore((s) => s.memberId);
   const [wishlist, setWishlist] = useState<MyWishlistType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [removingProductId, setRemovingProductId] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      try {
-        const data = await getMyWishlist();
-        setWishlist(data);
-      } catch (err) {
-        setErrorMessage(getApiErrorMessage(err, '관심목록을 불러오지 못했습니다.'));
-      } finally {
+  const loadWishlist = useCallback(async (nextPage: number, append: boolean) => {
+    if (nextPage === 0) {
+      setIsLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+    try {
+      const data = await getMyWishlist(nextPage, PAGE_SIZE);
+      setWishlist((current) => append ? [...current, ...data.content] : data.content);
+      setPage(data.page);
+      setTotalElements(data.totalElements);
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err, '관심목록을 불러오지 못했습니다.'));
+    } finally {
+      if (nextPage === 0) {
         setIsLoading(false);
+      } else {
+        setLoadingMore(false);
       }
-    };
-
-    fetchWishlist();
+    }
   }, []);
+
+  useEffect(() => {
+    void loadWishlist(0, false);
+  }, [loadWishlist]);
 
   const openProductDetail = (productId: number) => {
     router.push(`/community/market/${productId}`);
@@ -85,7 +98,7 @@ export default function MyWishlist() {
     try {
       const result = await toggleProductLike(productId, memberId);
       if (!result.liked) {
-        setWishlist((current) => current.filter((item) => item.productId !== productId));
+        await loadWishlist(0, false);
       }
     } catch (err) {
       setErrorMessage(getApiErrorMessage(err, '관심목록에서 제거하지 못했습니다.'));
@@ -94,8 +107,7 @@ export default function MyWishlist() {
     }
   };
 
-  const visibleWishlist = wishlist.slice(0, visibleCount);
-  const hasMore = visibleCount < wishlist.length;
+  const hasMore = wishlist.length < totalElements;
 
   return (
     <>
@@ -109,7 +121,7 @@ export default function MyWishlist() {
       ) : (
         <>
           <div className={S.grid}>
-            {visibleWishlist.map((item) => (
+            {wishlist.map((item) => (
               <div
                 key={item.productId}
                 role='link'
@@ -144,9 +156,10 @@ export default function MyWishlist() {
               <button
                 type='button'
                 className={S.moreButton}
-                onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+                disabled={loadingMore}
+                onClick={() => void loadWishlist(page + 1, true)}
               >
-                더보기 {visibleCount} / {wishlist.length}
+                {loadingMore ? '불러오는 중' : `더보기 ${wishlist.length} / ${totalElements}`}
               </button>
             </div>
           )}

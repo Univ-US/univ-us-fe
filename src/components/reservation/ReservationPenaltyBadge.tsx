@@ -1,14 +1,16 @@
-import { ShieldAlert } from 'lucide-react';
+import { ChevronRight, ShieldAlert } from 'lucide-react';
 
 import type { ReservationPenaltyStatus } from '@/lib/reservationApi';
 import { cn } from '@/lib/utils';
 
 type ReservationPenaltyBadgeProps = {
   status: ReservationPenaltyStatus | null;
+  onClick: () => void;
 };
 
 export default function ReservationPenaltyBadge({
   status,
+  onClick,
 }: ReservationPenaltyBadgeProps) {
   if (!status) {
     return null;
@@ -17,11 +19,13 @@ export default function ReservationPenaltyBadge({
   const hasPenalty = status.activePenaltyCount > 0;
 
   return (
-    <div
+    <button
+      type='button'
+      onClick={onClick}
       title={status.message}
       aria-label={`노쇼 패널티 ${status.activePenaltyCount}/${status.blockThreshold}회`}
       className={cn(
-        'flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[12px] font-bold',
+        'flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[12px] font-bold transition-all hover:-translate-y-0.5 hover:shadow-sm',
         status.blocked
           ? 'border-red-200 bg-red-50 text-red-600'
           : hasPenalty
@@ -34,6 +38,7 @@ export default function ReservationPenaltyBadge({
       <strong>
         {status.activePenaltyCount}/{status.blockThreshold}회
       </strong>
-    </div>
+      <ChevronRight className='size-3.5 opacity-60' />
+    </button>
   );
 }

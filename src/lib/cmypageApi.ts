@@ -9,11 +9,14 @@ import type {
   UserProfile,
 } from "@/types/mypage";
 
-interface MyPostsResponse {
-  postList: Post[];
-  totalCount: number;
-  totalPage: number;
-  currentPage: number;
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 }
 
 export const getMyProfile = async (): Promise<UserProfile> => {
@@ -33,29 +36,55 @@ export const getMyPageSummary = async (): Promise<MyPageSummary> => {
   return res.data;
 };
 
-export const getMyPosts = async (): Promise<Post[]> => {
-  const res = await api.get<MyPostsResponse>("/api/cmypage/posts");
-  return res.data.postList ?? [];
+export const getMyPosts = async (
+  page = 0,
+  size = 8,
+): Promise<PageResponse<Post>> => {
+  const res = await api.get<PageResponse<Post>>("/api/cmypage/posts", {
+    params: { page, size },
+  });
+  return res.data;
 };
 
-export const getMyComments = async (): Promise<MyComment[]> => {
-  const res = await api.get<MyComment[]>("/api/cmypage/comments");
-  return res.data ?? [];
+export const getMyComments = async (
+  page = 0,
+  size = 8,
+): Promise<PageResponse<MyComment>> => {
+  const res = await api.get<PageResponse<MyComment>>("/api/cmypage/comments", {
+    params: { page, size },
+  });
+  return res.data;
 };
 
-export const getLikedPosts = async (): Promise<Post[]> => {
-  const res = await api.get<Post[]>("/api/cmypage/liked-posts");
-  return res.data ?? [];
+export const getLikedPosts = async (
+  page = 0,
+  size = 8,
+): Promise<PageResponse<Post>> => {
+  const res = await api.get<PageResponse<Post>>("/api/cmypage/liked-posts", {
+    params: { page, size },
+  });
+  return res.data;
 };
 
-export const getMyTrades = async (): Promise<MyTrade[]> => {
-  const res = await api.get<MyTrade[]>("/api/cmypage/trades");
-  return res.data ?? [];
+export const getMyTrades = async (
+  role: "ALL" | "SELLER" | "BUYER" = "ALL",
+  page = 0,
+  size = 8,
+): Promise<PageResponse<MyTrade>> => {
+  const res = await api.get<PageResponse<MyTrade>>("/api/cmypage/trades", {
+    params: { role, page, size },
+  });
+  return res.data;
 };
 
-export const getMyWishlist = async (): Promise<MyWishlistType[]> => {
-  const res = await api.get<MyWishlistType[]>("/api/cmypage/wishlist");
-  return res.data ?? [];
+export const getMyWishlist = async (
+  page = 0,
+  size = 6,
+): Promise<PageResponse<MyWishlistType>> => {
+  const res = await api.get<PageResponse<MyWishlistType>>("/api/cmypage/wishlist", {
+    params: { page, size },
+  });
+  return res.data;
 };
 
 export const deactivateCommunity = async (): Promise<void> => {
