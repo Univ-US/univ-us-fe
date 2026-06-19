@@ -26,6 +26,7 @@ import type {
   LectureAttendance,
 } from "@/types/lmsProfessorAttendance";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 
 // 학기 정렬 순서(SEM_TERM) — 학기 드롭다운 정렬용
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -297,7 +298,7 @@ export default function ProfessorAttendancePage() {
                       >
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700 text-xs font-semibold text-white">
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(s.studentNo)} text-xs font-semibold text-white`}>
                               {s.studentName.trim()[0] ?? "?"}
                             </div>
                             <div className="min-w-0">

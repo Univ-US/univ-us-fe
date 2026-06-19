@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
 import {
   formatChatDateLabel,
   formatChatListTime,
@@ -10,15 +11,6 @@ import type {
   ProfessorChatThread,
 } from "@/types/lmsProfessorChat";
 
-const avatarColors = [
-  "bg-slate-700",
-  "bg-emerald-700",
-  "bg-blue-700",
-  "bg-violet-700",
-  "bg-rose-700",
-  "bg-cyan-700",
-];
-
 export const LMS_PROFESSOR_CHAT_TOPIC_PREFIX = "/sub/lms-chats";
 export { formatChatDateLabel, formatChatListTime, formatChatMessageTime };
 
@@ -26,7 +18,6 @@ const normalizeRoom = (
   room: Omit<ProfessorChatRoom, "avatarInitial" | "avatarColor">,
 ): ProfessorChatRoom => {
   const studentName = room.studentName?.trim() || "학생";
-  const seed = studentName.charCodeAt(0) + room.roomId;
 
   return {
     ...room,
@@ -36,8 +27,9 @@ const normalizeRoom = (
     lecSection: room.lecSection ?? null,
     lastMessage: room.lastMessage || "아직 메시지가 없습니다.",
     unread: room.unread ?? 0,
-    avatarInitial: studentName[0] ?? "학",
-    avatarColor: avatarColors[Math.abs(seed) % avatarColors.length],
+    avatarInitial: getLmsAvatarInitial(studentName, "학"),
+    // 같은 학생은 어느 화면에서나 같은 색 → 학번(studentNo)으로 시드(없으면 이름)
+    avatarColor: getLmsAvatarColor(room.studentNo ?? studentName),
   };
 };
 

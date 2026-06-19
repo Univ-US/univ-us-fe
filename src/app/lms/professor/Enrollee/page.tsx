@@ -29,6 +29,7 @@ import type {
   StudentsQuery,
 } from "@/types/lmsProfessorStudents";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 
 const PAGE_SIZE = 10;
 
@@ -518,7 +519,7 @@ export default function ProfessorStudentsPage() {
                     <tr key={s.enrollmentId} className="border-b border-slate-50 last:border-0">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-700 text-xs font-semibold text-white">
+                          <div className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(s.studentNo)} text-xs font-semibold text-white`}>
                             {resolveImageUrl(s.imageUrl) ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={resolveImageUrl(s.imageUrl)!} alt="" className="h-full w-full object-cover" />

@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import useEscapeClose from "@/components/lms/useEscapeClose";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 import type { StudentReport } from "@/types/lmsProfessorStudents";
 
@@ -72,7 +73,7 @@ export default function StudentReportDialog({
             <>
               {/* 학생 식별 */}
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-rose-400 text-lg font-semibold text-white">
+                <div className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(report.studentNo)} text-lg font-semibold text-white`}>
                   {resolveImageUrl(report.imageUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={resolveImageUrl(report.imageUrl)!} alt="" className="h-full w-full object-cover" />

@@ -22,6 +22,7 @@ import {
 } from "@/lib/lmsStudentChatApi";
 import type { ChatMessage } from "@/types/lmsStudentChat";
 import { getWebSocketEndpointUrl } from "@/lib/realtime";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
 
@@ -270,7 +271,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
             sidebarOpen ? "gap-3" : "justify-center"
           }`}
         >
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-sm font-semibold text-white">
+          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.studentNo)} text-sm font-semibold text-white`}>
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatar} alt="" className="h-full w-full object-cover" />
@@ -408,7 +409,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
             {/* 계정 카드 */}
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-left">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-700 text-sm font-semibold text-white">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.studentNo)} text-sm font-semibold text-white`}>
                 {avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatar} alt="" className="h-full w-full object-cover" />
