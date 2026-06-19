@@ -34,16 +34,7 @@ import SchoolDetailView from "./_views/SchoolDetailView";
 import SchoolsView from "./_views/SchoolsView";
 import SubscriptionPlansView from "./_views/SubscriptionPlansView";
 import UsersView from "./_views/UsersView";
-import {
-    getMockMembersForSchool,
-    SERVICE_SCHOOLS,
-} from "./_mockData";
-import type {
-    MemberStatus,
-    ServiceAdminView,
-    ServiceMember,
-    ServiceSchool,
-} from "./_types";
+import type { ServiceAdminView } from "./_types";
 
 interface NavItem {
     label: string;
@@ -112,10 +103,6 @@ function ServiceAdminDashboardContent() {
         isLoggedIn,
         role,
     } = useAuthStore();
-    const [schools] = useState<ServiceSchool[]>(SERVICE_SCHOOLS);
-    const [members, setMembers] = useState<ServiceMember[]>(() =>
-        SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
-    );
     const [dashboard, setDashboard] =
         useState<ServiceAdminDashboardResponse | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -181,23 +168,9 @@ function ServiceAdminDashboardContent() {
         router.push("/landing");
     };
 
-    const openSchool = (school: ServiceSchool) => {
-        router.push(
-            `/service-admin?view=school-detail&schoolId=${school.id}`,
-        );
-    };
-
     const openSchoolById = (schoolId: number) => {
         router.push(
             `/service-admin?view=school-detail&schoolId=${schoolId}`,
-        );
-    };
-
-    const changeMemberStatus = (memberId: number, status: MemberStatus) => {
-        setMembers((current) =>
-            current.map((member) =>
-                member.id === memberId ? { ...member, status } : member,
-            ),
         );
     };
 
@@ -352,12 +325,7 @@ function ServiceAdminDashboardContent() {
                             />
                         )}
                         {view === "users" && (
-                            <UsersView
-                                schools={schools}
-                                members={members.filter((member) => member.role !== "ADM")}
-                                onChangeStatus={changeMemberStatus}
-                                onOpenSchool={openSchool}
-                            />
+                            <UsersView />
                         )}
                         {view === "payments" && (
                             <PaymentsView

@@ -27,6 +27,7 @@ interface DashboardViewProps {
 }
 
 const ROLE_LABEL = {
+    GUEST: "게스트",
     STU: "학생",
     PROF: "교수",
     ALU: "졸업생",

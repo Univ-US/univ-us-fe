@@ -45,7 +45,7 @@ export interface ServiceSchool {
     portoneCustomerId: string | null;
 }
 
-export type MemberRole = "STU" | "PROF" | "ALU" | "ADM";
+export type MemberRole = "GUEST" | "STU" | "PROF" | "ALU" | "ADM";
 export type MemberStatus = "ACTIVE" | "SUSPENDED" | "WITHDRAWN";
 
 export interface ServiceMember {

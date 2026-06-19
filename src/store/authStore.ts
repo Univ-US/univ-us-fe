@@ -49,6 +49,18 @@ const emptyUser: AuthUser = {
     status: null,
 };
 
+const SESSION_ROLE_KEY = "univus:auth-role";
+
+const rememberSessionRole = (role: string | null | undefined) => {
+    if (typeof window === "undefined") return;
+
+    if (role) {
+        window.sessionStorage.setItem(SESSION_ROLE_KEY, role);
+    } else {
+        window.sessionStorage.removeItem(SESSION_ROLE_KEY);
+    }
+};
+
 const toUserState = (data: {
     memberId: number;
     memberName: string;
@@ -81,6 +93,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 isLoggedIn: true,
                 isInitialized: true,
             });
+            rememberSessionRole(data.role);
             return true;
         } catch {
             set({
@@ -89,6 +102,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 isInitialized: true,
                 subscriptionAccessStatus: null,
             });
+            rememberSessionRole(null);
             return false;
         }
     },
@@ -100,6 +114,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             isLoggedIn: true,
             isInitialized: true,
         });
+        rememberSessionRole(data.role);
 
         return data.role;
     },
@@ -117,6 +132,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             isInitialized: true,
             subscriptionAccessStatus: "ACTIVE",
         }));
+        rememberSessionRole(verification.role);
     },
 
     updateStatus: (status: string) => {
@@ -141,6 +157,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 isInitialized: true,
                 subscriptionAccessStatus: null,
             });
+            rememberSessionRole(null);
         }
     },
 }));

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { checkLoginId, signup } from "@/lib/authApi";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -156,8 +157,8 @@ export default function SignupPage() {
 
             alert("회원가입이 완료되었습니다. 로그인해주세요.");
             router.push("/login");
-        } catch {
-            setError("회원가입에 실패했습니다. 이미 사용 중인 ID인지 확인해주세요.");
+        } catch (signupError) {
+            setError(getApiErrorMessage(signupError, "회원가입에 실패했습니다. 입력값을 확인해주세요."));
         } finally {
             setSubmitting(false);
         }
