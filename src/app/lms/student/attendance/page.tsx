@@ -321,7 +321,7 @@ function SemesterPager({
       </p>
       <div className="flex items-center justify-center gap-1">
         <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
-          이전
+          ‹
         </PageBtn>
         {Array.from({ length: totalPages }).map((_, i) => (
           <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
@@ -329,7 +329,7 @@ function SemesterPager({
           </PageBtn>
         ))}
         <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
-          다음
+          ›
         </PageBtn>
       </div>
     </div>
