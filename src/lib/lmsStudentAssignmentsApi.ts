@@ -1,6 +1,5 @@
 import api from "@/lib/api";
 import type {
-  StudentAssignmentStatus,
   SubmissionFile,
   StudentAssignmentsResult,
   UpdateStudentAssignmentSubmissionInput,
@@ -16,12 +15,6 @@ export type {
   StudentAssignmentsResult,
   UpdateStudentAssignmentSubmissionInput,
 } from "@/types/lmsStudentAssignments";
-
-export const STUDENT_ASSIGNMENT_STATUS_LABEL: Record<StudentAssignmentStatus, string> = {
-  NSB: "미제출",
-  SBM: "제출",
-  GRD: "채점완료",
-};
 
 export { formatFileSize } from "@/lib/lmsProfessorUploadApi";
 

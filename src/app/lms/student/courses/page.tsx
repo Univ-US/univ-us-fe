@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+import { getCommonCodeMap } from "@/lib/lmsCommonCode";
 import type { CourseRow, SemesterCourses } from "@/types/lmsStudentCourses";
 
-const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절",
-  SM2: "2학기",
-  WNT: "겨울 계절",
-};
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const SEMESTER_PAGE_SIZE = 3;
 const COURSE_PAGE_SIZE = 5;
@@ -23,6 +18,7 @@ export default function StudentCoursesPage() {
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [semesterPage, setSemesterPage] = useState(0);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,6 +38,10 @@ export default function StudentCoursesPage() {
   }, [load]);
 
   useEffect(() => {
+    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+  }, []);
+
+  useEffect(() => {
     setSemesterPage(0);
   }, [yearFilter, termFilter]);
 
@@ -50,13 +50,7 @@ export default function StudentCoursesPage() {
     [semesters],
   );
 
-  const termOptions = useMemo(
-    () =>
-      [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b),
-      ),
-    [semesters],
-  );
+  const termOptions = TERM_ORDER;
 
   const visible = useMemo(
     () =>
@@ -106,7 +100,7 @@ export default function StudentCoursesPage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? t}
               </option>
             ))}
           </select>

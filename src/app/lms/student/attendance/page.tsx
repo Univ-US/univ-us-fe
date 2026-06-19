@@ -5,6 +5,7 @@
 // - 지각·결석 수치(>0) 클릭 → 해당 날짜(YYYY-MM-DD) 팝오버 / 70% 미만 출석률 강조
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { getStudentAttendance } from "@/lib/lmsStudentAttendanceApi";
 import type {
   AttendanceCourse,
@@ -12,7 +13,6 @@ import type {
   SemesterAttendance,
 } from "@/types/lmsStudentAttendance";
 
-const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -27,6 +27,7 @@ const SEMESTER_PAGE_SIZE = 3;
 
 export default function StudentAttendancePage() {
   const [semesters, setSemesters] = useState<SemesterAttendance[]>([]);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21)
@@ -52,6 +53,10 @@ export default function StudentAttendancePage() {
   useEffect(() => load(), [load]);
 
   useEffect(() => {
+    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+  }, []);
+
+  useEffect(() => {
     setOpenPop(null);
     setSemesterPage(0);
   }, [yearFilter, termFilter]);
@@ -61,13 +66,8 @@ export default function StudentAttendancePage() {
     () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [semesters]
-  );
+  // 데이터 유무와 무관하게 항상 4학기 노출(달력순) — 라벨은 termMap[t] ?? t
+  const termOptions = TERM_ORDER;
   const visible = useMemo(
     () =>
       semesters.filter(
@@ -116,7 +116,7 @@ export default function StudentAttendancePage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? t}
               </option>
             ))}
           </select>

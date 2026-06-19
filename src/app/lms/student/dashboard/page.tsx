@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { getStudentDashboard } from "@/lib/lmsStudentDashboardApi";
 import type {
   DashboardSemesterOption,
@@ -15,36 +16,15 @@ import type { StudentAssignmentStatus } from "@/types/lmsStudentAssignments";
 const attendanceColor = (rate: number) =>
   rate >= 95 ? "text-emerald-600" : rate >= 80 ? "text-amber-600" : "text-rose-600";
 
-const DAY_LABEL: Record<string, string> = {
-  MON: "월",
-  TUE: "화",
-  WED: "수",
-  THU: "목",
-  FRI: "금",
-  SAT: "토",
-  SUN: "일",
-  월: "월",
-  화: "화",
-  수: "수",
-  목: "목",
-  금: "금",
-  토: "토",
-  일: "일",
-};
-const formatLectureTime = (t: LectureTime) => `${DAY_LABEL[t.dayCode] ?? t.dayCode} ${t.start}~${t.end}`;
+const formatLectureTime = (t: LectureTime, dayMap: Record<string, string>) =>
+  `${dayMap[t.dayCode] ?? t.dayCode} ${t.start}~${t.end}`;
 
-const STATUS_BADGE: Record<StudentAssignmentStatus, { label: string; cls: string; dot: string }> = {
-  NSB: { label: "미제출", cls: "text-rose-600", dot: "bg-rose-500" },
-  SBM: { label: "제출", cls: "text-amber-600", dot: "bg-amber-500" },
-  GRD: { label: "채점완료", cls: "text-emerald-600", dot: "bg-emerald-500" },
+const STATUS_BADGE: Record<StudentAssignmentStatus, { cls: string; dot: string }> = {
+  NSB: { cls: "text-rose-600", dot: "bg-rose-500" },
+  SBM: { cls: "text-amber-600", dot: "bg-amber-500" },
+  GRD: { cls: "text-emerald-600", dot: "bg-emerald-500" },
 };
 
-const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절",
-  SM2: "2학기",
-  WNT: "겨울 계절",
-};
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -66,13 +46,32 @@ export default function StudentDashboardPage() {
   const [selYear, setSelYear] = useState<number | null>(null);
   const [selTerm, setSelTerm] = useState<string | null>(null);
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [dayMap, setDayMap] = useState<Record<string, string>>({});
+  const [sbmStatusMap, setSbmStatusMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void Promise.all([
+      getCommonCodeMap("SEM_TERM"),
+      getCommonCodeMap("DAY_CODE"),
+      getCommonCodeMap("LEC_ASN_SBM_STATUS"),
+    ]).then(([term, day, sbm]) => {
+      setTermMap(term);
+      setDayMap(day);
+      setSbmStatusMap(sbm);
+    });
+  }, []);
 
   const load = useCallback(
-    async (params?: GetStudentDashboardParams, preferredLecId?: number | null) => {
+    async (
+      params?: GetStudentDashboardParams,
+      preferredLecId?: number | null,
+      labels?: Record<string, string>
+    ) => {
       setLoading(true);
       setError(null);
       try {
-        const dashboard = await getStudentDashboard(params);
+        const dashboard = await getStudentDashboard(params, labels ?? termMap);
         setData(dashboard);
         setSelYear(dashboard.year);
         setSelTerm(dashboard.termCode);
@@ -88,7 +87,7 @@ export default function StudentDashboardPage() {
         setLoading(false);
       }
     },
-    []
+    [termMap]
   );
 
   useEffect(() => {
@@ -96,10 +95,7 @@ export default function StudentDashboardPage() {
   }, [load]);
 
   const yearOptions = useMemo(() => uniqueYears(data?.availableSemesters ?? []), [data]);
-  const termOptions = useMemo(
-    () => termsForYear(data?.availableSemesters ?? [], selYear),
-    [data, selYear]
-  );
+  const termOptions = TERM_ORDER;
 
   const selectedCourse = data?.courses.find((course) => course.lecId === selectedLecId) ?? null;
   const courseAssignments = (data?.assignments ?? []).filter((assignment) => assignment.lecId === selectedLecId);
@@ -147,7 +143,7 @@ export default function StudentDashboardPage() {
           >
             {termOptions.map((term) => (
               <option key={term} value={term}>
-                {TERM_LABEL[term] ?? term}
+                {termMap[term] ?? term}
               </option>
             ))}
           </select>
@@ -241,7 +237,7 @@ export default function StudentDashboardPage() {
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
                               {course.times.length > 0
-                                ? course.times.map(formatLectureTime).join(" · ")
+                                ? course.times.map((t) => formatLectureTime(t, dayMap)).join(" · ")
                                 : "강의 시간이 등록되지 않았습니다."}
                             </p>
                           </div>
@@ -310,7 +306,7 @@ export default function StudentDashboardPage() {
                         <div className="flex shrink-0 items-center gap-2">
                           <span className={`flex items-center gap-1.5 text-xs font-semibold ${badge.cls}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
-                            {badge.label}
+                            {sbmStatusMap[assignment.status] ?? assignment.status}
                           </span>
                           <Link
                             href={

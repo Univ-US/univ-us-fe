@@ -7,21 +7,21 @@ import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import StudentMaterialViewDialog from "@/components/lms/StudentMaterialViewDialog";
 import { getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
+import { getCommonCodeMap } from "@/lib/lmsCommonCode";
 import type {
   CourseMaterials,
   Material,
   SemesterMaterials,
 } from "@/types/lmsStudentMaterials";
 
-const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 // 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 표시한다.
 const MATERIALS_PAGE_SIZE = 10;
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
-const semLabelOf = (year: number, termCode: string) =>
-  `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
+const semLabelOf = (year: number, termCode: string, termMap: Record<string, string>) =>
+  `${year}년 ${termMap[termCode] ?? termCode}`;
 
 // 과목 드롭다운 1행 = 과목 + 소속 학기(년도/학기로 좁힘·라벨 표기용)
 type CourseOption = CourseMaterials & { year: number; termCode: string };
@@ -47,6 +47,11 @@ export default function StudentMaterialsPage() {
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
   // '강의 보기' 모달 대상 (null = 닫힘)
   const [viewing, setViewing] = useState<Material | null>(null);
+  // 학기 코드→라벨 공통코드 맵 (마운트 시 fetch, 실패 시 {} → 코드 원본 폴백)
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -81,13 +86,8 @@ export default function StudentMaterialsPage() {
     () => [...new Set(courseOptions.map((c) => c.year))].sort((a, b) => b - a),
     [courseOptions]
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(courseOptions.map((c) => c.termCode))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [courseOptions]
-  );
+  // 학기 필터는 데이터 유무와 무관하게 항상 4학기 노출(FE 소유 표시 순서)
+  const termOptions = TERM_ORDER;
   const filteredCourses = useMemo(
     () => matchCourses(yearFilter, termFilter, courseOptions),
     [yearFilter, termFilter, courseOptions]
@@ -147,7 +147,7 @@ export default function StudentMaterialsPage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? t}
               </option>
             ))}
           </select>
@@ -170,7 +170,7 @@ export default function StudentMaterialsPage() {
                   title={c.courseName.length > LECTURE_NAME_MAX ? c.courseName : undefined}
                 >
                   {truncateLectureName(c.courseName)}
-                  {c.lecSection != null ? ` · ${c.lecSection}반` : ""} · {semLabelOf(c.year, c.termCode)}
+                  {c.lecSection != null ? ` · ${c.lecSection}반` : ""} · {semLabelOf(c.year, c.termCode, termMap)}
                 </option>
               ))
             )}

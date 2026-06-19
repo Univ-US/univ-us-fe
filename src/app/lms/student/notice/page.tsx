@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
   downloadStudentNoticeAttachment,
@@ -12,18 +13,15 @@ import {
 import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 import "@/components/lms/lms-content.css";
 
-const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절",
-  SM2: "2학기",
-  WNT: "겨울 계절",
-};
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
-const semLabelOf = (year: number, termCode: string) =>
-  `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
+const semLabelOf = (
+  year: number,
+  termCode: string,
+  termMap: Record<string, string>
+) => `${year}년 ${termMap[termCode] ?? termCode}`;
 
 type Toast = {
   type: "success" | "error";
@@ -88,6 +86,11 @@ export default function StudentNoticePage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+  }, []);
 
   const showToast = useCallback((nextToast: Toast) => {
     setToast(nextToast);
@@ -122,13 +125,7 @@ export default function StudentNoticePage() {
     () => [...new Set(courseOptions.map((course) => course.year))].sort((a, b) => b - a),
     [courseOptions]
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(courseOptions.map((course) => course.termCode))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [courseOptions]
-  );
+  const termOptions = TERM_ORDER;
   const filteredCourses = useMemo(
     () => matchCourses(yearFilter, termFilter, courseOptions),
     [yearFilter, termFilter, courseOptions]
@@ -236,7 +233,7 @@ export default function StudentNoticePage() {
             <option value="">전체 학기</option>
             {termOptions.map((term) => (
               <option key={term} value={term}>
-                {TERM_LABEL[term] ?? term}
+                {termMap[term] ?? term}
               </option>
             ))}
           </select>
@@ -259,7 +256,7 @@ export default function StudentNoticePage() {
                 >
                   {truncateLectureName(course.courseName)}
                   {course.lecSection != null ? ` · ${course.lecSection}반` : ""} ·{" "}
-                  {semLabelOf(course.year, course.termCode)}
+                  {semLabelOf(course.year, course.termCode, termMap)}
                 </option>
               ))
             )}
