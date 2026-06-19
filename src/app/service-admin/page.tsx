@@ -13,7 +13,6 @@ import {
     ListChecks,
     LogOut,
     MessageSquareText,
-    ScrollText,
     School,
     Settings,
     UserRoundCog,
@@ -54,7 +53,6 @@ const PLATFORM_NAV_ITEMS: NavItem[] = [
 
 const DETAIL_NAV_ITEMS: NavItem[] = [
     { label: "이용자 관리", icon: UsersRound, view: "users" },
-    { label: "커뮤니티 관리", icon: ScrollText },
 ];
 
 const VIEW_LABEL: Record<ServiceAdminView, string> = {
