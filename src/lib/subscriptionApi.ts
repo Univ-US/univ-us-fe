@@ -1,9 +1,12 @@
 import api from "@/lib/api";
 import type {
+  SubscriptionAccessState,
   SubscriptionBillingPaymentRequest,
   SubscriptionAccessStatus,
   SubscriptionPaymentCancelRequest,
   SubscriptionPaymentConfig,
+  SubscriptionPaymentHistory,
+  SubscriptionPaymentMethodInfo,
   SubscriptionPaymentVerifyRequest,
   SubscriptionPaymentVerifyResponse,
   SubscriptionPlan,
@@ -11,6 +14,19 @@ import type {
   SubscriptionPrepareResponse,
   SubscriptionUniversityOption,
 } from "@/types/subscription";
+
+export const SUBSCRIPTION_ACCESS_LABEL: Record<SubscriptionAccessState, string> = {
+  ACTIVE: "정상 구독중",
+  CANCEL_SCHEDULED: "해지 예정",
+  PENDING: "결제 대기",
+  EXPIRED: "만료됨",
+  UNSUBSCRIBED: "구독 안함",
+};
+
+export const BILLING_CYCLE_LABEL: Record<string, string> = {
+  MONTHLY: "월간",
+  YEARLY: "연간",
+};
 
 export async function getSubscriptionStatus() {
   const response = await api.get<SubscriptionAccessStatus>(
@@ -71,4 +87,40 @@ export async function cancelSubscriptionPayment(
   payload: SubscriptionPaymentCancelRequest,
 ) {
   await api.post("/api/subscriptions/payments/cancel", payload);
+}
+
+export async function getSubscriptionPaymentMethod() {
+  const response = await api.get<SubscriptionPaymentMethodInfo>(
+    "/api/subscriptions/payment-method",
+  );
+  return response.data;
+}
+
+export async function getSubscriptionPaymentHistory() {
+  const response = await api.get<SubscriptionPaymentHistory[]>(
+    "/api/subscriptions/payments",
+  );
+  return response.data;
+}
+
+export async function changeSubscriptionPlan(planId: number) {
+  const response = await api.patch<SubscriptionAccessStatus>(
+    "/api/subscriptions/plan",
+    { planId },
+  );
+  return response.data;
+}
+
+export async function scheduleSubscriptionCancellation() {
+  const response = await api.patch<SubscriptionAccessStatus>(
+    "/api/subscriptions/cancel",
+  );
+  return response.data;
+}
+
+export async function revertSubscriptionCancellation() {
+  const response = await api.delete<SubscriptionAccessStatus>(
+    "/api/subscriptions/cancel",
+  );
+  return response.data;
 }

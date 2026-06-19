@@ -1,34 +1,9 @@
 import api from "@/lib/api";
-
-export interface NoticeAttachment {
-  attachmentId: number;
-  fileName: string;
-  fileSize: number | null;
-  downloadUrl: string;
-}
-
-export interface Notice {
-  id: number;
-  year: number;
-  termCode: string;
-  semesterLabel: string;
-  lecId: number;
-  lecSection?: number | null;
-  courseName: string;
-  courseFullName: string;
-  title: string;
-  author: string;
-  authorImageUrl?: string | null;
-  date: string;
-  listDate: string;
-  featured?: boolean;
-  content: string;
-  attachments: NoticeAttachment[];
-}
+import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 
 const normalizeNotice = (notice: Notice): Notice => ({
   ...notice,
-  content: notice.content ?? "",
+  lecAnnContent: notice.lecAnnContent ?? "",
   attachments: notice.attachments ?? [],
 });
 

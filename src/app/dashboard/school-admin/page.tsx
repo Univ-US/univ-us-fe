@@ -18,6 +18,8 @@ import {
     Megaphone,
     MessageCircle,
     MessageSquareText,
+    ScrollText,
+    ShieldAlert,
     Settings,
     Users,
 } from "lucide-react";
@@ -31,6 +33,8 @@ import InquiriesView from "./_views/InquiriesView";
 import LectureManageView from "./_views/LectureManageView";
 import LectureAssignView from "./_views/LectureAssignView";
 import ChatView from "./_views/ChatView";
+import PenaltyManagementView from "./_views/PenaltyManagementView";
+import CommunityView from "./_views/CommunityView";
 
 const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ className?: string }> }[] = [
     { label: "대시보드", view: "dashboard", icon: LayoutDashboard },
@@ -39,6 +43,8 @@ const NAV_ITEMS: { label: string; view: View; icon: React.ComponentType<{ classN
     { label: "문의사항", view: "inquiries", icon: MessageSquareText },
     { label: "강의 관리", view: "lectureManage", icon: Library },
     { label: "강의 배정", view: "lectureAssign", icon: BookPlus },
+    { label: "노쇼 페널티 관리", view: "penalties", icon: ShieldAlert },
+    { label: "커뮤니티 관리", view: "community", icon: ScrollText },
     { label: "구독·결제", view: "billing", icon: CreditCard },
     { label: "학교 설정", view: "settings", icon: Settings },
     { label: "채팅", view: "chat", icon: MessageCircle },
@@ -51,6 +57,8 @@ const SECTION_LABEL: Record<View, string> = {
     inquiries: "문의사항",
     lectureManage: "강의 관리",
     lectureAssign: "강의 배정",
+    penalties: "노쇼 페널티 관리",
+    community: "커뮤니티 관리",
     billing: "구독·결제",
     settings: "학교 설정",
     chat: "채팅",
@@ -144,7 +152,7 @@ function SchoolAdminDashboard() {
 
     return (
         <RoleGuard allowedRoles={["ADM"]}>
-            <main className="min-h-screen bg-[#f4faf7] text-slate-950">
+            <main className={view === "chat" ? "h-screen overflow-hidden bg-[#f4faf7] text-slate-950" : "min-h-screen bg-[#f4faf7] text-slate-950"}>
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
@@ -173,7 +181,7 @@ function SchoolAdminDashboard() {
 
                     <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">운영</p>
                     <nav className="mt-2 flex-1 space-y-0.5">
-                        {NAV_ITEMS.slice(0, 6).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(0, 8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -185,7 +193,7 @@ function SchoolAdminDashboard() {
                         ))}
 
                         <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">시스템</p>
-                        {NAV_ITEMS.slice(6).map(({ label, view: v, icon: Icon }) => (
+                        {NAV_ITEMS.slice(8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
@@ -213,8 +221,8 @@ function SchoolAdminDashboard() {
                     </div>
                 </aside>
 
-                <div className="lg:pl-[220px]">
-                    <header className="sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur">
+                <div className={view === "chat" ? "flex h-full min-h-0 flex-col lg:pl-[220px]" : "lg:pl-[220px]"}>
+                    <header className={view === "chat" ? "shrink-0 border-b border-emerald-900/10 bg-white/85 backdrop-blur" : "sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur"}>
                         <div className="flex h-16 items-center justify-between px-6 lg:px-8">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" />
@@ -283,14 +291,16 @@ function SchoolAdminDashboard() {
                         </div>
                     </header>
 
-                    <section className="px-6 py-8 lg:px-8">
+                    <section className={view === "chat" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 lg:px-8" : "px-6 py-8 lg:px-8"}>
                         {view === "dashboard" && <DashboardView onNavigate={(v) => setView(v as View)} />}
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}
                         {view === "inquiries" && <InquiriesView />}
                         {view === "lectureManage" && <LectureManageView />}
                         {view === "lectureAssign" && <LectureAssignView />}
-                        {view === "billing" && <BillingView />}
+                        {view === "penalties" && <PenaltyManagementView />}
+                        {view === "community" && <CommunityView />}
+                        {view === "billing" && <BillingView onNavigate={(v) => setView(v as View)} />}
                         {view === "settings" && <SettingsView />}
                         {view === "chat" && <ChatView />}
                     </section>

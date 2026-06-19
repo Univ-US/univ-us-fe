@@ -10,6 +10,7 @@ import {
   PackageOpen,
   UserRound,
   GraduationCap,
+  Home,
   ChevronDown,
   LogOut,
 } from 'lucide-react';
@@ -17,6 +18,9 @@ import { cn } from '@/lib/utils';
 import { getCommunityDisplayName } from '@/lib/communityProfileDisplay';
 import { useAuthStore } from '@/store/authStore';
 import { getPostList } from '@/lib/postApi';
+import { ROLE } from '@/lib/rolecode';
+import SeatChatNotificationCenter from '@/components/reservation/seat/SeatChatNotificationCenter';
+import { useSeatChatNotificationStore } from '@/store/reservation/seatChatNotificationStore';
 
 const NOTICE_BOARD_ID = 3;
 
@@ -40,14 +44,31 @@ export default function CommunityHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [serviceMenuOpen, setServiceMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [noticeTodayCount, setNoticeTodayCount] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const serviceMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const seatChatActiveReservation = useSeatChatNotificationStore(
+    (state) => state.activeReservation,
+  );
+  const seatChatUnreadCount = useSeatChatNotificationStore(
+    (state) => state.totalUnreadCount,
+  );
+  const requestSeatChatOpen = useSeatChatNotificationStore(
+    (state) => state.requestOpen,
+  );
   const univName = useAuthStore((s) => s.univName);
-  const { memberName, communityNickname, logoutAction } = useAuthStore();
+  const { memberName, communityNickname, logoutAction, role } = useAuthStore();
   const displayName = getCommunityDisplayName({ communityNickname, memberName });
+  const lmsHref =
+    role === ROLE.PROF
+      ? '/lms/professor/courses'
+      : role === ROLE.STU || role === ROLE.ALU
+        ? '/lms/student/dashboard'
+        : null;
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
@@ -101,6 +122,12 @@ export default function CommunityHeader() {
         setDropdownOpen(false);
       }
       if (
+        serviceMenuRef.current &&
+        !serviceMenuRef.current.contains(e.target as Node)
+      ) {
+        setServiceMenuOpen(false);
+      }
+      if (
         notificationRef.current &&
         !notificationRef.current.contains(e.target as Node)
       ) {
@@ -112,7 +139,9 @@ export default function CommunityHeader() {
   }, []);
 
   return (
-    <header className='sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm'>
+    <>
+      <SeatChatNotificationCenter />
+      <header className='sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm'>
       <div className='mx-auto flex h-16 max-w-[1300px] items-center gap-2 px-6'>
         {/* 로고 */}
         <Link
@@ -165,15 +194,68 @@ export default function CommunityHeader() {
 
         {/* 우측 액션 */}
         <div className='ml-auto flex shrink-0 items-center gap-3'>
-          {/* LMS 바로가기 버튼 */}
+          {/* 서비스 이동 드롭다운 */}
+          <div className='relative' ref={serviceMenuRef}>
+            <button
+              type='button'
+              onClick={() => setServiceMenuOpen((prev) => !prev)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-full border px-[15px] py-[7px] text-[13px] font-bold transition-all hover:shadow-sm active:scale-[0.97]',
+                serviceMenuOpen
+                  ? 'border-[#75DCCF] bg-[#DDF8F3] text-[#0E6F64]'
+                  : 'border-[#A1EBE0] bg-[#ECFBF8] text-[#0E6F64] hover:bg-[#CFF5EE]',
+              )}
+              aria-expanded={serviceMenuOpen}
+              aria-haspopup='menu'
+            >
+              <GraduationCap className='h-[17px] w-[17px]' />
+              <span>바로가기</span>
+              <ChevronDown
+                className={cn(
+                  'size-3.5 transition-transform',
+                  serviceMenuOpen && 'rotate-180',
+                )}
+              />
+            </button>
 
-          <Link
-            href='/home'
-            className='inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-full border border-[#A1EBE0] bg-[#ECFBF8] px-[15px] py-[7px] text-[13px] font-bold text-[#0E6F64] transition-all hover:bg-[#CFF5EE] hover:shadow-sm active:scale-[0.97]'
-          >
-            <GraduationCap className='h-[17px] w-[17px]' />
-            <span>LMS</span>
-          </Link>
+            {serviceMenuOpen && (
+              <div
+                role='menu'
+                className='absolute right-0 top-[calc(100%+8px)] z-50 w-[176px] animate-in fade-in slide-in-from-top-2 overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg duration-300'
+              >
+                <Link
+                  href='/home'
+                  role='menuitem'
+                  onClick={() => setServiceMenuOpen(false)}
+                  className='flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-primary'
+                >
+                  <Home className='size-4 text-slate-400' />
+                  메인홈
+                </Link>
+                {lmsHref ? (
+                  <Link
+                    href={lmsHref}
+                    role='menuitem'
+                    onClick={() => setServiceMenuOpen(false)}
+                    className='flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-primary'
+                  >
+                    <GraduationCap className='size-4 text-slate-400' />
+                    LMS
+                  </Link>
+                ) : (
+                  <button
+                    type='button'
+                    role='menuitem'
+                    disabled
+                    className='flex w-full cursor-not-allowed items-center gap-2.5 px-4 py-2.5 text-left text-[13px] font-semibold text-slate-300'
+                  >
+                    <GraduationCap className='size-4' />
+                    LMS
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <span className='h-6 w-px shrink-0 bg-slate-200' />
 
           {/* 검색창 */}
@@ -196,6 +278,32 @@ export default function CommunityHeader() {
               className='h-9 w-56 rounded-full border border-slate-200 bg-slate-50 pl-9 pr-4 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-sm cursor-pointer'
             />
           </div>
+
+          {seatChatActiveReservation && (
+            <button
+              type='button'
+              onClick={() => {
+                requestSeatChatOpen();
+                router.push('/community/reservation');
+              }}
+              aria-label={
+                seatChatUnreadCount > 0
+                  ? `좌석 채팅 열기, 읽지 않은 메시지 ${seatChatUnreadCount}개`
+                  : '좌석 채팅 열기'
+              }
+              title='좌석 채팅'
+              className='relative flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-md active:translate-y-0'
+            >
+              <MessageCircle className='size-[18px]' />
+              {seatChatUnreadCount > 0 && (
+                <span className='absolute -right-1.5 -top-1.5 flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white'>
+                  {seatChatUnreadCount > 99
+                    ? '99+'
+                    : seatChatUnreadCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* 알림 버튼 */}
           <div className='hidden' ref={notificationRef}>
@@ -329,6 +437,7 @@ export default function CommunityHeader() {
           </div>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 }

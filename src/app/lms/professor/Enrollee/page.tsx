@@ -20,12 +20,14 @@ import {
   LECTURE_NAME_MAX,
   resolveImageUrl,
   EMPTY_LECTURE_STUDENTS,
-  type Lecture,
-  type CourseStudentRow,
-  type LectureStudentsResponse,
-  type StudentReport,
-  type StudentsQuery,
 } from "@/lib/lmsProfessorStudentsApi";
+import type {
+  Lecture,
+  CourseStudentRow,
+  LectureStudentsResponse,
+  StudentReport,
+  StudentsQuery,
+} from "@/types/lmsProfessorStudents";
 import { describeApiError } from "@/lib/lmsApiError";
 
 const PAGE_SIZE = 10;
@@ -34,14 +36,14 @@ const PAGE_SIZE = 10;
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 // 선택된 (년도, 학기) 조합에 매칭되는 담당 강의들. 둘 다 'all'이면 전 강의.
-// 강의 응답의 year/termCode로 클라이언트 필터(getLectures가 학기 1개만 받으므로 전체 로드 후 거른다).
+// 강의 응답의 semYear/semTerm으로 클라이언트 필터(getLectures가 학기 1개만 받으므로 전체 로드 후 거른다).
 const matchLectures = (
   year: number | "all",
   term: string | "all",
   lecs: Lecture[]
 ): Lecture[] =>
   lecs.filter(
-    (l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term)
+    (l) => (year === "all" || l.semYear === year) && (term === "all" || l.semTerm === term)
   );
 
 type Submission = "" | "complete" | "incomplete";
@@ -174,14 +176,14 @@ export default function ProfessorStudentsPage() {
   );
   const yearOptions = useMemo(
     () =>
-      [...new Set(lectures.map((l) => l.year).filter((y): y is number => y != null))].sort(
+      [...new Set(lectures.map((l) => l.semYear).filter((y): y is number => y != null))].sort(
         (a, b) => b - a
       ),
     [lectures]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(lectures.map((l) => l.termCode).filter((t): t is string => !!t))].sort(
+      [...new Set(lectures.map((l) => l.semTerm).filter((t): t is string => !!t))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [lectures]

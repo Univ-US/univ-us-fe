@@ -13,10 +13,12 @@ import {
   ATTENDANCE_STATUS,
   AT_RISK_THRESHOLD,
   tallySessions,
-  type AttendanceSession,
-  type AttendanceStatus,
-  type AttendanceStudentRow,
 } from "@/lib/lmsProfessorAttendanceApi";
+import type {
+  AttendanceSession,
+  AttendanceStatus,
+  AttendanceStudentRow,
+} from "@/types/lmsProfessorAttendance";
 
 interface ProfessorAttendanceEditDialogProps {
   open: boolean;
@@ -56,10 +58,10 @@ export default function ProfessorAttendanceEditDialog({
 
   // 상태 변경 = 항상 확인창을 거친다(window.confirm, 프로젝트 공통 패턴). 이미 같은 상태면 무동작.
   const requestStatusChange = (session: AttendanceSession, target: AttendanceStatus) => {
-    if (session.status === target) return;
+    if (session.stdEnrAtdStsCode === target) return;
     if (!window.confirm(`${ATTENDANCE_STATUS[target].label}으로 변경하시겠습니까?`)) return;
     setDraft((prev) =>
-      prev.map((s) => (s.sessionId === session.sessionId ? { ...s, status: target } : s))
+      prev.map((s) => (s.sessionId === session.sessionId ? { ...s, stdEnrAtdStsCode: target } : s))
     );
   };
 
@@ -125,7 +127,7 @@ export default function ProfessorAttendanceEditDialog({
           </p>
           <ul className="space-y-1.5">
             {draft.map((s, i) => {
-              const meta = ATTENDANCE_STATUS[s.status];
+              const meta = ATTENDANCE_STATUS[s.stdEnrAtdStsCode];
               return (
                 <li
                   key={s.sessionId}
@@ -133,12 +135,12 @@ export default function ProfessorAttendanceEditDialog({
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="w-9 shrink-0 text-xs font-medium text-slate-400">{i + 1}회</span>
-                    <span className="text-sm text-slate-700">{formatSessionDate(s.date)}</span>
+                    <span className="text-sm text-slate-700">{formatSessionDate(s.stdEnrAtdRegDate)}</span>
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} aria-hidden />
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {STATUS_ORDER.map((code) => {
-                      const active = s.status === code;
+                      const active = s.stdEnrAtdStsCode === code;
                       const m = ATTENDANCE_STATUS[code];
                       return (
                         <button

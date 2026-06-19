@@ -1,11 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  getStudentCourses,
-  type CourseRow,
-  type SemesterCourses,
-} from "@/lib/lmsStudentCoursesApi";
+import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+import type { CourseRow, SemesterCourses } from "@/types/lmsStudentCourses";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -49,13 +46,13 @@ export default function StudentCoursesPage() {
   }, [yearFilter, termFilter]);
 
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters],
   );
 
   const termOptions = useMemo(
     () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
+      [...new Set(semesters.map((s) => s.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b),
       ),
     [semesters],
@@ -65,8 +62,8 @@ export default function StudentCoursesPage() {
     () =>
       semesters.filter(
         (s) =>
-          (yearFilter === "all" || s.year === yearFilter) &&
-          (termFilter === "all" || s.termCode === termFilter),
+          (yearFilter === "all" || s.semYear === yearFilter) &&
+          (termFilter === "all" || s.semTerm === termFilter),
       ),
     [semesters, yearFilter, termFilter],
   );
@@ -144,7 +141,7 @@ export default function StudentCoursesPage() {
 
           <div className="space-y-6">
             {pagedVisible.map((sem) => (
-              <SemesterCard key={`${sem.year}-${sem.termCode}`} sem={sem} />
+              <SemesterCard key={`${sem.semYear}-${sem.semTerm}`} sem={sem} />
             ))}
           </div>
 
@@ -268,7 +265,7 @@ function CourseTableRow({ course }: { course: CourseRow }) {
       <td className="px-2 py-3 text-slate-600">
         {course.lecSection != null ? `${course.lecSection}반` : "-"}
       </td>
-      <td className="px-2 py-3 text-slate-600">{course.credit}</td>
+      <td className="px-2 py-3 text-slate-600">{course.lecCredit}</td>
       <td className="px-2 py-3 text-slate-600">{course.professor}</td>
       <td className="px-2 py-3 text-xs text-slate-500">{course.schedule}</td>
     </tr>

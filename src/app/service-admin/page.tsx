@@ -13,7 +13,6 @@ import {
     ListChecks,
     LogOut,
     MessageSquareText,
-    ScrollText,
     School,
     Settings,
     UserRoundCog,
@@ -34,19 +33,7 @@ import SchoolDetailView from "./_views/SchoolDetailView";
 import SchoolsView from "./_views/SchoolsView";
 import SubscriptionPlansView from "./_views/SubscriptionPlansView";
 import UsersView from "./_views/UsersView";
-import {
-    getMockMembersForSchool,
-    SERVICE_INQUIRIES,
-    SERVICE_SCHOOLS,
-} from "./_mockData";
-import type {
-    InquiryStatus,
-    MemberStatus,
-    ServiceAdminView,
-    ServiceInquiry,
-    ServiceMember,
-    ServiceSchool,
-} from "./_types";
+import type { ServiceAdminView } from "./_types";
 
 interface NavItem {
     label: string;
@@ -66,7 +53,6 @@ const PLATFORM_NAV_ITEMS: NavItem[] = [
 
 const DETAIL_NAV_ITEMS: NavItem[] = [
     { label: "이용자 관리", icon: UsersRound, view: "users" },
-    { label: "커뮤니티 관리", icon: ScrollText },
 ];
 
 const VIEW_LABEL: Record<ServiceAdminView, string> = {
@@ -115,12 +101,6 @@ function ServiceAdminDashboardContent() {
         isLoggedIn,
         role,
     } = useAuthStore();
-    const [schools] = useState<ServiceSchool[]>(SERVICE_SCHOOLS);
-    const [members, setMembers] = useState<ServiceMember[]>(() =>
-        SERVICE_SCHOOLS.flatMap(getMockMembersForSchool),
-    );
-    const [inquiries, setInquiries] =
-        useState<ServiceInquiry[]>(SERVICE_INQUIRIES);
     const [dashboard, setDashboard] =
         useState<ServiceAdminDashboardResponse | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(true);
@@ -186,99 +166,15 @@ function ServiceAdminDashboardContent() {
         router.push("/landing");
     };
 
-    const openSchool = (school: ServiceSchool) => {
-        router.push(
-            `/service-admin?view=school-detail&schoolId=${school.id}`,
-        );
-    };
-
     const openSchoolById = (schoolId: number) => {
         router.push(
             `/service-admin?view=school-detail&schoolId=${schoolId}`,
         );
     };
 
-    const changeMemberStatus = (memberId: number, status: MemberStatus) => {
-        setMembers((current) =>
-            current.map((member) =>
-                member.id === memberId ? { ...member, status } : member,
-            ),
-        );
-    };
-
-    const readInquiry = useCallback((inquiryId: number) => {
-        setInquiries((current) => {
-            const target = current.find((inquiry) => inquiry.id === inquiryId);
-            if (!target || target.unreadCount === 0) return current;
-            return current.map((inquiry) =>
-                inquiry.id === inquiryId
-                    ? { ...inquiry, unreadCount: 0 }
-                    : inquiry,
-            );
-        });
-    }, []);
-
-    const sendInquiryMessage = (
-        inquiryId: number,
-        payload: {
-            text: string;
-            imageUrl: string | null;
-            imageName: string | null;
-        },
-    ) => {
-        const now = new Date();
-        const sentAt = `${now.toLocaleDateString("en-CA")} ${now
-            .toTimeString()
-            .slice(0, 5)}`;
-        setInquiries((current) =>
-            current.map((inquiry) =>
-                inquiry.id === inquiryId
-                    ? {
-                        ...inquiry,
-                        status:
-                            inquiry.status === "WAITING"
-                                ? "IN_PROGRESS"
-                                : inquiry.status,
-                        updatedAt: sentAt,
-                        unreadCount: 0,
-                        messages: [
-                            ...inquiry.messages,
-                            {
-                                id: Date.now(),
-                                senderRole: "SUA",
-                                senderName: memberName ?? "서비스 관리자",
-                                text: payload.text,
-                                imageUrl: payload.imageUrl,
-                                imageName: payload.imageName,
-                                sentAt,
-                            },
-                        ],
-                    }
-                    : inquiry,
-            ),
-        );
-    };
-
-    const changeInquiryStatus = (
-        inquiryId: number,
-        status: InquiryStatus,
-    ) => {
-        const now = new Date();
-        const updatedAt = `${now.toLocaleDateString("en-CA")} ${now
-            .toTimeString()
-            .slice(0, 5)}`;
-        setInquiries((current) =>
-            current.map((inquiry) =>
-                inquiry.id === inquiryId
-                    ? { ...inquiry, status, updatedAt }
-                    : inquiry,
-            ),
-        );
-    };
-
     return (
         <RoleGuard allowedRoles={["SUA"]}>
-            <main className="min-h-screen bg-[#f4faf7] text-slate-950">
+            <main className={view === "inquiries" ? "h-screen overflow-hidden bg-[#f4faf7] text-slate-950" : "min-h-screen bg-[#f4faf7] text-slate-950"}>
                 <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
@@ -387,8 +283,8 @@ function ServiceAdminDashboardContent() {
                     </div>
                 </aside>
 
-                <div className="lg:pl-[220px]">
-                    <header className="sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur">
+                <div className={view === "inquiries" ? "flex h-full min-h-0 flex-col lg:pl-[220px]" : "lg:pl-[220px]"}>
+                    <header className={view === "inquiries" ? "shrink-0 border-b border-emerald-900/10 bg-white/85 backdrop-blur" : "sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur"}>
                         <div className="flex h-16 items-center justify-between px-6 lg:px-8">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" />
@@ -402,7 +298,7 @@ function ServiceAdminDashboardContent() {
                         </div>
                     </header>
 
-                    <section className="px-6 py-8 lg:px-8">
+                    <section className={view === "inquiries" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 lg:px-8" : "px-6 py-8 lg:px-8"}>
                         {view === "dashboard" && (
                             <DashboardView
                                 dashboard={dashboard}
@@ -427,12 +323,7 @@ function ServiceAdminDashboardContent() {
                             />
                         )}
                         {view === "users" && (
-                            <UsersView
-                                schools={schools}
-                                members={members.filter((member) => member.role !== "ADM")}
-                                onChangeStatus={changeMemberStatus}
-                                onOpenSchool={openSchool}
-                            />
+                            <UsersView />
                         )}
                         {view === "payments" && (
                             <PaymentsView
@@ -443,14 +334,7 @@ function ServiceAdminDashboardContent() {
                             <SubscriptionPlansView />
                         )}
                         {view === "inquiries" && (
-                            <InquiriesView
-                                inquiries={inquiries}
-                                schools={schools}
-                                adminName={memberName ?? "서비스 관리자"}
-                                onRead={readInquiry}
-                                onSendMessage={sendInquiryMessage}
-                                onChangeStatus={changeInquiryStatus}
-                            />
+                            <InquiriesView />
                         )}
                         {view === "logs" && (
                             <OperationsLogsView />

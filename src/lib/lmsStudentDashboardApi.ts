@@ -1,59 +1,26 @@
 import { getStudentAssignments, type SemesterAssignments, type StudentAssignment } from "@/lib/lmsStudentAssignmentsApi";
 import { getStudentAttendance, type SemesterAttendance } from "@/lib/lmsStudentAttendanceApi";
-import { getStudentCourses, type SemesterCourses } from "@/lib/lmsStudentCoursesApi";
+import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+import type { SemesterCourses } from "@/types/lmsStudentCourses";
 import { getStudentProfile } from "@/lib/lmsStudentApi";
+import type {
+  DashboardAssignment,
+  DashboardCourse,
+  DashboardSemesterOption,
+  GetStudentDashboardParams,
+  LectureTime,
+  StudentDashboard,
+} from "@/types/lmsStudentDashboard";
 
-export type { StudentAssignmentStatus } from "@/lib/lmsStudentAssignmentsApi";
-import type { StudentAssignmentStatus } from "@/lib/lmsStudentAssignmentsApi";
-
-export interface LectureTime {
-  dayCode: string;
-  start: string;
-  end: string;
-}
-
-export interface DashboardCourse {
-  lecId: number;
-  courseName: string;
-  credit: number;
-  professor: string;
-  times: LectureTime[];
-  attendanceRate: number;
-}
-
-export interface DashboardAssignment {
-  id: number;
-  lecId: number;
-  title: string;
-  due: string;
-  status: StudentAssignmentStatus;
-}
-
-export interface DashboardSemesterOption {
-  year: number;
-  termCode: string;
-  semesterLabel: string;
-}
-
-export interface StudentDashboard {
-  studentName: string;
-  semesterLabel: string;
-  year: number;
-  termCode: string;
-  availableSemesters: DashboardSemesterOption[];
-  stats: {
-    courseCount: number;
-    totalCredits: number;
-    avgAttendance: number;
-  };
-  courses: DashboardCourse[];
-  assignments: DashboardAssignment[];
-}
-
-export interface GetStudentDashboardParams {
-  year?: number | null;
-  termCode?: string | null;
-}
+export type { StudentAssignmentStatus } from "@/types/lmsStudentAssignments";
+export type {
+  DashboardAssignment,
+  DashboardCourse,
+  DashboardSemesterOption,
+  GetStudentDashboardParams,
+  LectureTime,
+  StudentDashboard,
+} from "@/types/lmsStudentDashboard";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -122,9 +89,15 @@ const buildAvailableSemesters = (
     }
   };
 
-  courseSemesters.forEach(add);
-  assignmentSemesters.forEach(add);
-  attendanceSemesters.forEach(add);
+  courseSemesters.forEach((s) =>
+    add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
+  );
+  assignmentSemesters.forEach((s) =>
+    add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
+  );
+  attendanceSemesters.forEach((s) =>
+    add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
+  );
 
   return sortSemesters([...byKey.values()]);
 };
@@ -142,10 +115,20 @@ const pickSemester = (
   if (requested) return requested;
 
   const inProgressCourse = courseSemesters.find((s) => s.inProgress);
-  if (inProgressCourse) return inProgressCourse;
+  if (inProgressCourse)
+    return {
+      year: inProgressCourse.semYear,
+      termCode: inProgressCourse.semTerm,
+      semesterLabel: inProgressCourse.semesterLabel,
+    };
 
   const inProgressAttendance = attendanceSemesters.find((s) => s.inProgress);
-  if (inProgressAttendance) return inProgressAttendance;
+  if (inProgressAttendance)
+    return {
+      year: inProgressAttendance.semYear,
+      termCode: inProgressAttendance.semTerm,
+      semesterLabel: inProgressAttendance.semesterLabel,
+    };
 
   return available[0] ?? null;
 };
@@ -223,9 +206,9 @@ export const getStudentDashboard = async (
     semesterLabel: semesterLabel(fallbackYear, "SM1"),
   };
   const key = semesterKey(selected.year, selected.termCode);
-  const courseSemester = courseSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
-  const assignmentSemester = assignmentSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
-  const attendanceSemester = attendanceSemesters.find((s) => semesterKey(s.year, s.termCode) === key);
+  const courseSemester = courseSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
+  const assignmentSemester = assignmentSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
+  const attendanceSemester = attendanceSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);
   const attendanceByLecId = new Map(
     (attendanceSemester?.courses ?? []).map((course) => [course.lecId, course.attendanceRate])
   );
@@ -233,7 +216,7 @@ export const getStudentDashboard = async (
   const courses: DashboardCourse[] = (courseSemester?.courses ?? []).map((course) => ({
     lecId: course.lecId,
     courseName: course.courseName,
-    credit: course.credit,
+    credit: course.lecCredit,
     professor: course.professor,
     times: parseSchedule(course.schedule),
     attendanceRate: attendanceByLecId.get(course.lecId) ?? 0,
@@ -242,8 +225,8 @@ export const getStudentDashboard = async (
   const assignments: DashboardAssignment[] = (assignmentSemester?.assignments ?? []).map((assignment) => ({
     id: assignment.id,
     lecId: resolveAssignmentLecId(assignment, courses, courseSemester),
-    title: assignment.title,
-    due: assignment.dueDate,
+    title: assignment.lecAsnTitle,
+    due: assignment.lecAsnDueDate,
     status: assignment.status,
   }));
 
@@ -253,7 +236,7 @@ export const getStudentDashboard = async (
       : Math.round(courses.reduce((sum, course) => sum + course.attendanceRate, 0) / courses.length);
 
   return {
-    studentName: profile.lmsStudentProfileName || "학생",
+    studentName: profile.name || "학생",
     semesterLabel: selected.semesterLabel,
     year: selected.year,
     termCode: selected.termCode,

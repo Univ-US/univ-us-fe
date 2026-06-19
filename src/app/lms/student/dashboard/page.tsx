@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { describeApiError } from "@/lib/lmsApiError";
-import {
-  getStudentDashboard,
-  type DashboardSemesterOption,
-  type GetStudentDashboardParams,
-  type LectureTime,
-  type StudentAssignmentStatus,
-  type StudentDashboard,
-} from "@/lib/lmsStudentDashboardApi";
+import { getStudentDashboard } from "@/lib/lmsStudentDashboardApi";
+import type {
+  DashboardSemesterOption,
+  GetStudentDashboardParams,
+  LectureTime,
+  StudentDashboard,
+} from "@/types/lmsStudentDashboard";
+import type { StudentAssignmentStatus } from "@/types/lmsStudentAssignments";
 
 const attendanceColor = (rate: number) =>
   rate >= 95 ? "text-emerald-600" : rate >= 80 ? "text-amber-600" : "text-rose-600";

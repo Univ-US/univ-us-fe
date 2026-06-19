@@ -4,38 +4,11 @@ import {
   formatChatListTime,
   formatChatMessageTime,
 } from "@/lib/lmsStudentChatApi";
-
-export interface ProfessorChatRoom {
-  roomId: number;
-  lecId: number;
-  studentLmsPrfId: number;
-  professorLmsPrfId: number;
-  studentName: string;
-  studentNo: string | null;
-  courseName: string;
-  lecSection: number | null;
-  lastMessage: string;
-  lastAt: string;
-  unread: number;
-  avatarInitial: string;
-  avatarColor: string;
-}
-
-export interface ProfessorChatMessage {
-  id: number;
-  roomId: number;
-  senderLmsPrfId: number;
-  sender: "me" | "student";
-  text: string;
-  sentAt: string;
-  read?: boolean;
-}
-
-export interface ProfessorChatThread {
-  roomId: number;
-  dateLabel: string;
-  messages: ProfessorChatMessage[];
-}
+import type {
+  ProfessorChatMessage,
+  ProfessorChatRoom,
+  ProfessorChatThread,
+} from "@/types/lmsProfessorChat";
 
 const avatarColors = [
   "bg-slate-700",
@@ -70,7 +43,7 @@ const normalizeRoom = (
 
 const normalizeMessage = (message: ProfessorChatMessage): ProfessorChatMessage => ({
   ...message,
-  text: message.text ?? "",
+  chtRomMsgContent: message.chtRomMsgContent ?? "",
   read: Boolean(message.read),
 });
 

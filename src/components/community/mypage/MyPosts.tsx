@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Heart, MessageSquare, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,13 +30,15 @@ const S = {
 
 export default function MyPosts() {
   const [posts, setPosts] = useState<MyPost[]>([]);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const data = await getMyPosts();
-        setPosts(data.map((p: Post) => ({
+  const loadPosts = useCallback(async (nextPage: number, append: boolean) => {
+    setLoadingMore(true);
+    try {
+      const data = await getMyPosts(nextPage, PAGE_SIZE);
+      const nextPosts = data.content.map((p: Post) => ({
           postId: p.postId,
           boardId: p.boardId,
           title: p.title,
@@ -46,20 +48,26 @@ export default function MyPosts() {
           commentCount: p.commentCount,
           reportCount: p.reportCount,
           isBlind: p.isBlind,
-        })));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchPosts();
+      }));
+      setPosts((current) => append ? [...current, ...nextPosts] : nextPosts);
+      setPage(data.page);
+      setTotalElements(data.totalElements);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMore(false);
+    }
   }, []);
 
-  const visiblePosts = posts.slice(0, visibleCount);
-  const hasMore = visibleCount < posts.length;
+  useEffect(() => {
+    void loadPosts(0, false);
+  }, [loadPosts]);
+
+  const hasMore = posts.length < totalElements;
 
   return (
     <>
-      <SectionTitle sub={`작성한 글 ${posts.length}개`}>
+      <SectionTitle sub={`작성한 글 ${totalElements}개`}>
         내가 쓴 글
       </SectionTitle>
       {posts.length === 0 ? (
@@ -75,7 +83,7 @@ export default function MyPosts() {
       ) : (
         <>
           <div className={S.listContainer}>
-            {visiblePosts.map((post, i) => {
+            {posts.map((post, i) => {
               const blind = Boolean(post.isBlind);
 
               return (
@@ -85,7 +93,7 @@ export default function MyPosts() {
                   className={cn(
                     S.listItem,
                     blind && 'bg-slate-50 text-slate-400 hover:bg-slate-100',
-                    i < visiblePosts.length - 1 && S.listBorder,
+                    i < posts.length - 1 && S.listBorder,
                   )}
                 >
                   <BoardBadge board={post.board} />
@@ -117,9 +125,10 @@ export default function MyPosts() {
               <button
                 type='button'
                 className={S.moreButton}
-                onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+                disabled={loadingMore}
+                onClick={() => void loadPosts(page + 1, true)}
               >
-                더보기 {visibleCount} / {posts.length}
+                {loadingMore ? '불러오는 중' : `더보기 ${posts.length} / ${totalElements}`}
               </button>
             </div>
           )}

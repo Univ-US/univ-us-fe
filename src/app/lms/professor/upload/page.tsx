@@ -22,10 +22,8 @@ import {
   getUploads,
   getUploadsMeta,
   isVideoExt,
-  type Lecture,
-  type Material,
-  type SemesterOption,
 } from "@/lib/lmsProfessorUploadApi";
+import type { Lecture, Material, SemesterOption } from "@/types/lmsProfessorUpload";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
@@ -65,12 +63,12 @@ export default function LectureUploadPage() {
 
   // 필터 옵션 — 메타(자료 보유 년도/학기)에서 유도. 년도 내림차순, 학기는 연중 순서
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
+      [...new Set(semesters.map((s) => s.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [semesters]
@@ -180,7 +178,7 @@ export default function LectureUploadPage() {
   };
 
   const handleDelete = async (m: Material) => {
-    if (!confirm(`'${m.title}' 자료를 삭제하시겠습니까?`)) return;
+    if (!confirm(`'${m.lecUplTitle}' 자료를 삭제하시겠습니까?`)) return;
     setActionError(null);
     try {
       await deleteUpload(m.uploadId);
@@ -315,15 +313,15 @@ export default function LectureUploadPage() {
                                   제목 500자·설명 4000자라 무공백 장문이 셀 폭을 밀어 레이아웃이 깨질 수 있음
                                   → max-w + truncate로 말줄임(전체 내용은 hover 툴팁/수정 모달에서 확인) */}
                               <div className="flex min-h-9 max-w-[320px] flex-col justify-center">
-                                <p className="truncate font-semibold text-slate-900" title={m.title}>
-                                  {m.title}
+                                <p className="truncate font-semibold text-slate-900" title={m.lecUplTitle}>
+                                  {m.lecUplTitle}
                                 </p>
-                                {htmlToPlainText(m.content ?? "") && (
+                                {htmlToPlainText(m.lecUplContent ?? "") && (
                                   <p
                                     className="truncate text-xs text-slate-400"
-                                    title={htmlToPlainText(m.content ?? "")}
+                                    title={htmlToPlainText(m.lecUplContent ?? "")}
                                   >
-                                    {htmlToPlainText(m.content ?? "")}
+                                    {htmlToPlainText(m.lecUplContent ?? "")}
                                   </p>
                                 )}
                               </div>
@@ -369,7 +367,7 @@ export default function LectureUploadPage() {
                                     m.attachments.reduce((sum, a) => sum + (a.fileSize ?? 0), 0)
                                   )}
                             </td>
-                            <td className="px-5 py-3 text-slate-500">{m.uploadedAt}</td>
+                            <td className="px-5 py-3 text-slate-500">{m.lecUplRegDate}</td>
                             <td className="px-5 py-3 text-right">
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" onClick={() => openEditDialog(m)}>

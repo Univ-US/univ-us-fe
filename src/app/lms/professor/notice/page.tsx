@@ -27,10 +27,8 @@ import {
   updateNotice,
   deleteNotice,
   downloadNoticeAttachment,
-  type Notice,
-  type NoticeAttachment,
-  type NoticeLecture,
 } from "@/lib/lmsProfessorNoticeApi";
+import type { Notice, NoticeAttachment, NoticeLecture } from "@/types/lmsProfessorNotice";
 import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
 
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -62,7 +60,7 @@ const matchLectures = (
   lecs: NoticeLecture[]
 ): NoticeLecture[] =>
   lecs.filter(
-    (l) => (year === "all" || l.year === year) && (term === "all" || l.termCode === term)
+    (l) => (year === "all" || l.semYear === year) && (term === "all" || l.semTerm === term)
   );
 
 interface FormState {
@@ -170,12 +168,12 @@ export default function ProfessorNoticePage() {
     [yearFilter, termFilter, lectures]
   );
   const yearOptions = useMemo(
-    () => [...new Set(lectures.map((l) => l.year))].sort((a, b) => b - a),
+    () => [...new Set(lectures.map((l) => l.semYear))].sort((a, b) => b - a),
     [lectures]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(lectures.map((l) => l.termCode))].sort(
+      [...new Set(lectures.map((l) => l.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [lectures]
@@ -215,8 +213,8 @@ export default function ProfessorNoticePage() {
   const dirty = useMemo(() => {
     if (!editing) return true;
     return (
-      form.title !== editing.title ||
-      normalizeHtml(form.content) !== normalizeHtml(editing.content) ||
+      form.title !== editing.lecAnnTitle ||
+      normalizeHtml(form.content) !== normalizeHtml(editing.lecAnnContent) ||
       form.files.length > 0 ||
       form.removeAttachmentIds.length > 0
     );
@@ -251,7 +249,7 @@ export default function ProfessorNoticePage() {
 
   const openEdit = (n: Notice) => {
     setEditing(n);
-    setForm({ lecId: n.lecId, title: n.title, content: n.content, files: [], removeAttachmentIds: [] });
+    setForm({ lecId: n.lecId, title: n.lecAnnTitle, content: n.lecAnnContent, files: [], removeAttachmentIds: [] });
     setActionError(null);
     setFormOpen(true);
   };
@@ -330,7 +328,7 @@ export default function ProfessorNoticePage() {
   };
 
   const handleDelete = async (n: Notice) => {
-    if (!window.confirm(`'${n.title}' 공지를 삭제할까요?`)) return;
+    if (!window.confirm(`'${n.lecAnnTitle}' 공지를 삭제할까요?`)) return;
     setActionError(null);
     try {
       await deleteNotice(n.noticeId);
@@ -424,7 +422,7 @@ export default function ProfessorNoticePage() {
                     title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
                   >
                     {truncateLectureName(l.courseName)}
-                    {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.year, l.termCode)}
+                    {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
                   </option>
                 ))
               )}
@@ -482,7 +480,7 @@ export default function ProfessorNoticePage() {
                 <ul className="p-2">
                   {notices.map((n) => {
                     const active = n.noticeId === selectedId;
-                    const preview = previewOf(n.content);
+                    const preview = previewOf(n.lecAnnContent);
                     return (
                       <li key={n.noticeId}>
                         <button
@@ -501,7 +499,7 @@ export default function ProfessorNoticePage() {
                           </div>
                           <div className="mt-1.5">
                             <span className="block break-words text-[15px] font-bold leading-snug text-slate-900">
-                              {n.title}
+                              {n.lecAnnTitle}
                             </span>
                             {preview && (
                               <span className="mt-1 block truncate text-xs text-slate-400">
@@ -546,7 +544,7 @@ export default function ProfessorNoticePage() {
           <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="min-w-0 truncate text-base font-bold text-slate-800">
-                {editing ? `공지 수정 — ${editing.title}` : "공지 작성"}
+                {editing ? `공지 수정 — ${editing.lecAnnTitle}` : "공지 작성"}
               </h2>
               <button
                 type="button"
@@ -581,7 +579,7 @@ export default function ProfessorNoticePage() {
                       title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
                     >
                       {truncateLectureName(l.courseName)}
-                      {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.year, l.termCode)}
+                      {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
                     </option>
                   ))}
                 </select>
@@ -731,7 +729,7 @@ function NoticeDetail({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const contentHtml = notice.content?.trim() ? sanitizeLmsHtml(notice.content) : "";
+  const contentHtml = notice.lecAnnContent?.trim() ? sanitizeLmsHtml(notice.lecAnnContent) : "";
   const handleDownload = async (att: NoticeAttachment) => {
     try {
       await downloadNoticeAttachment(att.attachmentId, att.fileName);
@@ -753,10 +751,10 @@ function NoticeDetail({
         </span>
       </div>
 
-      <h3 className="mt-2 break-words text-xl font-bold text-slate-900">{notice.title}</h3>
+      <h3 className="mt-2 break-words text-xl font-bold text-slate-900">{notice.lecAnnTitle}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
         <span>👤 {notice.author} 교수</span>
-        <span>📅 {notice.date}</span>
+        <span>📅 {notice.lecAnnRegDate}</span>
       </div>
 
       {/* 본문 */}

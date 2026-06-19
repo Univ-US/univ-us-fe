@@ -10,75 +10,28 @@
 // ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
+import type {
+  AssignmentRow,
+  SubmissionFile,
+  Submission,
+  GradingOverview,
+  PageResponse,
+  GradingDetail,
+} from "@/types/lmsProfessorGrading";
 
 // 공통코드 맵(codeVal→codeName)·학기 목록 조회는 PLM-003과 공유. 추후 공용 모듈로 승격 후보.
 export { getCommonCodeMap, getSemesters } from "@/lib/lmsProfessorStudentsApi";
 export type { Semester } from "@/lib/lmsProfessorStudentsApi";
 
-// ── 타입 (BE 응답 형태) ────────────────────────────────────
-/** 과제 목록 1행 — 미채점(assignments)·채점완료(gradedAssignments) 공통 형태 */
-export interface AssignmentRow {
-  assignmentId: number;
-  courseName: string; // 데이터구조 및 알고리즘
-  lecSection: number | null; // 분반 (LECTURE.LEC_SECTION) — "N반" 표기
-  title: string; // 알고리즘 구현 #3
-  dueDate: string; // 2026.05.25
-  submittedCount: number; // 제출 수 (미제출 제외)
-  gradedCount: number; // 채점완료 수 (점수 있음)
-  ungradedCount: number; // 미채점 = submitted − graded
-  maxScore: number; // 100 고정 (현재 스키마, 추후 변동 가능)
-}
-
-/** 제출 파일 정보 (PLM-004-01). 첨부가 여러 개여도 최신 1건만 file로 내려온다. */
-export interface SubmissionFile {
-  fileName: string; // algorithm_hw3.zip
-  fileSize: number; // bytes (FE가 "2.3MB"로 포맷)
-  fileUrl: string; // /api/lms/professor/grading/submissions/{sid}/file (인증 필요)
-  contentType: string; // 확장자 문자열 "zip"/"pdf" (MIME 아님)
-}
-
-/** 채점 상세 - 학생 제출 1행. 미제출 학생도 포함(submissionId/file/submittedAt=null, graded=false). */
-export interface Submission {
-  submissionId: number | null; // null = 미제출 (채점 대상 아님)
-  memberId: number; // 행 식별 키 (미제출 포함 항상 존재)
-  studentName: string;
-  studentNo: string;
-  submittedAt: string | null; // "05.24 22:11" / null = 미제출
-  submissionStatus: string | null; // 제출상태 공통코드(SBM/NSB…) — FE 미사용
-  file: SubmissionFile | null;
-  score: number | null; // null = 미채점
-  feedback: string; // 없으면 ""
-  graded: boolean; // score 있음 여부
-}
-
-/** 채점 현황 개요 배너 (PLM-004 상단) — 선택 필터 범위의 미채점 합·과목별. 목록은 페이지 API로 분리 */
-export interface GradingOverview {
-  totalUngraded: number; // 미채점 제출 건수 합 (필터 범위)
-  byCourse: { courseName: string; count: number }[]; // 과목별 미채점 건수
-}
-
-/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
-export interface PageResponse<T> {
-  content: T[];
-  page: number; // 0-based
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  first: boolean;
-  last: boolean;
-}
-
-/** 채점 상세 (선택 과제) */
-export interface GradingDetail {
-  assignmentId: number;
-  courseName: string;
-  title: string;
-  maxScore: number;
-  dueDate: string;
-  gradedCount: number;
-  ungradedCount: number;
-  submissions: Submission[];
-}
+// ── 타입 (BE 응답 형태) — 선언은 @/types/lmsProfessorGrading 로 분리, 소비처 호환 위해 re-export ──
+export type {
+  AssignmentRow,
+  SubmissionFile,
+  Submission,
+  GradingOverview,
+  PageResponse,
+  GradingDetail,
+} from "@/types/lmsProfessorGrading";
 
 // ── API 호출 ───────────────────────────────────────────────
 /** GET 채점 개요 배너 (년도/학기 null이면 전체 범위) */
@@ -141,7 +94,7 @@ export const getGradingDetail = async (
 export const saveGrade = async (
   assignmentId: number,
   submissionId: number,
-  payload: { score: number | null; feedback: string }
+  payload: { asnSbmEvlScore: number | null; asnSbmEvlFeedback: string }
 ): Promise<Submission> => {
   const res = await api.put<Submission>(
     `/api/lms/professor/grading/assignments/${assignmentId}/submissions/${submissionId}`,

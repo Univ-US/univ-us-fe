@@ -32,6 +32,9 @@ export interface Post {
   // MEMBER JOIN
   authorName: string;       // MEMBER.MEMBER_NAME
   authorNickname?: string;  // MEMBER.COMMUNITY_NICKNAME
+  authorRole?: string;      // MEMBER.ROLE
+  isAdminNotice?: number;   // 관리자 작성 자유/익명 게시글
+  isPinned?: number;        // 목록 상단 고정 여부
 
   // COUNT JOIN
   likeCount: number;        // POST_LIKE COUNT

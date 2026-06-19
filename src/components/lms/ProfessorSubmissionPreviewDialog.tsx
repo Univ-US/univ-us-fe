@@ -13,8 +13,8 @@ import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
   downloadSubmissionFile,
   formatFileSize,
-  type Submission,
 } from "@/lib/lmsProfessorGradingApi";
+import type { Submission } from "@/types/lmsProfessorGrading";
 import { describeApiError } from "@/lib/lmsApiError";
 
 // 사이드바(w-60=240px) 제외 본문 영역 기준 중앙
@@ -90,7 +90,7 @@ export default function ProfessorSubmissionPreviewDialog({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-800">{file.fileName}</p>
                   <p className="truncate text-xs text-slate-500">
-                    {submission.studentName} · 제출 {submission.submittedAt ?? "-"}
+                    {submission.studentName} · 제출 {submission.lecAsnSbmRegDate ?? "-"}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs text-slate-400">{formatFileSize(file.fileSize)}</span>

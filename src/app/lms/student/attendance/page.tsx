@@ -5,12 +5,12 @@
 // - 지각·결석 수치(>0) 클릭 → 해당 날짜(YYYY-MM-DD) 팝오버 / 70% 미만 출석률 강조
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { describeApiError } from "@/lib/lmsApiError";
-import {
-  getStudentAttendance,
-  type AttendanceCourse,
-  type AttendanceRecord,
-  type SemesterAttendance,
-} from "@/lib/lmsStudentAttendanceApi";
+import { getStudentAttendance } from "@/lib/lmsStudentAttendanceApi";
+import type {
+  AttendanceCourse,
+  AttendanceRecord,
+  SemesterAttendance,
+} from "@/types/lmsStudentAttendance";
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -56,14 +56,14 @@ export default function StudentAttendancePage() {
     setSemesterPage(0);
   }, [yearFilter, termFilter]);
 
-  const keyOf = (s: SemesterAttendance) => `${s.year}-${s.termCode}`;
+  const keyOf = (s: SemesterAttendance) => `${s.semYear}-${s.semTerm}`;
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
+      [...new Set(semesters.map((s) => s.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [semesters]
@@ -72,8 +72,8 @@ export default function StudentAttendancePage() {
     () =>
       semesters.filter(
         (s) =>
-          (yearFilter === "all" || s.year === yearFilter) &&
-          (termFilter === "all" || s.termCode === termFilter)
+          (yearFilter === "all" || s.semYear === yearFilter) &&
+          (termFilter === "all" || s.semTerm === termFilter)
       ),
     [semesters, yearFilter, termFilter]
   );
@@ -246,7 +246,7 @@ function SemesterAttendanceTable({
                 </span>
               </td>
               <td className="px-2 py-3.5 text-slate-600">{c.lecSection}반</td>
-              <td className="px-2 py-3.5 text-slate-600">{c.totalSessions}회</td>
+              <td className="px-2 py-3.5 text-slate-600">{c.lecTotClasses}회</td>
               <td className="px-2 py-3.5">
                 <Count dot="bg-emerald-500" value={c.present} />
               </td>
@@ -451,7 +451,7 @@ function ClickableCount({
             {records.map((r, i) => (
               <li key={i} className="flex items-center gap-2 text-xs text-slate-600">
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-                <span className="font-mono">{r.date}</span>
+                <span className="font-mono">{r.stdEnrAtdRegDate}</span>
               </li>
             ))}
           </ul>

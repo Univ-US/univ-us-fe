@@ -83,6 +83,13 @@ const BOARD_TABS: { key: BoardType; label: string; icon: React.ReactNode }[] = [
 function PostRow({ post, isAnon, isNotice, onOpen }: {
   post: Post; isAnon: boolean; isNotice: boolean; onOpen: () => void;
 }) {
+  const isAdminNotice = post.isAdminNotice === 1 || post.isPinned === 1;
+  const authorLabel = isAdminNotice
+    ? '관리자'
+    : isAnon
+      ? `익명 · ${formatDate(post.createdAt)}`
+      : `${post.authorName} · ${formatDate(post.createdAt)}`;
+
   if (post.isBlind) {
     return (
       <button onClick={onOpen} className='group/row flex w-full items-center gap-3 border-b border-border bg-slate-50 px-[18px] py-[15px] text-left transition-all duration-200 last:border-0 hover:bg-slate-100'>
@@ -94,15 +101,29 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
     );
   }
   return (
-    <button onClick={onOpen} className='group/row flex w-full items-center gap-[14px] border-b border-border px-[18px] py-[15px] text-left transition-all duration-200 last:border-0 hover:bg-slate-50'>
+    <button
+      onClick={onOpen}
+      className={cn(
+        'group/row flex w-full items-center gap-[14px] border-b border-border px-[18px] py-[15px] text-left transition-all duration-200 last:border-0 hover:bg-slate-50',
+        isAdminNotice && 'bg-primary/[0.035] hover:bg-primary/[0.07]',
+      )}
+    >
       <div className='w-[40px] shrink-0 flex justify-center'>
-        {post.tag ? (
+        {isAdminNotice ? (
+          <span className='whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-white transition-transform duration-200 group-hover/row:scale-105'>공지</span>
+        ) : post.tag ? (
           <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold transition-transform duration-200 group-hover/row:scale-105', post.tag === '중요' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600')}>{post.tag}</span>
         ) : (
           <span className='whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500 transition-transform duration-200 group-hover/row:scale-105'>{post.category}</span>
         )}
       </div>
       <div className='flex min-w-0 flex-1 items-center gap-2'>
+        {isAdminNotice && (
+          <span className='inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary'>
+            <Megaphone className='size-3' />
+            관리자 공지
+          </span>
+        )}
         <span className='truncate text-[13px] font-semibold text-slate-800 transition-all duration-200 group-hover/row:translate-x-0.5 group-hover/row:text-slate-950'>{post.title}</span>
         {post.isHot && <span className='shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-500'>HOT</span>}
       </div>
@@ -120,7 +141,7 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
         <>
           <div className={cn('flex shrink-0 items-center', isAnon ? 'w-[90px]' : 'w-[130px]')}>
             <span className='truncate text-[12px] text-slate-400'>
-              {isAnon ? `익명 · ${formatDate(post.createdAt)}` : `${post.authorName} · ${formatDate(post.createdAt)}`}
+              {authorLabel}
             </span>
           </div>
           {!post.tag && (
@@ -266,6 +287,9 @@ export default function CommunityBoardView({
   const filteredPosts = selectedCategory === '전체' ? posts : posts.filter((p) => p.category === selectedCategory);
   const boardTotalCount = totalCount ?? posts.length;
   const sortedPosts = [...filteredPosts].sort((a, b) => {
+    const aPinned = a.isPinned === 1 || a.isAdminNotice === 1;
+    const bPinned = b.isPinned === 1 || b.isAdminNotice === 1;
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
     if (sortBy === '인기순') return b.likeCount - a.likeCount;
     if (sortBy === '댓글순') return b.commentCount - a.commentCount;
     return 0;

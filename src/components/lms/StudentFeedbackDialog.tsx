@@ -7,7 +7,7 @@
 // - 학생 화면 = 에메랄드 톤(§13). 데이터(assignment)는 부모(페이지)가 주입 — 표시만 담당
 // ─────────────────────────────────────────────────────────────
 import useEscapeClose from "@/components/lms/useEscapeClose";
-import { type StudentAssignment } from "@/lib/lmsStudentAssignmentsApi";
+import type { StudentAssignment } from "@/types/lmsStudentAssignments";
 
 interface StudentFeedbackDialogProps {
   open: boolean;
@@ -37,7 +37,7 @@ export default function StudentFeedbackDialog({
         {/* 헤더 — ✕ 제거(닫기는 푸터 버튼 / ESC로 처리) */}
         <div className="flex items-center border-b border-slate-100 px-6 py-4">
           <h3 className="text-base font-semibold text-slate-800">
-            피드백 보기 <span className="text-slate-400">—</span> {assignment.title}
+            피드백 보기 <span className="text-slate-400">—</span> {assignment.lecAsnTitle}
           </h3>
         </div>
 
@@ -52,7 +52,7 @@ export default function StudentFeedbackDialog({
               {/* 점수 박스 */}
               <div className="flex items-end justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 px-5 py-4">
                 <p className="leading-none">
-                  <span className="text-3xl font-bold text-emerald-700">{fb.score}</span>
+                  <span className="text-3xl font-bold text-emerald-700">{fb.asnSbmEvlScore}</span>
                   <span className="ml-1 text-sm text-emerald-600/70">/ {fb.maxScore}</span>
                 </p>
                 <p className="text-right text-xs text-slate-500">
@@ -66,7 +66,7 @@ export default function StudentFeedbackDialog({
               <section className="mt-5">
                 <h4 className="mb-2 text-sm font-semibold text-slate-700">교수 피드백</h4>
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
-                  {fb.comment}
+                  {fb.asnSbmEvlFeedback}
                 </p>
               </section>
             </>

@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4           # 소스 체크아웃
       - uses: actions/setup-node@v4          # Node 설치 + npm 캐시
         with:
-          node-version: 20
+          node-version: 22                    # CI(ci-cd-dev/main)와 동일 — 검증환경=배포 빌드환경 일치(의존성 engines ^22.22.2 충족)
           cache: npm
       - run: npm ci                          # package-lock 기준 정확히 설치
 

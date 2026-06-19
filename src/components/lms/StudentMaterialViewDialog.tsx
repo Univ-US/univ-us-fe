@@ -11,10 +11,8 @@ import { useEffect, useState } from "react";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { formatFileSize, isVideoExt } from "@/lib/lmsProfessorUploadApi";
 import { sanitizeLmsHtml } from "@/lib/lmsSanitize";
-import {
-  downloadStudentMaterialAttachment,
-  type Material,
-} from "@/lib/lmsStudentMaterialsApi";
+import { downloadStudentMaterialAttachment } from "@/lib/lmsStudentMaterialsApi";
+import type { Material } from "@/types/lmsStudentMaterials";
 import "./lms-content.css"; // 교수 에디터(Tiptap)와 동일한 콘텐츠 스타일 — 표시 동일성
 
 interface StudentMaterialViewDialogProps {
@@ -43,7 +41,7 @@ export default function StudentMaterialViewDialog({
 
   const locked = !material.downloadable; // 첨부 다운로드만 제한 (보기·본문은 항상 가능)
   const lockLabel = material.lockedReason === "expired" ? "열람 기간 만료" : "교수 제한";
-  const contentHtml = material.content?.trim() ? sanitizeLmsHtml(material.content) : "";
+  const contentHtml = material.lecUplContent?.trim() ? sanitizeLmsHtml(material.lecUplContent) : "";
 
   const handleDownload = async (attachmentId: number, fileName: string) => {
     if (locked || downloadingId != null) return;
@@ -69,11 +67,11 @@ export default function StudentMaterialViewDialog({
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         {/* 헤더 — 제목 + 과목·업로드일 */}
         <div className="border-b border-slate-100 px-6 py-4">
-          <h3 className="truncate text-base font-semibold text-slate-800" title={material.title}>
-            {material.title}
+          <h3 className="truncate text-base font-semibold text-slate-800" title={material.lecUplTitle}>
+            {material.lecUplTitle}
           </h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            {courseName ? `${courseName} · ` : ""}업로드 {material.uploadedAt}
+            {courseName ? `${courseName} · ` : ""}업로드 {material.lecUplRegDate}
           </p>
         </div>
 

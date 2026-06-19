@@ -8,104 +8,33 @@
 //  · GET /api/lms/professor/lectures/{lecId}/students/export?search=&submission=&sort=&order=   (xlsx)
 //  · GET /api/lms/professor/lectures/{lecId}/students/{memberId}/report
 //  · GET /api/common-codes/{groupCode}            (토큰 불필요, 라벨 매핑용)
-// ⚠️ 서버는 "코드값"만 반환(termCode/submissionStatusCode). 라벨은 공통코드로 FE가 매핑.
+// ⚠️ 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
 // ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import { truncateLectureName } from "@/lib/lmsLectureName";
+import type {
+  Semester,
+  Lecture,
+  LectureStudentsResponse,
+  StudentReport,
+  CommonCode,
+  StudentsQuery,
+} from "@/types/lmsProfessorStudents";
 
-// ── 타입 (BE 응답 형태) ────────────────────────────────────
-export interface Semester {
-  semId: number;
-  year: number;
-  termCode: string; // SM1/SM2/SMR/WNT (라벨은 SEM_TERM 공통코드)
-}
-
-export interface Lecture {
-  lecId: number;
-  lecName: string;
-  lecCode: string;
-  lecSection: string | number; // 분반
-  semId: number;
-  year?: number | null; // 학기 (같은 강의명 학기별 구분용)
-  termCode?: string | null;
-  lecValStatus?: string | null; // 강의 상태 OPEN/PROG/CLSD/CNCL → LEC_VAL_STATUS 라벨
-}
-
-export interface CourseSummary {
-  totalStudents: number; // 수강 인원 (검색 전체 기준)
-  averageAttendanceRate: number; // 평균 출석률 (%)
-  averageSubmissionRate: number; // 과제 제출률 (%)
-}
-
-export interface CourseStudentRow {
-  enrollmentId: number; // 수강신청 식별자
-  memberId: number; // 상세 리포트 조회 키
-  studentName: string;
-  studentNo: string;
-  imageUrl: string | null; // 프로필 이미지(없으면 null → 이니셜 fallback)
-  attendanceRate: number;
-  submittedCount: number;
-  totalAssignments: number;
-  averageScore: number | null; // 미채점이면 null
-}
-
-export interface Pagination {
-  page: number; // 0-based
-  size: number;
-  totalElements: number;
-  totalPages: number; // 0~10명이어도 최소 1
-}
-
-export interface LectureStudentsResponse {
-  lecture: Lecture | null;
-  summary: CourseSummary;
-  students: CourseStudentRow[];
-  pagination: Pagination;
-}
-
-export interface AssignmentScore {
-  assignmentId: number;
-  title: string;
-  score: number | null; // 미채점/미제출이면 null
-  submissionStatusCode: string; // NSB/SBM/GRD/RTN (LEC_ASN_SBM_STATUS)
-  submissionStatusLabel?: string | null; // 서버 미채움(null) — FE가 공통코드로 매핑
-  submitted: boolean; // 서버 계산 — 분기에 바로 사용
-  scored: boolean; // false → "미채점"
-}
-
-export interface StudentReport {
-  memberId: number;
-  studentName: string;
-  studentNo: string;
-  imageUrl: string | null; // 프로필 이미지(없으면 null → 이니셜)
-  lectureName: string;
-  attendanceRate: number;
-  submittedCount: number;
-  totalAssignments: number;
-  averageScore: number | null;
-  attendancePresent: number;
-  attendanceLate: number;
-  attendanceAbsent: number;
-  attendanceTotal: number;
-  assignmentScores: AssignmentScore[];
-}
-
-export interface CommonCode {
-  codeVal: string;
-  codeName: string;
-  codeOrder: number;
-}
-
-/** 수강생 목록 쿼리 파라미터 */
-export interface StudentsQuery {
-  search?: string;
-  submission?: "complete" | "incomplete" | "";
-  sort?: "name" | "studentNo" | "attendance" | "score" | ""; // 미지정=이름 오름차순
-  order?: "asc" | "desc";
-  page?: number; // 0-based
-  size?: number;
-}
+// 타입은 @/types/lmsProfessorStudents로 이전. 기존 소비처(@/lib에서 import/재export) 호환 위해 type re-export.
+export type {
+  Semester,
+  Lecture,
+  CourseSummary,
+  CourseStudentRow,
+  Pagination,
+  LectureStudentsResponse,
+  AssignmentScore,
+  StudentReport,
+  CommonCode,
+  StudentsQuery,
+} from "@/types/lmsProfessorStudents";
 
 /** 강의 없음/미선택 시 쓰는 빈 응답 (정상 0건) */
 export const EMPTY_LECTURE_STUDENTS: LectureStudentsResponse = {
@@ -201,7 +130,7 @@ export const getCommonCodeMap = async (
 // ── 표시 헬퍼 ──────────────────────────────────────────────
 /** 학기 표시: "2026년 1학기" (termCode는 SEM_TERM 맵으로 라벨링) */
 export const semesterLabel = (sem: Semester, termMap: Record<string, string>) =>
-  `${sem.year}년 ${termMap[sem.termCode] ?? sem.termCode}`;
+  `${sem.semYear}년 ${termMap[sem.semTerm] ?? sem.semTerm}`;
 
 // 강의명 길이 제한은 공용 유틸로 통일(교수 화면 전 드롭다운 공유). Enrollee page 호환 위해 re-export.
 export { LECTURE_NAME_MAX } from "./lmsLectureName";
@@ -218,8 +147,8 @@ export const lectureLabel = (
   statusMap: Record<string, string> = {}
 ) => {
   let label = truncateLectureName(lec.lecName);
-  if (lec.year != null && lec.termCode) {
-    label += ` · ${lec.year}년 ${termMap[lec.termCode] ?? lec.termCode}`;
+  if (lec.semYear != null && lec.semTerm) {
+    label += ` · ${lec.semYear}년 ${termMap[lec.semTerm] ?? lec.semTerm}`;
   }
   if (lec.lecValStatus) {
     label += ` (${statusMap[lec.lecValStatus] ?? lec.lecValStatus})`;

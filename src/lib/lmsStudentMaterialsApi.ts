@@ -1,41 +1,13 @@
 import api from "@/lib/api";
-
-export type LockedReason = "expired" | "restricted";
-
-export interface Attachment {
-  attachmentId: number;
-  fileName: string;
-  fileExt: string | null;
-  fileSize: number | null;
-}
-
-export interface Material {
-  uploadId: number;
-  title: string;
-  content: string | null;
-  uploadedAt: string;
-  attachments: Attachment[];
-  downloadable: boolean;
-  lockedReason?: LockedReason | null;
-}
-
-export interface CourseMaterials {
-  lecId: number;
-  courseName: string;
-  lecSection: number | null;
-  materials: Material[];
-}
-
-export interface SemesterMaterials {
-  year: number;
-  termCode: string;
-  semesterLabel: string;
-  courses: CourseMaterials[];
-}
+import type {
+  CourseMaterials,
+  Material,
+  SemesterMaterials,
+} from "@/types/lmsStudentMaterials";
 
 const normalizeMaterial = (material: Material): Material => ({
   ...material,
-  content: material.content ?? "",
+  lecUplContent: material.lecUplContent ?? "",
   attachments: material.attachments ?? [],
   downloadable: material.downloadable ?? true,
   lockedReason: material.lockedReason ?? null,

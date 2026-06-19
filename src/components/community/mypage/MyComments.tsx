@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { MessageSquare, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BoardBadge, formatDate, getBoardLabel, getPostDetailHref, SectionTitle } from './shared';
@@ -28,13 +28,15 @@ const S = {
 
 export default function MyComments() {
   const [comments, setComments] = useState<MyComment[]>([]);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const data = await getMyComments();
-        setComments(data.map((c) => ({
+  const loadComments = useCallback(async (nextPage: number, append: boolean) => {
+    setLoadingMore(true);
+    try {
+      const data = await getMyComments(nextPage, PAGE_SIZE);
+      const nextComments = data.content.map((c) => ({
           commentId: c.commentId,
           postId: c.postId,
           boardId: c.boardId,
@@ -43,20 +45,26 @@ export default function MyComments() {
           board: c.boardName ?? getBoardLabel(c.boardId),
           boardName: c.boardName,
           createdAt: String(c.createdAt),
-        })));
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchComments();
+      }));
+      setComments((current) => append ? [...current, ...nextComments] : nextComments);
+      setPage(data.page);
+      setTotalElements(data.totalElements);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMore(false);
+    }
   }, []);
 
-  const visibleComments = comments.slice(0, visibleCount);
-  const hasMore = visibleCount < comments.length;
+  useEffect(() => {
+    void loadComments(0, false);
+  }, [loadComments]);
+
+  const hasMore = comments.length < totalElements;
 
   return (
     <>
-      <SectionTitle sub={`작성한 댓글 ${comments.length}개`}>
+      <SectionTitle sub={`작성한 댓글 ${totalElements}개`}>
         내가 쓴 댓글
       </SectionTitle>
       {comments.length === 0 ? (
@@ -67,11 +75,11 @@ export default function MyComments() {
       ) : (
         <>
           <div className={S.listContainer}>
-            {visibleComments.map((comment, i) => (
+            {comments.map((comment, i) => (
               <Link
                 key={comment.commentId}
                 href={getPostDetailHref(comment.boardId, comment.postId)}
-                className={cn(S.listItem, i < visibleComments.length - 1 && S.listBorder)}
+                className={cn(S.listItem, i < comments.length - 1 && S.listBorder)}
               >
                 <p className={S.content}>{comment.content}</p>
                 <div className={S.metaGroup}>
@@ -89,9 +97,10 @@ export default function MyComments() {
               <button
                 type='button'
                 className={S.moreButton}
-                onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}
+                disabled={loadingMore}
+                onClick={() => void loadComments(page + 1, true)}
               >
-                더보기 {visibleCount} / {comments.length}
+                {loadingMore ? '불러오는 중' : `더보기 ${comments.length} / ${totalElements}`}
               </button>
             </div>
           )}

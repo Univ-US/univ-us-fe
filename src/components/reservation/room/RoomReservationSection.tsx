@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 
 import type {
   RoomAvailability,
+  ReservationPenaltyStatus,
   RoomReservation,
   RoomReservationSlot,
 } from '@/lib/reservationApi';
@@ -21,7 +22,11 @@ type RoomReservationSectionProps = {
   reservationsLoading: boolean;
   reservationError: string;
   cancelingReservationId: number | null;
+  checkingInReservationId: number | null;
+  penaltyStatus: ReservationPenaltyStatus | null;
   onCancelReservation: (reservation: RoomReservation) => void;
+  onCheckInReservation: (reservationId: number) => void;
+  onOpenPenaltyHistory: () => void;
   onRefreshReservations: () => void;
   availabilityError: string;
   availabilityLoading: boolean;
@@ -47,7 +52,11 @@ export default function RoomReservationSection({
   reservationsLoading,
   reservationError,
   cancelingReservationId,
+  checkingInReservationId,
+  penaltyStatus,
   onCancelReservation,
+  onCheckInReservation,
+  onOpenPenaltyHistory,
   onRefreshReservations,
   availabilityError,
   availabilityLoading,
@@ -70,7 +79,11 @@ export default function RoomReservationSection({
         loading={reservationsLoading}
         error={reservationError}
         cancelingReservationId={cancelingReservationId}
+        checkingInReservationId={checkingInReservationId}
+        penaltyStatus={penaltyStatus}
         onCancel={onCancelReservation}
+        onCheckIn={onCheckInReservation}
+        onOpenPenaltyHistory={onOpenPenaltyHistory}
         onRefresh={onRefreshReservations}
       />
 

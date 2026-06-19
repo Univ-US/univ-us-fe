@@ -5,7 +5,8 @@
 // 색상 = 교수 슬레이트 계열(§13). 월 이동 시 해당 월 범위로 재조회.
 import { useCallback, useEffect, useState } from "react";
 import ProfessorCalendar, { type CalendarTheme } from "@/components/lms/ProfessorCalendar";
-import { getProfessorCalendar, type CalendarEvent } from "@/lib/lmsProfessorCalendarApi";
+import { getProfessorCalendar } from "@/lib/lmsProfessorCalendarApi";
+import type { CalendarEvent } from "@/types/lmsProfessorCalendar";
 
 // 교수 = 슬레이트(강의) + 앰버(과제 마감) — §13 교수 화면 teal/green 금지(설계서 green은 슬레이트/앰버로 치환, PLM-005 선례)
 const THEME: CalendarTheme = {

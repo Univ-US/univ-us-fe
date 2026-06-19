@@ -3,18 +3,20 @@
 // PLM-002 — 교수 "강의 내역" (학기별 담당 강의 목록 + 상단 KPI 요약)
 // - 상단: 년도·학기 분리 필터(기본 둘 다 '전체' — §21) + 학기별 카드 분리(최신순)
 // - KPI 스트립 4종: 담당 강의 / 총 수강생 / 미채점 과제 / 평균 출석률 (이번 학기 기준)
-// - 각 학기 카드 행: 과목명+학수번호+이수구분 · 수강생 · 강의 시간 · 평균 출석률(막대) · 미채점 · 관리
+// - 각 학기 카드 행: 과목명+학수번호 · 수강생 · 강의 시간 · 평균 출석률(막대) · 미채점 · 관리
 //   · 진행중 학기 = 미채점 'N건' 배지 / 마감 학기 = '마감' 배지(미채점 표시 안 함)
 // - 색상: 교수 = 네이비/슬레이트(§13) · 출석률 막대 색 = 95/80 임계(§21)
 // 🧪 mock-first: lib(lmsProfessorCoursesApi)이 mock 반환 — BE 명세 오면 lib만 실연결.
 // ⚠️ 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getProfessorCourses,
-  type ProfessorCourseRow,
-  type ProfessorSemesterCourses,
-  type ProfessorCoursesOverview,
-} from "@/lib/lmsProfessorCoursesApi";
+import Link from "next/link";
+import { getProfessorCourses } from "@/lib/lmsProfessorCoursesApi";
+import type {
+  ProfessorCourseRow,
+  ProfessorSemesterCourses,
+  ProfessorCoursesOverview,
+} from "@/types/lmsProfessorCourses";
+import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -27,9 +29,6 @@ const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
-// 증감 칩 텍스트 ("+4" / "-2" / "+2%")
-const deltaTag = (n: number, suffix: string) => `${n >= 0 ? "+" : ""}${n}${suffix}`;
-
 export default function ProfessorCoursesPage() {
   const [overview, setOverview] = useState<ProfessorCoursesOverview | null>(null);
   const [semesters, setSemesters] = useState<ProfessorSemesterCourses[]>([]);
@@ -37,6 +36,7 @@ export default function ProfessorCoursesPage() {
   const [error, setError] = useState(false);
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,24 +56,28 @@ export default function ProfessorCoursesPage() {
     void load();
   }, [load]);
 
+  // 학기 드롭다운은 공통코드 SEM_TERM 기준 — 강의 데이터에 없는 미시작 학기('여름 계절')도 노출
+  useEffect(() => {
+    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+  }, []);
+
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters],
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b),
-      ),
-    [semesters],
-  );
+  // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시). 미로드 시 TERM_ORDER 상수 fallback.
+  const termOptions = useMemo(() => {
+    const codes = Object.keys(termMap);
+    const base = codes.length > 0 ? codes : TERM_ORDER;
+    return [...base].sort((a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b));
+  }, [termMap]);
 
   const visible = useMemo(
     () =>
       semesters.filter(
         (s) =>
-          (yearFilter === "all" || s.year === yearFilter) &&
-          (termFilter === "all" || s.termCode === termFilter),
+          (yearFilter === "all" || s.semYear === yearFilter) &&
+          (termFilter === "all" || s.semTerm === termFilter),
       ),
     [semesters, yearFilter, termFilter],
   );
@@ -108,7 +112,7 @@ export default function ProfessorCoursesPage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? TERM_LABEL[t] ?? t}
               </option>
             ))}
           </select>
@@ -119,29 +123,29 @@ export default function ProfessorCoursesPage() {
       <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           icon="📖"
-          tag="이번 학기"
+          tag="진행중"
           tone="neutral"
           value={overview ? `${overview.courseCount}과목` : "-"}
           label="담당 강의"
         />
         <KpiCard
           icon="👥"
-          tag={overview ? deltaTag(overview.studentDelta, "") : ""}
-          tone={overview && overview.studentDelta < 0 ? "down" : "up"}
+          tag=""
+          tone="neutral"
           value={overview ? `${overview.studentTotal}명` : "-"}
           label="총 수강생"
         />
         <KpiCard
           icon="📋"
-          tag="확인 필요"
-          tone="warn"
+          tag=""
+          tone="neutral"
           value={overview ? `${overview.ungradedTotal}건` : "-"}
           label="미채점 과제"
         />
         <KpiCard
           icon="％"
-          tag={overview ? deltaTag(overview.attendanceDelta, "%") : ""}
-          tone={overview && overview.attendanceDelta < 0 ? "down" : "up"}
+          tag=""
+          tone="neutral"
           value={overview ? `${overview.avgAttendanceRate}%` : "-"}
           label="평균 출석률"
         />
@@ -165,7 +169,7 @@ export default function ProfessorCoursesPage() {
       ) : (
         <div className="space-y-6">
           {visible.map((sem) => (
-            <SemesterCard key={`${sem.year}-${sem.termCode}`} sem={sem} />
+            <SemesterCard key={`${sem.semYear}-${sem.semTerm}`} sem={sem} />
           ))}
         </div>
       )}
@@ -225,9 +229,6 @@ function SemesterCard({ sem }: { sem: ProfessorSemesterCourses }) {
             </span>
           )}
         </div>
-        <span className="shrink-0 text-xs text-slate-400">
-          {sem.courseCount}과목 · {sem.studentTotal}명
-        </span>
       </div>
 
       <table className="w-full table-fixed text-sm">
@@ -238,7 +239,7 @@ function SemesterCard({ sem }: { sem: ProfessorSemesterCourses }) {
             <th className="w-44 px-2 py-2.5 font-medium">강의 시간</th>
             <th className="w-40 px-2 py-2.5 font-medium">평균 출석률</th>
             <th className="w-20 px-2 py-2.5 font-medium">미채점</th>
-            <th className="w-24 px-5 py-2.5 text-right font-medium">관리</th>
+            <th className="w-52 px-5 py-2.5 text-right font-medium">관리</th>
           </tr>
         </thead>
         <tbody>
@@ -259,7 +260,7 @@ function CourseRow({ course, closed }: { course: ProfessorCourseRow; closed: boo
           {course.courseName}
         </p>
         <p className="mt-0.5 truncate text-xs text-slate-400">
-          {course.courseCode} · {course.courseType}
+          {course.lecSection}반
         </p>
       </td>
       <td className="px-2 py-3 text-slate-600">{course.studentCount}명</td>
@@ -292,14 +293,24 @@ function CourseRow({ course, closed }: { course: ProfessorCourseRow; closed: boo
           </span>
         )}
       </td>
-      <td className="px-5 py-3 text-right">
-        {/* 🧪 mock: 향후 과목별 관리(상세) 라우트 연결 예정 */}
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-        >
-          관리 <span aria-hidden>→</span>
-        </button>
+      <td className="px-5 py-3">
+        {/* 출결 관리 / 과제 관리 — 이 강의(course.lecId)를 물고 해당 화면으로 딥링크 (2026-06-17 BE 실연동 후 구현).
+            받는 쪽(attendance·assignments)이 마운트 시 ?lecId= 를 읽어 담당 강의에 있으면 그 강의 자동 선택,
+            없으면 첫 강의 fallback. 필터는 '전체' 기본이라 과거 학기 강의도 드롭다운에 있어 매칭됨. */}
+        <div className="flex items-center justify-end gap-1.5">
+          <Link
+            href={`/lms/professor/attendance?lecId=${course.lecId}`}
+            className="inline-flex items-center rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            출결 관리
+          </Link>
+          <Link
+            href={`/lms/professor/assignments?lecId=${course.lecId}`}
+            className="inline-flex items-center rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            과제 관리
+          </Link>
+        </div>
       </td>
     </tr>
   );

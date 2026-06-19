@@ -44,6 +44,7 @@ type FeedbackState = {
 
 function statusLabel(status?: string | null) {
   if (status === 'ACTIVE') return '활성';
+  if (status === 'SUSPENDED') return '정지';
   if (status === 'INACTIVE') return '비활성';
   return status || '상태 정보 없음';
 }

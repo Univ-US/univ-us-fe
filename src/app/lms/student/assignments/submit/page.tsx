@@ -11,8 +11,8 @@ import {
 import {
   getSubmittableAssignments,
   submitStudentAssignment,
-  type SubmitItem,
 } from "@/lib/lmsStudentSubmitApi";
+import type { SubmitItem } from "@/types/lmsStudentSubmit";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
@@ -218,7 +218,7 @@ export default function StudentSubmitPage() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
                           <span className="truncate text-sm font-semibold text-slate-800">
-                            {item.title}
+                            {item.lecAsnTitle}
                           </span>
                           {item.badge && (
                             <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -286,7 +286,7 @@ export default function StudentSubmitPage() {
           ) : (
             <section className="rounded-2xl border-2 border-emerald-200 bg-white p-6">
               <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                <h2 className="text-lg font-bold text-slate-900">{selected.title}</h2>
+                <h2 className="text-lg font-bold text-slate-900">{selected.lecAsnTitle}</h2>
                 <span className="shrink-0 text-sm font-semibold text-rose-600">
                   마감 {selected.dueLabel}
                 </span>

@@ -6,12 +6,12 @@ import { isVideoExt } from "@/lib/lmsProfessorUploadApi"; // 영상 확장자 �
 import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요약(content HTML → plain text)
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import StudentMaterialViewDialog from "@/components/lms/StudentMaterialViewDialog";
-import {
-  getStudentMaterials,
-  type CourseMaterials,
-  type Material,
-  type SemesterMaterials,
-} from "@/lib/lmsStudentMaterialsApi";
+import { getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
+import type {
+  CourseMaterials,
+  Material,
+  SemesterMaterials,
+} from "@/types/lmsStudentMaterials";
 
 const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
 const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
@@ -72,7 +72,7 @@ export default function StudentMaterialsPage() {
   const courseOptions = useMemo<CourseOption[]>(
     () =>
       semesters.flatMap((s) =>
-        s.courses.map((c) => ({ ...c, year: s.year, termCode: s.termCode }))
+        s.courses.map((c) => ({ ...c, year: s.semYear, termCode: s.semTerm }))
       ),
     [semesters]
   );
@@ -250,13 +250,13 @@ function MaterialsTable({
         <tbody>
           {pageRows.map((m) => {
             const hasFile = m.attachments.length > 0;
-            const contentSummary = m.content?.trim() ? htmlToPlainText(m.content) : "";
+            const contentSummary = m.lecUplContent?.trim() ? htmlToPlainText(m.lecUplContent) : "";
             return (
               <tr key={m.uploadId} className="border-b border-slate-50 last:border-0">
                 {/* 제목 */}
                 <td className="px-5 py-3">
-                  <span className="block truncate font-semibold text-slate-800" title={m.title}>
-                    {m.title}
+                  <span className="block truncate font-semibold text-slate-800" title={m.lecUplTitle}>
+                    {m.lecUplTitle}
                   </span>
                 </td>
                 {/* 강의 내용 — 교수 본문(content) plain text 요약. 없으면 — */}
@@ -270,7 +270,7 @@ function MaterialsTable({
                   )}
                 </td>
                 {/* 업로드일 */}
-                <td className="px-2 py-3 font-mono text-xs text-slate-500">{m.uploadedAt}</td>
+                <td className="px-2 py-3 font-mono text-xs text-slate-500">{m.lecUplRegDate}</td>
                 {/* 유형 — 첫 첨부 확장자 배지(🎬/📄) + 나머지 +N. 첨부 없으면 — (교수 업로드 미러) */}
                 <td className="px-2 py-3">
                   {hasFile ? (

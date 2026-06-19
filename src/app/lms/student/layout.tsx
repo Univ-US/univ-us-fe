@@ -19,8 +19,8 @@ import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
   getChatRooms,
   LMS_STUDENT_CHAT_TOPIC_PREFIX,
-  type ChatMessage,
 } from "@/lib/lmsStudentChatApi";
+import type { ChatMessage } from "@/types/lmsStudentChat";
 import { getWebSocketEndpointUrl } from "@/lib/realtime";
 import { ROLE, type Role } from "@/lib/rolecode";
 import { getSubscriptionStatus } from "@/lib/subscriptionApi";
@@ -112,13 +112,16 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
     }
   }, [accessChecked, loadProfile, loadSubmittableAssignmentCount, loadChatUnreadCount]);
 
-  // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 로그인 페이지(/) 이동
+  // SLM-011: 사이드바 로그아웃 → 확인 모달 → 확인 시 로그아웃 + 홈(/) 이동
   const handleLogout = async () => {
+    // 로그아웃 플래그 → LmsGuard가 "로그인이 안되어있습니다" alert를 건너뛰게 함(커뮤니티 패턴)
+    sessionStorage.setItem("lmsLogout", "true");
     try {
       await logoutAction();
     } catch {
       /* 무시 */
     } finally {
+      alert("로그아웃되었습니다.");
       router.push("/");
     }
   };
@@ -178,8 +181,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
-  const avatar = resolveImg(profile?.lmsStudentProfileImageUrl ?? null);
-  const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
+  const avatar = resolveImg(profile?.imageUrl ?? null);
+  const initial = profile?.name?.trim()?.[0] ?? "U";
 
   if (!accessChecked) return null;
 
@@ -238,12 +241,12 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                 <div className="min-w-0">
                   <p className="truncate text-[11px] text-emerald-200/70">
                     {/* 학교명: BE 제공(계정 미설정이면 null) */}
-                    {profile?.lmsStudentProfileUniversityName || "-"}
+                    {profile?.universityName || "-"}
                   </p>
                   <p className="text-lg font-bold text-white">UniVUs</p>
                 </div>
                 <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
-                  {profile?.lmsStudentProfileRole || "학생"}
+                  {profile?.role || "학생"}
                 </span>
               </>
             </Link>
@@ -278,13 +281,13 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           {sidebarOpen && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">
-                {profile?.lmsStudentProfileName ?? "학생"}
+                {profile?.name ?? "학생"}
               </p>
               <p className="truncate text-xs text-emerald-200/60">
                 {/* 학과 · 학번 */}
-                {profile?.lmsStudentProfileDepartment ?? "-"}
-                {profile?.lmsStudentProfileStudentNo
-                  ? ` · ${profile.lmsStudentProfileStudentNo}`
+                {profile?.department ?? "-"}
+                {profile?.studentNo
+                  ? ` · ${profile.studentNo}`
                   : ""}
               </p>
             </div>
@@ -415,11 +418,11 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {profile?.lmsStudentProfileName ?? "학생"}
+                  {profile?.name ?? "학생"}
                 </p>
                 <p className="truncate text-xs text-slate-500">
-                  {profile?.lmsStudentProfileStudentNo ?? "-"}
-                  {profile?.lmsStudentProfileDepartment ? ` · ${profile.lmsStudentProfileDepartment}` : ""}
+                  {profile?.studentNo ?? "-"}
+                  {profile?.department ? ` · ${profile.department}` : ""}
                 </p>
               </div>
             </div>

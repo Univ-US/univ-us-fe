@@ -57,8 +57,8 @@ export default function ProfessorProfilePage() {
   // 스토어 profile이 바뀌면(최초 로드 / 저장 성공) 폼 draft를 동기화
   useEffect(() => {
     if (profile) {
-      setEmail(profile.lmsProfessorProfileEmail ?? "");
-      setIntroduction(profile.lmsProfessorProfileIntroduction ?? "");
+      setEmail(profile.lmsPrfEmail ?? "");
+      setIntroduction(profile.lmsPrfIntro ?? "");
       setImageFile(null);
     }
   }, [profile]);
@@ -108,8 +108,8 @@ export default function ProfessorProfilePage() {
 
   const handleCancel = () => {
     if (profile) {
-      setEmail(profile.lmsProfessorProfileEmail ?? "");
-      setIntroduction(profile.lmsProfessorProfileIntroduction ?? "");
+      setEmail(profile.lmsPrfEmail ?? "");
+      setIntroduction(profile.lmsPrfIntro ?? "");
     }
     setImageFile(null);
     setError(null);
@@ -142,15 +142,15 @@ export default function ProfessorProfilePage() {
   };
 
   const avatarSrc =
-    imagePreview ?? resolveImageUrl(profile?.lmsProfessorProfileImageUrl ?? null);
-  const initial = profile?.lmsProfessorProfileName?.trim()?.[0] ?? "U";
+    imagePreview ?? resolveImageUrl(profile?.imageUrl ?? null);
+  const initial = profile?.name?.trim()?.[0] ?? "U";
 
   // 변경사항 여부: 이메일/소개가 저장값과 다르거나 새 이미지를 선택한 경우
   const isDirty =
     !!imageFile ||
     (profile
-      ? email !== (profile.lmsProfessorProfileEmail ?? "") ||
-        introduction !== (profile.lmsProfessorProfileIntroduction ?? "")
+      ? email !== (profile.lmsPrfEmail ?? "") ||
+        introduction !== (profile.lmsPrfIntro ?? "")
       : false);
 
   if (!profile) {
@@ -224,17 +224,17 @@ export default function ProfessorProfilePage() {
           {/* 이름 / 사번 / 소속 학과 (읽기전용) */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="이름" note="※ 이름은 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfileName ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.name ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="사번" note="※ 사번은 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfileEmployeeNo ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.employeeNo ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="소속 학과" note="※ 소속 학과는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfileDepartment ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.department ?? ""} readOnly className={readonlyInput} />
             </Field>
 
             <Field label="핸드폰 번호" note="※ 핸드폰 번호는 관리자를 통해 변경 가능">
-              <input value={profile?.lmsProfessorProfilePhoneNumber ?? ""} readOnly className={readonlyInput} />
+              <input value={profile?.phoneNumber ?? ""} readOnly className={readonlyInput} />
             </Field>
             <Field label="이메일">
               <input
