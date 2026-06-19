@@ -181,8 +181,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   useEscapeClose(logoutOpen, () => setLogoutOpen(false)); // ESC = 취소
 
-  const avatar = resolveImg(profile?.lmsStudentProfileImageUrl ?? null);
-  const initial = profile?.lmsStudentProfileName?.trim()?.[0] ?? "U";
+  const avatar = resolveImg(profile?.imageUrl ?? null);
+  const initial = profile?.name?.trim()?.[0] ?? "U";
 
   if (!accessChecked) return null;
 
@@ -241,12 +241,12 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                 <div className="min-w-0">
                   <p className="truncate text-[11px] text-emerald-200/70">
                     {/* 학교명: BE 제공(계정 미설정이면 null) */}
-                    {profile?.lmsStudentProfileUniversityName || "-"}
+                    {profile?.universityName || "-"}
                   </p>
                   <p className="text-lg font-bold text-white">UniVUs</p>
                 </div>
                 <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
-                  {profile?.lmsStudentProfileRole || "학생"}
+                  {profile?.role || "학생"}
                 </span>
               </>
             </Link>
@@ -281,13 +281,13 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           {sidebarOpen && (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">
-                {profile?.lmsStudentProfileName ?? "학생"}
+                {profile?.name ?? "학생"}
               </p>
               <p className="truncate text-xs text-emerald-200/60">
                 {/* 학과 · 학번 */}
-                {profile?.lmsStudentProfileDepartment ?? "-"}
-                {profile?.lmsStudentProfileStudentNo
-                  ? ` · ${profile.lmsStudentProfileStudentNo}`
+                {profile?.department ?? "-"}
+                {profile?.studentNo
+                  ? ` · ${profile.studentNo}`
                   : ""}
               </p>
             </div>
@@ -418,11 +418,11 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {profile?.lmsStudentProfileName ?? "학생"}
+                  {profile?.name ?? "학생"}
                 </p>
                 <p className="truncate text-xs text-slate-500">
-                  {profile?.lmsStudentProfileStudentNo ?? "-"}
-                  {profile?.lmsStudentProfileDepartment ? ` · ${profile.lmsStudentProfileDepartment}` : ""}
+                  {profile?.studentNo ?? "-"}
+                  {profile?.department ? ` · ${profile.department}` : ""}
                 </p>
               </div>
             </div>

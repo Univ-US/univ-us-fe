@@ -8,27 +8,27 @@ export interface NoticeAttachment {
 }
 
 export interface Notice {
-  id: number;
-  year: number;
-  termCode: string;
+  noticeId: number;
+  semYear: number;
+  semTerm: string;
   semesterLabel: string;
   lecId: number;
   lecSection?: number | null;
   courseName: string;
   courseFullName: string;
-  title: string;
+  lecAnnTitle: string;
   author: string;
   authorImageUrl?: string | null;
-  date: string;
+  lecAnnRegDate: string;
   listDate: string;
   featured?: boolean;
-  content: string;
+  lecAnnContent: string;
   attachments: NoticeAttachment[];
 }
 
 const normalizeNotice = (notice: Notice): Notice => ({
   ...notice,
-  content: notice.content ?? "",
+  lecAnnContent: notice.lecAnnContent ?? "",
   attachments: notice.attachments ?? [],
 });
 

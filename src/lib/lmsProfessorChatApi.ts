@@ -22,12 +22,12 @@ export interface ProfessorChatRoom {
 }
 
 export interface ProfessorChatMessage {
-  id: number;
+  messageId: number;
   roomId: number;
   senderLmsPrfId: number;
   sender: "me" | "student";
-  text: string;
-  sentAt: string;
+  chtRomMsgContent: string;
+  chtRomMsgDate: string;
   read?: boolean;
 }
 
@@ -70,7 +70,7 @@ const normalizeRoom = (
 
 const normalizeMessage = (message: ProfessorChatMessage): ProfessorChatMessage => ({
   ...message,
-  text: message.text ?? "",
+  chtRomMsgContent: message.chtRomMsgContent ?? "",
   read: Boolean(message.read),
 });
 

@@ -5,7 +5,7 @@
 //   · GET   /lectures                                   → AttendanceLecture[] (학기/강의 드롭다운 + 수강생 수)
 //   · GET   /lectures/{lecId}                            → LectureAttendance  (헤더 + 요약 + 학생별 회차)
 //   · PUT   /lectures/{lecId}/students/{memberId}        → 회차별 상태 저장 후 갱신된 AttendanceStudentRow
-//     body = { sessions: [{ sessionId, status }] }  (date는 BE 무시 — 최소 payload로 전송)
+//     body = { sessions: [{ sessionId, stdEnrAtdStsCode }] }  (stdEnrAtdRegDate는 BE 무시 — 최소 payload로 전송)
 // 본체 = STUDENT_ENROLLMENT_ATTENDANCE(회차별 STD_ENR_ATD_STS_CODE) · LECTURE · LECTURE_STUDENT_ENROLLMENT.
 // 회차 날짜 = STD_ENR_ATD_REG_DATE (전용 수업일 컬럼 없음).
 // ⚠️ 상태 코드(ATTD_STS): PRS 출석 · LAT 지각 · ABS 결석 (ELV 조퇴·EXC 공결 = VAL_STATUS DEL 미사용).
@@ -33,8 +33,8 @@ export const AT_RISK_THRESHOLD = 80;
 /** 수업 1회차 = STUDENT_ENROLLMENT_ATTENDANCE 1행 */
 export interface AttendanceSession {
   sessionId: number;
-  date: string; // "YYYY-MM-DD" (수업일 = STD_ENR_ATD_REG_DATE)
-  status: AttendanceStatus;
+  stdEnrAtdRegDate: string; // "YYYY-MM-DD" (수업일 = STD_ENR_ATD_REG_DATE)
+  stdEnrAtdStsCode: AttendanceStatus; // STD_ENR_ATD_STS_CODE (PRS/LAT/ABS)
 }
 
 /** 학생 1명의 출결 현황(목록 1행 + 수정 모달용 회차) */
@@ -65,8 +65,8 @@ export interface AttendanceLecture {
   lecId: number;
   lecName: string;
   lecSection: number;
-  year: number;
-  termCode: string; // SM1/SMR/SM2/WNT
+  semYear: number; // SEM_YEAR
+  semTerm: string; // SM1/SMR/SM2/WNT (SEM_TERM)
   studentCount: number;
 }
 
@@ -95,9 +95,9 @@ export const attendanceRateOf = (present: number, total: number) =>
 
 /** 회차 배열 → 출석/지각/결석 카운트 + 출석률 (모달 저장 미리보기·재계산) */
 export const tallySessions = (sessions: AttendanceSession[]) => {
-  const present = sessions.filter((s) => s.status === "PRS").length;
-  const late = sessions.filter((s) => s.status === "LAT").length;
-  const absent = sessions.filter((s) => s.status === "ABS").length;
+  const present = sessions.filter((s) => s.stdEnrAtdStsCode === "PRS").length;
+  const late = sessions.filter((s) => s.stdEnrAtdStsCode === "LAT").length;
+  const absent = sessions.filter((s) => s.stdEnrAtdStsCode === "ABS").length;
   const totalSessions = sessions.length;
   return { present, late, absent, totalSessions, attendanceRate: attendanceRateOf(present, totalSessions) };
 };
@@ -134,14 +134,14 @@ export const getLectureAttendance = async (lecId: number): Promise<LectureAttend
 
 /**
  * PUT 학생 회차별 출결 저장 → 갱신된 학생 행 반환.
- * BE는 sessionId·status만 사용(date 무시) → 최소 payload 전송.
+ * BE는 sessionId·stdEnrAtdStsCode만 사용(stdEnrAtdRegDate 무시) → 최소 payload 전송.
  */
 export const updateStudentAttendance = async (
   lecId: number,
   memberId: number,
   sessions: AttendanceSession[]
 ): Promise<AttendanceStudentRow> => {
-  const body = { sessions: sessions.map((s) => ({ sessionId: s.sessionId, status: s.status })) };
+  const body = { sessions: sessions.map((s) => ({ sessionId: s.sessionId, stdEnrAtdStsCode: s.stdEnrAtdStsCode })) };
   const res = await api.put<AttendanceStudentRow>(
     `/api/lms/professor/attendance/lectures/${lecId}/students/${memberId}`,
     body

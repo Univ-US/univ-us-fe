@@ -106,13 +106,13 @@ export default function StudentReportDialog({
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
                   {report.assignmentScores.map((a) => (
                     <li key={a.assignmentId} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                      <span className="text-slate-700">{a.title}</span>
+                      <span className="text-slate-700">{a.lecAsnTitle}</span>
                       {!a.submitted ? (
                         <span className="text-xs font-medium text-red-500">미제출</span>
                       ) : !a.scored ? (
                         <span className="text-xs font-medium text-amber-600">미채점</span>
                       ) : (
-                        <span className="font-semibold text-slate-900">{a.score}</span>
+                        <span className="font-semibold text-slate-900">{a.asnSbmEvlScore}</span>
                       )}
                     </li>
                   ))}

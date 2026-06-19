@@ -47,8 +47,8 @@ function courseOptionsOf(notices: Notice[]): CourseOption[] {
         lecId: notice.lecId,
         courseName: notice.courseFullName,
         lecSection: notice.lecSection,
-        year: notice.year,
-        termCode: notice.termCode,
+        year: notice.semYear,
+        termCode: notice.semTerm,
       });
     }
   }
@@ -141,7 +141,7 @@ export default function StudentNoticePage() {
 
   const list = useMemo(() => {
     const filtered = notices.filter((notice) => notice.lecId === selectedLecId);
-    return [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+    return [...filtered].sort((a, b) => b.lecAnnRegDate.localeCompare(a.lecAnnRegDate));
   }, [notices, selectedLecId]);
   const totalPages = Math.max(1, Math.ceil(list.length / NOTICE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -177,13 +177,13 @@ export default function StudentNoticePage() {
       return;
     }
     const selectable = pagedList.length > 0 ? pagedList : list;
-    if (!selectable.some((notice) => notice.id === selectedId)) {
-      setSelectedId((selectable.find((notice) => notice.featured) ?? selectable[0]).id);
+    if (!selectable.some((notice) => notice.noticeId === selectedId)) {
+      setSelectedId((selectable.find((notice) => notice.featured) ?? selectable[0]).noticeId);
     }
   }, [list, pagedList, selectedId]);
 
   const selected = useMemo(
-    () => list.find((notice) => notice.id === selectedId) ?? null,
+    () => list.find((notice) => notice.noticeId === selectedId) ?? null,
     [list, selectedId]
   );
 
@@ -292,13 +292,13 @@ export default function StudentNoticePage() {
             </div>
             <ul className="p-2">
               {pagedList.map((notice) => {
-                const active = notice.id === selectedId;
-                const summary = noticeSummary(notice.content);
+                const active = notice.noticeId === selectedId;
+                const summary = noticeSummary(notice.lecAnnContent);
                 return (
-                  <li key={notice.id}>
+                  <li key={notice.noticeId}>
                     <button
                       type="button"
-                      onClick={() => setSelectedId(notice.id)}
+                      onClick={() => setSelectedId(notice.noticeId)}
                       className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
                         active ? "bg-emerald-50" : "hover:bg-slate-50"
                       }`}
@@ -311,7 +311,7 @@ export default function StudentNoticePage() {
                       </div>
                       <div className="mt-1.5">
                         <span className="block text-[15px] font-bold leading-snug text-slate-900">
-                          {notice.title}
+                          {notice.lecAnnTitle}
                         </span>
                         {summary && (
                           <span className="mt-1 block truncate text-xs text-slate-400">{summary}</span>
@@ -436,19 +436,19 @@ function NoticeDetail({
 
   return (
     <article>
-      <h3 className="text-xl font-bold text-slate-900">{notice.title}</h3>
+      <h3 className="text-xl font-bold text-slate-900">{notice.lecAnnTitle}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
         <span className="flex items-center gap-2">
           <AuthorAvatar src={notice.authorImageUrl} name={notice.author} />
           <span className="font-medium text-slate-700">{notice.author}</span>
         </span>
-        <span>{notice.date}</span>
+        <span>{notice.lecAnnRegDate}</span>
       </div>
 
-      {notice.content?.trim() ? (
+      {notice.lecAnnContent?.trim() ? (
         <div
           className="lms-content py-5"
-          dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(notice.content) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(notice.lecAnnContent) }}
         />
       ) : (
         <p className="py-10 text-center text-sm text-slate-400">작성된 내용이 없습니다.</p>

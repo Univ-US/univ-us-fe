@@ -2,18 +2,18 @@
 // SLM-001 학생 LMS 프로필 API 클라이언트 (BE: /api/lms/student/profile)
 import api from "@/lib/api";
 
-/** SLM-001 학생 프로필 조회 응답 (BE: LmsStudentProfileResponseDto) */
+/** SLM-001 학생 프로필 조회 응답 (BE: LmsStuProfileDto.ResDto — DB 컬럼 카멜, PLM-001 교수 프로필과 동일 정본) */
 export interface LmsStudentProfile {
-  lmsStudentProfileName: string; // 이름 (읽기전용 · 관리자 변경)
-  lmsStudentProfileStudentNo: string; // 학번 (읽기전용 · = MEMBER.LOGIN_ID)
-  lmsStudentProfileDepartment: string | null; // 학과 (읽기전용 · 미설정 시 null, DEPARTMENT LEFT JOIN)
-  lmsStudentProfilePhoneNumber: string; // 휴대폰 번호 (읽기전용 · 관리자 변경)
-  lmsStudentProfileEmail: string; // 이메일 (수정 가능)
-  lmsStudentProfileImageUrl: string | null; // 프로필 이미지 URL (예: /uploads/lms/student/image/xxx)
+  name: string; // 이름 (읽기전용 · 관리자 변경, MEMBER.MEMBER_NAME)
+  studentNo: string; // 학번 (읽기전용 · = MEMBER.LOGIN_ID)
+  department: string | null; // 학과 (읽기전용 · 미설정 시 null, DEPARTMENT LEFT JOIN)
+  phoneNumber: string; // 휴대폰 번호 (읽기전용 · 관리자 변경)
+  lmsPrfEmail: string; // 이메일 (수정 가능, LMS_PROFILE.LMS_PRF_EMAIL)
+  imageUrl: string | null; // 프로필 이미지 URL (예: /uploads/lms/student/image/xxx)
   // 학교명: BE 응답에 포함됨(계정에 미설정이면 null). 사이드바 브랜드에 표시.
-  lmsStudentProfileUniversityName?: string | null;
+  universityName?: string | null;
   // 역할 표시값(예: "학생") — BE 제공. 사이드바 배지/사용자 라벨에 사용.
-  lmsStudentProfileRole?: string | null;
+  role?: string | null;
 }
 
 /** SLM-001 학생 프로필 수정 입력 (학생은 이메일·이미지만 수정 가능) */
@@ -32,8 +32,7 @@ export const getStudentProfile = async () => {
  * PUT /api/lms/student/profile — 프로필 수정 (multipart/form-data)
  *
  * ⚠️ BE가 `@ModelAttribute`(multipart)로 받으므로 JSON이 아니라 FormData로 보내야 한다.
- *   - FormData 키 이름은 BE DTO 필드명과 정확히 일치해야 함
- *     (lmsStudentProfileEmail / lmsStudentProfileImage)
+ *   - FormData 키 이름은 BE ReqDto 필드명과 정확히 일치해야 함 (lmsPrfEmail / image)
  *   - api.ts 기본 헤더가 application/json이므로 이 요청만 multipart로 덮어쓴다.
  *     (axios가 FormData를 감지해 boundary 포함 헤더로 실제 전송함)
  */
@@ -41,9 +40,9 @@ export const updateStudentProfile = async (
   input: LmsStudentProfileUpdateInput
 ) => {
   const formData = new FormData();
-  formData.append("lmsStudentProfileEmail", input.email);
+  formData.append("lmsPrfEmail", input.email);
   if (input.image) {
-    formData.append("lmsStudentProfileImage", input.image);
+    formData.append("image", input.image);
   }
 
   const res = await api.put<LmsStudentProfile>(

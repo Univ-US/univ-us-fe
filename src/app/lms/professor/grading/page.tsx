@@ -194,12 +194,12 @@ export default function ProfessorGradingPage() {
 
   // 필터 드롭다운 옵션 — 학기 목록에서 유도(년도 내림차순 / 학기 TERM_ORDER 순)
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.year))].sort((a, b) => b - a),
+    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
   const termOptions = useMemo(
     () =>
-      [...new Set(semesters.map((s) => s.termCode))].sort(
+      [...new Set(semesters.map((s) => s.semTerm))].sort(
         (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
       ),
     [semesters]
@@ -218,7 +218,7 @@ export default function ProfessorGradingPage() {
       setDetail(d);
       // 원본값 스냅샷(변경 여부 판정·취소용)
       setOriginals(
-        Object.fromEntries(d.submissions.map((s) => [s.memberId, { score: s.score, feedback: s.feedback }]))
+        Object.fromEntries(d.submissions.map((s) => [s.memberId, { score: s.asnSbmEvlScore, feedback: s.asnSbmEvlFeedback }]))
       );
       // 미채점 뷰 = 미채점 학생만 / 채점 뷰 = 채점완료 학생만 (선택 시점 기준 스냅샷, memberId)
       const ids = d.submissions
@@ -265,19 +265,19 @@ export default function ProfessorGradingPage() {
     setSaveError(null);
     try {
       const updated = await saveGrade(detail.assignmentId, sub.submissionId, {
-        score: sub.score,
-        feedback: sub.feedback,
+        asnSbmEvlScore: sub.asnSbmEvlScore,
+        asnSbmEvlFeedback: sub.asnSbmEvlFeedback,
       });
       updateSubmission(sub.memberId, {
         submissionId: updated.submissionId,
-        score: updated.score,
-        feedback: updated.feedback,
+        asnSbmEvlScore: updated.asnSbmEvlScore,
+        asnSbmEvlFeedback: updated.asnSbmEvlFeedback,
         graded: updated.graded,
       });
       // 저장값을 새 원본으로 → 변경 없음(not-dirty) 상태가 되어 저장 다시 비활성
       setOriginals((prev) => ({
         ...prev,
-        [sub.memberId]: { score: updated.score, feedback: updated.feedback },
+        [sub.memberId]: { score: updated.asnSbmEvlScore, feedback: updated.asnSbmEvlFeedback },
       }));
       // 채점완료/미채점 카운트 동기화 (graded 전이 기준)
       const wasGraded = sub.graded;
@@ -313,7 +313,7 @@ export default function ProfessorGradingPage() {
   // '취소' → 점수/피드백을 원본으로 되돌리고, 채점완료 행이면 편집모드 해제(다시 잠금)
   const handleCancel = (sub: Submission) => {
     const orig = originals[sub.memberId];
-    if (orig) updateSubmission(sub.memberId, { score: orig.score, feedback: orig.feedback });
+    if (orig) updateSubmission(sub.memberId, { asnSbmEvlScore: orig.score, asnSbmEvlFeedback: orig.feedback });
     setEditingIds((prev) => {
       const next = new Set(prev);
       next.delete(sub.memberId);
@@ -359,11 +359,11 @@ export default function ProfessorGradingPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
             {/* 강의명+과제명 CSS 폭 기준 말줄임(긴 강의명에 레이아웃 안 깨지게) */}
-            <h2 className="truncate text-base font-semibold text-slate-800" title={`${d.courseName} — ${d.title}`}>
-              {d.courseName} — {d.title}
+            <h2 className="truncate text-base font-semibold text-slate-800" title={`${d.courseName} — ${d.lecAsnTitle}`}>
+              {d.courseName} — {d.lecAsnTitle}
             </h2>
             <p className="text-xs text-slate-400">
-              {d.maxScore}점 만점 · 마감 {d.dueDate}
+              {d.maxScore}점 만점 · 마감 {d.lecAsnDueDate}
             </p>
           </div>
           {/* 헤더 배지: 미채점 뷰=미채점만 / 채점 뷰=채점완료만 */}
@@ -407,14 +407,14 @@ export default function ProfessorGradingPage() {
                 visibleSubs.map((s) => {
                   // 제출 판정은 submissionId 기준(BE 지시). file 의존 금지 — 채점완료인데 file=null이면
                   // 미제출로 오판하던 버그(2026-06-10). 채점여부는 graded/score로 판단(status는 채점해도 'SBM' 유지).
-                  const submitted = s.submissionId != null && s.submissionStatus !== "NSB";
+                  const submitted = s.submissionId != null && s.lecAsnSbmStatus !== "NSB";
                   const isEditing = editingIds.has(s.memberId);
                   const editable = !s.graded || isEditing; // 미채점=항상 편집 / 채점완료=수정 클릭 시만
                   const saving = savingIds.has(s.memberId);
                   // 원본 대비 점수/피드백 변경 여부 — 변경 없으면 저장 비활성, 취소도 불필요
                   const orig = originals[s.memberId];
                   const dirty = orig
-                    ? s.score !== orig.score || s.feedback !== orig.feedback
+                    ? s.asnSbmEvlScore !== orig.score || s.asnSbmEvlFeedback !== orig.feedback
                     : false;
                   return (
                     <tr
@@ -451,7 +451,7 @@ export default function ProfessorGradingPage() {
                       ) : (
                         <>
                           {/* 제출일시 */}
-                          <td className="px-5 py-3 text-slate-500">{s.submittedAt ?? "-"}</td>
+                          <td className="px-5 py-3 text-slate-500">{s.lecAsnSbmRegDate ?? "-"}</td>
                           {/* 파일 — 제출했어도 파일이 없을 수 있음(파일 없으면 '—') */}
                           <td className="px-5 py-3">
                             {s.file ? (
@@ -468,11 +468,11 @@ export default function ProfessorGradingPage() {
                               type="number"
                               min={0}
                               max={d.maxScore}
-                              value={s.score ?? ""}
+                              value={s.asnSbmEvlScore ?? ""}
                               disabled={!editable || saving}
                               onChange={(e) =>
                                 updateSubmission(s.memberId, {
-                                  score: e.target.value === "" ? null : Number(e.target.value),
+                                  asnSbmEvlScore: e.target.value === "" ? null : Number(e.target.value),
                                 })
                               }
                               placeholder="–"
@@ -482,11 +482,11 @@ export default function ProfessorGradingPage() {
                           {/* 피드백 (최대 200자) */}
                           <td className="px-5 py-3">
                             <input
-                              value={s.feedback}
+                              value={s.asnSbmEvlFeedback}
                               disabled={!editable || saving}
                               maxLength={200}
                               onChange={(e) =>
-                                updateSubmission(s.memberId, { feedback: e.target.value })
+                                updateSubmission(s.memberId, { asnSbmEvlFeedback: e.target.value })
                               }
                               placeholder="피드백 입력…"
                               className="w-full min-w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
@@ -601,8 +601,8 @@ export default function ProfessorGradingPage() {
                   >
                     <td className="px-5 py-3 font-medium text-slate-800">{a.courseName}</td>
                     <td className="px-5 py-3 text-slate-600">{a.lecSection != null ? `${a.lecSection}반` : "-"}</td>
-                    <td className="px-5 py-3 text-slate-700">{a.title}</td>
-                    <td className="px-5 py-3 text-slate-500">🕓 {a.dueDate}</td>
+                    <td className="px-5 py-3 text-slate-700">{a.lecAsnTitle}</td>
+                    <td className="px-5 py-3 text-slate-500">🕓 {a.lecAsnDueDate}</td>
                     <td className="px-5 py-3 text-slate-700">{a.submittedCount}명</td>
                     <td className="px-5 py-3">
                       {isUngraded ? (
