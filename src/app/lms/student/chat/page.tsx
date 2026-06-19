@@ -77,8 +77,10 @@ export default function StudentChatPage() {
       const data = sortRooms(await getChatRooms());
       setRooms(data);
       setSelectedRoomId((current) => {
+        // 새로고침 시 보던 방은 유지하되 첫 진입은 자동 선택하지 않음
+        // (자동 선택하면 loadThread가 해당 방을 읽음 처리 → 페이지 진입만으로 읽음되는 문제 방지)
         if (current && data.some((room) => room.roomId === current)) return current;
-        return data[0]?.roomId ?? null;
+        return null;
       });
       setUnreadCount(data.reduce((sum, room) => sum + room.unread, 0));
     } catch (loadError) {
