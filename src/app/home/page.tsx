@@ -28,6 +28,7 @@ import { getStudentCalendar, type CalendarEvent } from "@/lib/lmsStudentCalendar
 import { getProfessorCalendar } from "@/lib/lmsProfessorCalendarApi";
 import api from "@/lib/api";
 import { ROLE } from "@/lib/rolecode";
+import PolicyModal, { type PolicyType } from "@/components/common/PolicyModal";
 
 const DEFAULT_CONFIG: HomeWidgetConfig = {
     weather: true, aiChat: true, notice: true, meal: true, tel: true, shortcut: true,
@@ -185,6 +186,7 @@ export default function CampusHomePage() {
     const [homeConfig, setHomeConfig] = useState<HomeWidgetConfig>(DEFAULT_CONFIG);
     const [notices, setNotices] = useState<Notice[]>([]);
     const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+    const [policyModal, setPolicyModal] = useState<PolicyType | null>(null);
     const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
@@ -747,12 +749,24 @@ export default function CampusHomePage() {
             )}
 
             {/* 푸터 */}
-            {schoolInfo?.address && (
-                <footer className="border-t border-slate-200 bg-white mt-2">
-                    <div className="mx-auto max-w-[1180px] px-5 py-4 text-center text-[11px] text-slate-400">
-                        {univName ?? schoolInfo.schoolName} · {schoolInfo.address}
+            <footer className="border-t border-slate-200 bg-white mt-2">
+                <div className="mx-auto max-w-[1180px] px-5 py-4 flex flex-col items-center gap-2 text-center text-[11px] text-slate-400">
+                    {schoolInfo?.address && (
+                        <span>{univName ?? schoolInfo.schoolName} · {schoolInfo.address}</span>
+                    )}
+                    <div className="flex gap-3 font-semibold text-slate-400">
+                        <button type="button" onClick={() => setPolicyModal("terms")} className="hover:text-slate-600">
+                            이용약관
+                        </button>
+                        <button type="button" onClick={() => setPolicyModal("privacy")} className="hover:text-slate-600">
+                            개인정보처리방침
+                        </button>
                     </div>
-                </footer>
+                </div>
+            </footer>
+
+            {policyModal && (
+                <PolicyModal type={policyModal} onClose={() => setPolicyModal(null)} />
             )}
         </div>
     );
