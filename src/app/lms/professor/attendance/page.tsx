@@ -27,9 +27,7 @@ import type {
 } from "@/types/lmsProfessorAttendance";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getLmsAvatarColor } from "@/lib/lmsAvatar";
-
-// 학기 정렬 순서(SEM_TERM) — 학기 드롭다운 정렬용
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 // (년도, 학기) 조합에 매칭되는 강의들. 둘 다 'all'이면 전체. — PLM-003 수강생 현황과 동일 패턴
 const matchLectures = (
@@ -45,6 +43,8 @@ export default function ProfessorAttendancePage() {
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
+  // 학기 정렬 순서(SEM_TERM) — 공통코드 CODE_ORDER 기준(서버 정렬). 학기 드롭다운 정렬용
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const [data, setData] = useState<LectureAttendance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +56,11 @@ export default function ProfessorAttendancePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   // 지각/결석 날짜 팝오버 — 키 `${memberId}-LAT` | `${memberId}-ABS`
   const [openPop, setOpenPop] = useState<string | null>(null);
+
+  // 학기 정렬 순서(SEM_TERM) 로드 — 실패 시 [](재정렬 없음)
+  useEffect(() => {
+    getCommonCodeList("SEM_TERM").then((list) => setTermOrder(list.map((c) => c.codeVal)));
+  }, []);
 
   // 구조 로드(마운트): 담당 강의 → 기본 '전체/전체' → 첫 강의 선택
   useEffect(() => {
@@ -109,9 +114,9 @@ export default function ProfessorAttendancePage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
   const filteredLectures = useMemo(
     () => matchLectures(yearFilter, termFilter, lectures),

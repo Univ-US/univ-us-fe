@@ -7,14 +7,13 @@ import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import StudentMaterialViewDialog from "@/components/lms/StudentMaterialViewDialog";
 import { getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
-import { getCommonCodeMap } from "@/lib/lmsCommonCode";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type {
   CourseMaterials,
   Material,
   SemesterMaterials,
 } from "@/types/lmsStudentMaterials";
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 // 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 표시한다.
 const MATERIALS_PAGE_SIZE = 10;
 const selectClass =
@@ -49,8 +48,13 @@ export default function StudentMaterialsPage() {
   const [viewing, setViewing] = useState<Material | null>(null);
   // 학기 코드→라벨 공통코드 맵 (마운트 시 fetch, 실패 시 {} → 코드 원본 폴백)
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  // 학기 표시 순서 — SEM_TERM 공통코드(CODE_ORDER 정렬)에서 도출 (로드 전 []·재정렬 없음)
+  const [termOrder, setTermOrder] = useState<string[]>([]);
   useEffect(() => {
-    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
   }, []);
 
   const load = useCallback(() => {
@@ -86,8 +90,8 @@ export default function StudentMaterialsPage() {
     () => [...new Set(courseOptions.map((c) => c.year))].sort((a, b) => b - a),
     [courseOptions]
   );
-  // 학기 필터는 데이터 유무와 무관하게 항상 4학기 노출(FE 소유 표시 순서)
-  const termOptions = TERM_ORDER;
+  // 학기 필터는 데이터 유무와 무관하게 항상 학기 노출(공통코드 표시 순서)
+  const termOptions = termOrder;
   const filteredCourses = useMemo(
     () => matchCourses(yearFilter, termFilter, courseOptions),
     [yearFilter, termFilter, courseOptions]

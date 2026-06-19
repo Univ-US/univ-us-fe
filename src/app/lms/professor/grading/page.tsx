@@ -18,10 +18,10 @@ import {
   getGradingAssignments,
   getGradingDetail,
   saveGrade,
-  getCommonCodeMap,
   getSemesters,
   getUngradedCount,
 } from "@/lib/lmsProfessorGradingApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type {
   GradingOverview,
   GradingDetail,
@@ -34,15 +34,13 @@ import { useLmsGradingStore } from "@/store/lms/lmsGradingStore";
 
 type DetailKind = "ungraded" | "graded";
 
-// 학기 정렬 순서(공통코드 SEM_TERM) — 학기 드롭다운 옵션 정렬용
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
-
 // 'all' sentinel → 서버 파라미터(null) 변환
 const toYearParam = (y: number | "all"): number | null => (y === "all" ? null : y);
 const toTermParam = (t: string | "all"): string | null => (t === "all" ? null : t);
 
 export default function ProfessorGradingPage() {
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
@@ -149,9 +147,11 @@ export default function ProfessorGradingPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [sems, term] = await Promise.all([getSemesters(), getCommonCodeMap("SEM_TERM")]);
+        const [sems, termList] = await Promise.all([getSemesters(), getCommonCodeList("SEM_TERM")]);
         setSemesters(sems);
-        setTermMap(term);
+        // 단일 호출(CODE_ORDER 정렬)에서 정렬 순서(termOrder)와 라벨맵(termMap) 둘 다 도출
+        setTermOrder(termList.map((c) => c.codeVal));
+        setTermMap(Object.fromEntries(termList.map((c) => [c.codeVal, c.codeName])));
       } catch (err) {
         setError(describeApiError(err));
       }
@@ -194,7 +194,7 @@ export default function ProfessorGradingPage() {
     setReloadTick((t) => t + 1);
   };
 
-  // 필터 드롭다운 옵션 — 학기 목록에서 유도(년도 내림차순 / 학기 TERM_ORDER 순)
+  // 필터 드롭다운 옵션 — 학기 목록에서 유도(년도 내림차순 / 학기 termOrder=SEM_TERM CODE_ORDER 순)
   const yearOptions = useMemo(
     () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
@@ -202,9 +202,9 @@ export default function ProfessorGradingPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [semesters]
+    [semesters, termOrder]
   );
 
   const selectAssignment = useCallback(async (assignmentId: number, kind: DetailKind) => {

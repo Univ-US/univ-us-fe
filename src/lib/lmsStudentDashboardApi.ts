@@ -3,6 +3,7 @@ import { getStudentAttendance, type SemesterAttendance } from "@/lib/lmsStudentA
 import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
 import type { SemesterCourses } from "@/types/lmsStudentCourses";
 import { getStudentProfile } from "@/lib/lmsStudentApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type {
   DashboardAssignment,
   DashboardCourse,
@@ -21,13 +22,6 @@ export type {
   LectureTime,
   StudentDashboard,
 } from "@/types/lmsStudentDashboard";
-
-const TERM_ORDER: Record<string, number> = {
-  SM1: 1,
-  SMR: 2,
-  SM2: 3,
-  WNT: 4,
-};
 
 const DAY_CODE_BY_LABEL: Record<string, string> = {
   월: "MON",
@@ -55,11 +49,14 @@ type SemesterLike = {
 
 const semesterKey = (year: number, termCode: string) => `${year}:${termCode}`;
 
-const sortSemesters = <T extends SemesterLike>(items: T[]) =>
+const sortSemesters = <T extends SemesterLike>(
+  items: T[],
+  termOrder: Record<string, number>
+) =>
   [...items].sort(
     (a, b) =>
       b.year - a.year ||
-      (TERM_ORDER[b.termCode] ?? 0) - (TERM_ORDER[a.termCode] ?? 0)
+      (termOrder[b.termCode] ?? 0) - (termOrder[a.termCode] ?? 0)
   );
 
 const semesterLabel = (
@@ -72,7 +69,8 @@ const buildAvailableSemesters = (
   courseSemesters: SemesterCourses[],
   assignmentSemesters: SemesterAssignments[],
   attendanceSemesters: SemesterAttendance[],
-  termMap: Record<string, string>
+  termMap: Record<string, string>,
+  termOrder: Record<string, number>
 ): DashboardSemesterOption[] => {
   const byKey = new Map<string, DashboardSemesterOption>();
   const add = (s: SemesterLike) => {
@@ -96,7 +94,7 @@ const buildAvailableSemesters = (
     add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
   );
 
-  return sortSemesters([...byKey.values()]);
+  return sortSemesters([...byKey.values()], termOrder);
 };
 
 const pickSemester = (
@@ -177,19 +175,23 @@ export const getStudentDashboard = async (
   params?: GetStudentDashboardParams,
   termMap: Record<string, string> = {}
 ): Promise<StudentDashboard> => {
-  const [profile, courseSemesters, assignmentResult, attendanceSemesters] = await Promise.all([
-    getStudentProfile(),
-    getStudentCourses(),
-    getStudentAssignments(),
-    getStudentAttendance(),
-  ]);
+  const [profile, courseSemesters, assignmentResult, attendanceSemesters, termCodes] =
+    await Promise.all([
+      getStudentProfile(),
+      getStudentCourses(),
+      getStudentAssignments(),
+      getStudentAttendance(),
+      getCommonCodeList("SEM_TERM"),
+    ]);
 
+  const termOrder = Object.fromEntries(termCodes.map((c, i) => [c.codeVal, i]));
   const assignmentSemesters = assignmentResult.semesters ?? [];
   const availableSemesters = buildAvailableSemesters(
     courseSemesters,
     assignmentSemesters,
     attendanceSemesters,
-    termMap
+    termMap,
+    termOrder
   );
   const selectedSemester = pickSemester(
     params,

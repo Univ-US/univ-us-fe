@@ -15,6 +15,7 @@ import {
   getLectureStudents,
   getStudentReport,
   getCommonCodeMap,
+  getCommonCodeList,
   exportEnrollees,
   lectureLabel,
   LECTURE_NAME_MAX,
@@ -32,9 +33,6 @@ import { describeApiError } from "@/lib/lmsApiError";
 import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 
 const PAGE_SIZE = 10;
-
-// 학기 정렬 순서(공통코드 SEM_TERM) — 학기 드롭다운 옵션 정렬용
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 // 선택된 (년도, 학기) 조합에 매칭되는 담당 강의들. 둘 다 'all'이면 전 강의.
 // 강의 응답의 semYear/semTerm으로 클라이언트 필터(getLectures가 학기 1개만 받으므로 전체 로드 후 거른다).
@@ -54,6 +52,7 @@ type Order = "asc" | "desc";
 export default function ProfessorStudentsPage() {
   // 드롭다운/구조
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]); // SEM_TERM 정렬 순서(CODE_ORDER)
   const [statusMap, setStatusMap] = useState<Record<string, string>>({}); // LEC_VAL_STATUS
   const [lectures, setLectures] = useState<Lecture[]>([]); // 담당 강의 전체(년도/학기 필터는 클라이언트)
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
@@ -95,10 +94,12 @@ export default function ProfessorStudentsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const tMap = await getCommonCodeMap("SEM_TERM");
+        // 학기: 라벨(termMap)과 정렬순서(termOrder)를 한 번의 호출(목록)에서 도출 — 단일 소스(DB CODE_ORDER)
+        const termList = await getCommonCodeList("SEM_TERM");
         const stMap = await getCommonCodeMap("LEC_VAL_STATUS");
         const lecs = await getLectures(); // 담당 강의 전체(년도/학기 필터는 클라이언트)
-        setTermMap(tMap);
+        setTermMap(Object.fromEntries(termList.map((c) => [c.codeVal, c.codeName])));
+        setTermOrder(termList.map((c) => c.codeVal));
         setStatusMap(stMap);
         setLectures(lecs);
         // 기본값 = 년도/학기 둘 다 '전체'(전 화면 공통 규칙) + 전체 강의 중 첫 강의 선택
@@ -185,9 +186,9 @@ export default function ProfessorStudentsPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm).filter((t): t is string => !!t))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
 
   // 필터 패널: 열 때 현재 적용값을 드래프트로 복사 → 선택은 드래프트만 변경 → '확인'에서만 적용

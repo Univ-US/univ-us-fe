@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
-import { getCommonCodeMap } from "@/lib/lmsCommonCode";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
   downloadStudentNoticeAttachment,
@@ -13,7 +13,6 @@ import {
 import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 import "@/components/lms/lms-content.css";
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
@@ -36,7 +35,7 @@ type CourseOption = {
   termCode: string;
 };
 
-function courseOptionsOf(notices: Notice[]): CourseOption[] {
+function courseOptionsOf(notices: Notice[], termOrder: string[]): CourseOption[] {
   const map = new Map<number, CourseOption>();
   for (const notice of notices) {
     if (!map.has(notice.lecId)) {
@@ -52,7 +51,7 @@ function courseOptionsOf(notices: Notice[]): CourseOption[] {
   return [...map.values()].sort(
     (a, b) =>
       b.year - a.year ||
-      TERM_ORDER.indexOf(b.termCode) - TERM_ORDER.indexOf(a.termCode) ||
+      termOrder.indexOf(b.termCode) - termOrder.indexOf(a.termCode) ||
       a.courseName.localeCompare(b.courseName)
   );
 }
@@ -87,9 +86,13 @@ export default function StudentNoticePage() {
   const [page, setPage] = useState(0);
   const [toast, setToast] = useState<Toast | null>(null);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   useEffect(() => {
-    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
   }, []);
 
   const showToast = useCallback((nextToast: Toast) => {
@@ -104,7 +107,7 @@ export default function StudentNoticePage() {
       const data = await getStudentNotices();
       setNotices(data);
       setSelectedLecId((prev) => {
-        const options = courseOptionsOf(data);
+        const options = courseOptionsOf(data, termOrder);
         return options.some((course) => course.lecId === prev)
           ? prev
           : options[0]?.lecId ?? null;
@@ -114,18 +117,21 @@ export default function StudentNoticePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [termOrder]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const courseOptions = useMemo(() => courseOptionsOf(notices), [notices]);
+  const courseOptions = useMemo(
+    () => courseOptionsOf(notices, termOrder),
+    [notices, termOrder]
+  );
   const yearOptions = useMemo(
     () => [...new Set(courseOptions.map((course) => course.year))].sort((a, b) => b - a),
     [courseOptions]
   );
-  const termOptions = TERM_ORDER;
+  const termOptions = termOrder;
   const filteredCourses = useMemo(
     () => matchCourses(yearFilter, termFilter, courseOptions),
     [yearFilter, termFilter, courseOptions]

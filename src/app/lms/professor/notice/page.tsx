@@ -12,6 +12,7 @@ import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { formatFileSize } from "@/lib/lmsProfessorUploadApi";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import {
   TERM_LABEL,
   NOTICE_ACCEPT,
@@ -31,7 +32,6 @@ import {
 import type { Notice, NoticeAttachment, NoticeLecture } from "@/types/lmsProfessorNotice";
 import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const NOTICE_PREVIEW_MAX = 28; // 목록 카드 본문 미리보기 글자 수
 
 // 교수 슬레이트 톤(§13) — 포커스 링 slate-500, 1차 버튼 slate-800
@@ -82,6 +82,7 @@ const EMPTY_FORM: FormState = {
 export default function ProfessorNoticePage() {
   // 드롭다운/구조 (PLM-006 패턴)
   const [lectures, setLectures] = useState<NoticeLecture[]>([]);
+  const [termOrder, setTermOrder] = useState<string[]>([]); // 학기 정렬 순서(공통코드 SEM_TERM CODE_ORDER)
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
@@ -100,6 +101,11 @@ export default function ProfessorNoticePage() {
   const [editing, setEditing] = useState<Notice | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // 마운트: 학기 정렬 순서(공통코드 SEM_TERM) 로드
+  useEffect(() => {
+    getCommonCodeList("SEM_TERM").then((list) => setTermOrder(list.map((c) => c.codeVal)));
+  }, []);
 
   // 마운트: 담당 강의 → 첫 과목 선택
   useEffect(() => {
@@ -174,9 +180,9 @@ export default function ProfessorNoticePage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
   const selectedLecture = useMemo(
     () => lectures.find((l) => l.lecId === selectedLecId) ?? null,

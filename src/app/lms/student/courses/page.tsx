@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
-import { getCommonCodeMap } from "@/lib/lmsCommonCode";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type { CourseRow, SemesterCourses } from "@/types/lmsStudentCourses";
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const SEMESTER_PAGE_SIZE = 3;
 const COURSE_PAGE_SIZE = 5;
 const selectClass =
@@ -19,6 +18,7 @@ export default function StudentCoursesPage() {
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [semesterPage, setSemesterPage] = useState(0);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,7 +38,10 @@ export default function StudentCoursesPage() {
   }, [load]);
 
   useEffect(() => {
-    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
   }, []);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function StudentCoursesPage() {
     [semesters],
   );
 
-  const termOptions = TERM_ORDER;
+  const termOptions = termOrder;
 
   const visible = useMemo(
     () =>

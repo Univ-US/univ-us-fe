@@ -30,14 +30,13 @@ import {
 } from "@/lib/lmsProfessorAssignmentsApi";
 import type { Assignment, AssignmentLecture } from "@/types/lmsProfessorAssignments";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 const selectClass =
   "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 const inputClass =
   "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 const labelClass = "text-sm font-semibold text-slate-700";
-
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 // 서버 페이지네이션 size — 선택 과목 과제 목록(타 화면과 통일 10건)
 const PAGE_SIZE = 10;
@@ -94,6 +93,7 @@ export default function ProfessorAssignmentsPage() {
 
   // 공통코드 라벨 맵 (PLM-003/004/005 패턴) — SEM_TERM 학기 · LEC_ASN_VAL_STATUS 과제 상태. 실패 시 {}(원본 코드 표시).
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]); // SEM_TERM 정렬 순서(DB CODE_ORDER) — 학기 드롭다운 정렬용
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
   const semLabelOf = (year: number, termCode: string) =>
     `${year}년 ${termMap[termCode] ?? termCode}`;
@@ -146,14 +146,16 @@ export default function ProfessorAssignmentsPage() {
     })();
   }, []);
 
-  // 공통코드 라벨 맵 로드 (SEM_TERM · LEC_ASN_VAL_STATUS) — 실패해도 {}라 화면은 동작(원본 코드 표시)
+  // 공통코드 로드 (SEM_TERM · LEC_ASN_VAL_STATUS) — 실패해도 빈 값이라 화면은 동작(원본 코드 표시)
+  // SEM_TERM은 list 1회로 정렬(termOrder=CODE_ORDER)·라벨맵(termMap) 둘 다 도출(단일 소스).
   useEffect(() => {
     (async () => {
-      const [t, s] = await Promise.all([
-        getCommonCodeMap("SEM_TERM"),
+      const [termList, s] = await Promise.all([
+        getCommonCodeList("SEM_TERM"),
         getCommonCodeMap("LEC_ASN_VAL_STATUS"),
       ]);
-      setTermMap(t);
+      setTermOrder(termList.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(termList.map((c) => [c.codeVal, c.codeName])));
       setStatusMap(s);
     })();
   }, []);
@@ -250,9 +252,9 @@ export default function ProfessorAssignmentsPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
   const selectedLecture = useMemo(
     () => lectures.find((l) => l.lecId === selectedLecId) ?? null,

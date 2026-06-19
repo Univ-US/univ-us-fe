@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import StudentSubmissionPreviewDialog from "@/components/lms/StudentSubmissionPreviewDialog";
 import StudentFeedbackDialog from "@/components/lms/StudentFeedbackDialog";
 import { describeApiError } from "@/lib/lmsApiError";
-import { getCommonCodeMap } from "@/lib/lmsCommonCode";
+import { getCommonCodeList, getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { getStudentAssignments } from "@/lib/lmsStudentAssignmentsApi";
 import type {
@@ -30,7 +30,6 @@ const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
 const ASSIGNMENT_PAGE_SIZE = 10;
 const SEMESTER_PAGE_SIZE = 3;
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
@@ -50,14 +49,17 @@ export default function StudentAssignmentsHistoryPage() {
   const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
 
   // 라벨은 BE 공통코드 API로 런타임 매핑(코드→라벨 하드코딩 제거). 실패 시 {} → 코드 원본 표시.
+  // 학기 순서/라벨은 SEM_TERM 한 번의 getCommonCodeList(서버 CODE_ORDER 정렬)에서 둘 다 도출.
+  const [termOrder, setTermOrder] = useState<string[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [sbmStatusMap, setSbmStatusMap] = useState<Record<string, string>>({});
   useEffect(() => {
     void Promise.all([
-      getCommonCodeMap("SEM_TERM"),
+      getCommonCodeList("SEM_TERM"),
       getCommonCodeMap("LEC_ASN_SBM_STATUS"),
     ]).then(([term, sbm]) => {
-      setTermMap(term);
+      setTermOrder(term.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(term.map((c) => [c.codeVal, c.codeName])));
       setSbmStatusMap(sbm);
     });
   }, []);
@@ -94,8 +96,8 @@ export default function StudentAssignmentsHistoryPage() {
     () => (data ? [...new Set(data.semesters.map((s) => s.semYear))].sort((a, b) => b - a) : []),
     [data]
   );
-  // 데이터 유무와 무관하게 항상 4학기 노출(달력순 고정 전체목록)
-  const termOptions = TERM_ORDER;
+  // 데이터 유무와 무관하게 SEM_TERM 전체 학기 노출(서버 CODE_ORDER 순서)
+  const termOptions = termOrder;
 
   const visibleSemesters = useMemo(() => {
     if (!data) return [];

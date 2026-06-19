@@ -127,6 +127,25 @@ export const getCommonCodeMap = async (
   }
 };
 
+/**
+ * GET /api/common-codes/{groupCode} — 공통코드 "목록"(서버가 CODE_ORDER로 정렬해 반환).
+ * 코드의 순서가 필요할 때 사용(예: 학기 드롭다운/정렬 — DB CODE_ORDER가 단일 소스).
+ * 모듈 캐시. 실패 시 빈 배열([]) → 호출부가 코드/순서 fallback.
+ */
+const _codeListCache: Record<string, CommonCode[]> = {};
+export const getCommonCodeList = async (
+  groupCode: string
+): Promise<CommonCode[]> => {
+  if (_codeListCache[groupCode]) return _codeListCache[groupCode];
+  try {
+    const res = await api.get<CommonCode[]>(`/api/common-codes/${groupCode}`);
+    _codeListCache[groupCode] = res.data;
+    return res.data;
+  } catch {
+    return [];
+  }
+};
+
 // ── 표시 헬퍼 ──────────────────────────────────────────────
 /** 학기 표시: "2026년 1학기" (termCode는 SEM_TERM 맵으로 라벨링) */
 export const semesterLabel = (sem: Semester, termMap: Record<string, string>) =>

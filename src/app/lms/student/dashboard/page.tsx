@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { describeApiError } from "@/lib/lmsApiError";
-import { getCommonCodeMap } from "@/lib/lmsCommonCode";
+import { getCommonCodeList, getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { getStudentDashboard } from "@/lib/lmsStudentDashboardApi";
 import type {
   DashboardSemesterOption,
@@ -25,19 +25,22 @@ const STATUS_BADGE: Record<StudentAssignmentStatus, { cls: string; dot: string }
   GRD: { cls: "text-emerald-600", dot: "bg-emerald-500" },
 };
 
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
 const uniqueYears = (semesters: DashboardSemesterOption[]) =>
   [...new Set(semesters.map((semester) => semester.year))].sort((a, b) => b - a);
 
-const termsForYear = (semesters: DashboardSemesterOption[], year: number | null) =>
+const termsForYear = (
+  semesters: DashboardSemesterOption[],
+  year: number | null,
+  termOrder: string[]
+) =>
   semesters
     .filter((semester) => year == null || semester.year === year)
     .map((semester) => semester.termCode)
     .filter((term, index, arr) => arr.indexOf(term) === index)
-    .sort((a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b));
+    .sort((a, b) => termOrder.indexOf(a) - termOrder.indexOf(b));
 
 export default function StudentDashboardPage() {
   const [data, setData] = useState<StudentDashboard | null>(null);
@@ -46,17 +49,19 @@ export default function StudentDashboardPage() {
   const [selYear, setSelYear] = useState<number | null>(null);
   const [selTerm, setSelTerm] = useState<string | null>(null);
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
+  const [termOrder, setTermOrder] = useState<string[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [dayMap, setDayMap] = useState<Record<string, string>>({});
   const [sbmStatusMap, setSbmStatusMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void Promise.all([
-      getCommonCodeMap("SEM_TERM"),
+      getCommonCodeList("SEM_TERM"),
       getCommonCodeMap("DAY_CODE"),
       getCommonCodeMap("LEC_ASN_SBM_STATUS"),
     ]).then(([term, day, sbm]) => {
-      setTermMap(term);
+      setTermOrder(term.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(term.map((c) => [c.codeVal, c.codeName])));
       setDayMap(day);
       setSbmStatusMap(sbm);
     });
@@ -95,7 +100,7 @@ export default function StudentDashboardPage() {
   }, [load]);
 
   const yearOptions = useMemo(() => uniqueYears(data?.availableSemesters ?? []), [data]);
-  const termOptions = TERM_ORDER;
+  const termOptions = termOrder;
 
   const selectedCourse = data?.courses.find((course) => course.lecId === selectedLecId) ?? null;
   const courseAssignments = (data?.assignments ?? []).filter((assignment) => assignment.lecId === selectedLecId);
@@ -103,7 +108,7 @@ export default function StudentDashboardPage() {
   const courseGraded = courseAssignments.filter((assignment) => assignment.status === "GRD").length;
 
   const handleYearChange = (nextYear: number) => {
-    const nextTerms = termsForYear(data?.availableSemesters ?? [], nextYear);
+    const nextTerms = termsForYear(data?.availableSemesters ?? [], nextYear, termOrder);
     const nextTerm = selTerm && nextTerms.includes(selTerm) ? selTerm : nextTerms[0] ?? null;
     setSelYear(nextYear);
     setSelTerm(nextTerm);

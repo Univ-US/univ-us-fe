@@ -16,7 +16,7 @@ import type {
   ProfessorSemesterCourses,
   ProfessorCoursesOverview,
 } from "@/types/lmsProfessorCourses";
-import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -24,7 +24,6 @@ const TERM_LABEL: Record<string, string> = {
   SM2: "2학기",
   WNT: "겨울 계절",
 };
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -37,6 +36,7 @@ export default function ProfessorCoursesPage() {
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,20 +57,21 @@ export default function ProfessorCoursesPage() {
   }, [load]);
 
   // 학기 드롭다운은 공통코드 SEM_TERM 기준 — 강의 데이터에 없는 미시작 학기('여름 계절')도 노출
+  // 서버가 CODE_ORDER로 정렬해 반환 → 정렬순(termOrder)과 라벨맵(termMap)을 한 번의 호출로 도출
   useEffect(() => {
-    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
   }, []);
 
   const yearOptions = useMemo(
     () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters],
   );
-  // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시). 미로드 시 TERM_ORDER 상수 fallback.
-  const termOptions = useMemo(() => {
-    const codes = Object.keys(termMap);
-    const base = codes.length > 0 ? codes : TERM_ORDER;
-    return [...base].sort((a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b));
-  }, [termMap]);
+  // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시).
+  // termOrder는 서버가 CODE_ORDER로 이미 정렬해 반환 → 재정렬 불필요. 미로드 시 빈 배열(라벨 로딩과 동일 성격).
+  const termOptions = termOrder;
 
   const visible = useMemo(
     () =>

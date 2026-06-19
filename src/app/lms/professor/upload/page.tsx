@@ -24,19 +24,18 @@ import {
   isVideoExt,
 } from "@/lib/lmsProfessorUploadApi";
 import type { Lecture, Material, SemesterOption } from "@/types/lmsProfessorUpload";
-import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 
 // 페이지당 표시 건수 (서버 페이지네이션 size)
 const MATERIALS_PAGE_SIZE = 10;
 
-// 학기 필터 옵션 정렬 순서 (공통코드 SEM_TERM — 연중 순서)
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
-
 export default function LectureUploadPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  // 학기 필터 정렬 순서 — 공통코드 SEM_TERM(서버 CODE_ORDER 정렬)에서 유도
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   // 메타 — 전체 건수(필터 무관) + 필터 옵션(자료 보유 년도/학기)
   const [totalAll, setTotalAll] = useState(0);
@@ -69,9 +68,9 @@ export default function LectureUploadPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [semesters]
+    [semesters, termOrder]
   );
 
   // 메타 로드 (마운트 + 등록/삭제 후) — 전체 건수·필터 옵션. 실패는 페이지 로드 에러로 통합 처리.
@@ -107,16 +106,18 @@ export default function LectureUploadPage() {
     }
   }, []);
 
-  // 마운트: 강의 드롭다운 + 학기 라벨 + 메타 (페이지는 아래 effect가 로드)
+  // 마운트: 강의 드롭다운 + 학기 공통코드(순서+라벨 통합) + 메타 (페이지는 아래 effect가 로드)
   useEffect(() => {
     (async () => {
       try {
-        const [lectureList, semTermMap] = await Promise.all([
+        const [lectureList, semTermList] = await Promise.all([
           getUploadLectures(),
-          getCommonCodeMap("SEM_TERM"),
+          getCommonCodeList("SEM_TERM"),
         ]);
         setLectures(lectureList);
-        setTermMap(semTermMap);
+        // 서버 CODE_ORDER 정렬 배열에서 정렬 순서(termOrder)와 라벨맵(termMap) 둘 다 유도
+        setTermOrder(semTermList.map((c) => c.codeVal));
+        setTermMap(Object.fromEntries(semTermList.map((c) => [c.codeVal, c.codeName])));
         await loadMeta();
       } catch (err) {
         setError(describeApiError(err));
