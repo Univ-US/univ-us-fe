@@ -5,6 +5,7 @@ import {
   CreditCard,
   Landmark,
   MessageCircle,
+  Minus,
   RefreshCw,
   Send,
   Tag,
@@ -54,6 +55,7 @@ type CommunityMarketChatDrawerProps = {
   onRoomUpdated?: (room: TradeChatRoom) => void;
   onRoomsChanged?: () => void;
   onTradeCompleted?: () => void;
+  onProductUnreadChange?: (productId: number, hasUnread: boolean) => void;
 };
 
 type RealtimeStatus = 'connected' | 'disconnected';
@@ -236,6 +238,7 @@ export default function CommunityMarketChatDrawer({
   onRoomUpdated,
   onRoomsChanged,
   onTradeCompleted,
+  onProductUnreadChange,
 }: CommunityMarketChatDrawerProps) {
   const memberId = useAuthStore((state) => state.memberId);
   const [rooms, setRooms] = useState<TradeChatRoom[]>([]);
@@ -255,6 +258,7 @@ export default function CommunityMarketChatDrawer({
   const [error, setError] = useState('');
   const [realtimeStatus, setRealtimeStatus] =
     useState<RealtimeStatus>('disconnected');
+  const [minimized, setMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -285,6 +289,10 @@ export default function CommunityMarketChatDrawer({
   );
   const activePrice = Number(activeRoom?.negotiatedPrice ?? targetProduct?.price ?? 0);
   const isFreeSharing = activePrice <= 0;
+  const totalUnreadCount = rooms.reduce(
+    (total, room) => total + (room.unreadCount ?? 0),
+    0,
+  );
 
   const emptyMessage = useMemo(() => {
     if (!memberId) {
@@ -380,6 +388,7 @@ export default function CommunityMarketChatDrawer({
       return;
     }
 
+    setMinimized(false);
     void loadRooms();
   }, [loadRooms, open]);
 
@@ -442,6 +451,11 @@ export default function CommunityMarketChatDrawer({
                 : room,
             ),
           );
+          const readRoomProductId = activeRoom?.productId;
+          if (readRoomProductId) {
+            onProductUnreadChange?.(readRoomProductId, false);
+          }
+          onRoomsChanged?.();
         })
         .catch((readError) => {
           console.error(readError);
@@ -449,7 +463,7 @@ export default function CommunityMarketChatDrawer({
     }, 1000);
 
     return () => window.clearTimeout(readTimer);
-  }, [activeRoomId, memberId, open]);
+  }, [activeRoom?.productId, activeRoomId, memberId, onProductUnreadChange, onRoomsChanged, open]);
 
   useEffect(() => {
     setNegotiatedPriceInput(String(activeRoom?.negotiatedPrice ?? ''));
@@ -777,21 +791,49 @@ export default function CommunityMarketChatDrawer({
     return null;
   }
 
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        onClick={() => setMinimized(false)}
+        className="fixed bottom-5 right-5 z-50 flex h-12 w-[280px] max-w-[calc(100vw-2.5rem)] items-center gap-3 rounded-xl border border-primary/20 bg-white px-4 text-left shadow-xl transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-2xl"
+        aria-label="Open market chat"
+      >
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <MessageCircle className="size-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] font-extrabold text-slate-900">
+            Market chat
+          </span>
+          <span className="block truncate text-[11px] font-semibold text-slate-400">
+            {activeRoom
+              ? getRoomTitle(activeRoom, memberId)
+              : targetProduct?.productName ?? 'Open chat'}
+          </span>
+        </span>
+        {totalUnreadCount > 0 && (
+          <span className="flex min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-extrabold leading-5 text-white">
+            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+          </span>
+        )}
+      </button>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="pointer-events-none fixed inset-0 z-50">
       <button
         type="button"
         aria-label="중고거래 채팅 닫기"
-        className="absolute inset-0 bg-slate-950/35"
+        className="hidden"
         onClick={onClose}
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[460px] flex-col bg-white shadow-2xl">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+      <aside className="pointer-events-auto fixed bottom-2 right-2 z-50 flex h-[min(78vh,680px)] w-[calc(100vw-16px)] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-2xl md:bottom-5 md:right-5 md:h-[min(680px,calc(100vh-96px))] md:w-[min(720px,calc(100vw-40px))]">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-[15px] font-extrabold text-slate-900">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <MessageCircle className="size-4" />
-              </span>
+              <MessageCircle className="size-4 text-primary" />
               중고거래 채팅
             </div>
             <div className="mt-1 truncate text-[12px] font-semibold text-slate-400">
@@ -816,6 +858,15 @@ export default function CommunityMarketChatDrawer({
             </span>
             <button
               type="button"
+              onClick={() => setMinimized(true)}
+              aria-label="중고거래 채팅 최소화"
+              title="최소화"
+              className="flex size-9 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary"
+            >
+              <Minus className="size-4" />
+            </button>
+            <button
+              type="button"
               onClick={onClose}
               aria-label="닫기"
               className="flex size-9 items-center justify-center rounded-lg border border-border text-slate-500 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0"
@@ -830,8 +881,8 @@ export default function CommunityMarketChatDrawer({
             채팅방을 불러오는 중입니다.
           </div>
         ) : (
-          <>
-            <div className="border-b border-border px-5 py-3">
+          <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[190px_minmax(0,1fr)]">
+            <div className="border-b border-border px-4 py-3 md:min-h-0 md:border-b-0 md:border-r">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[12px] font-extrabold text-slate-500">
                   채팅방
@@ -851,7 +902,7 @@ export default function CommunityMarketChatDrawer({
                   {emptyMessage}
                 </div>
               ) : (
-                <div className="flex gap-2 overflow-x-auto pb-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 md:max-h-[calc(100%-34px)] md:flex-col md:overflow-y-auto md:pr-1">
                   {displayedRooms.map((room) => {
                     const selected = activeRoom?.roomId === room.roomId;
                     const unreadCount = room.unreadCount ?? 0;
@@ -862,10 +913,10 @@ export default function CommunityMarketChatDrawer({
                         type="button"
                         onClick={() => setActiveRoom(room)}
                         className={cn(
-                          'min-w-[184px] rounded-xl border px-3 py-2 text-left transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
+                          'min-w-[150px] rounded-lg border px-3 py-2 text-left transition-colors md:w-full md:min-w-0',
                           selected
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-border bg-white hover:border-primary hover:shadow-sm',
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border bg-white hover:border-primary',
                         )}
                       >
                         <div className="flex items-start gap-2">
@@ -1165,17 +1216,17 @@ export default function CommunityMarketChatDrawer({
 
               <form
                 onSubmit={handleSendMessage}
-                className="flex items-center gap-2 border-t border-border bg-white px-5 py-4"
+                className="flex items-center gap-2 border-t border-border bg-white px-5 py-3"
               >
                 <textarea
                   ref={messageInputRef}
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
                   disabled={(!activeRoom && !canCreateChat) || isChatLocked}
-                  rows={2}
+                  rows={1}
                   maxLength={2000}
                   placeholder={isChatLocked ? '더 이상 참여할 수 없는 채팅입니다.' : '메시지 입력'}
-                  className="h-14 flex-1 resize-none rounded-xl border border-primary bg-white px-3 py-[15px] text-[13px] font-semibold leading-5 text-slate-700 outline-none transition-all duration-200 placeholder:text-slate-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(20,184,166,0.12)] disabled:cursor-not-allowed disabled:border-border disabled:bg-slate-50 disabled:opacity-60"
+                  className="h-10 min-h-10 flex-1 resize-none rounded-xl border border-border bg-slate-50 px-3 py-2 text-[13px] font-semibold leading-5 text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-primary focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault();
@@ -1187,13 +1238,13 @@ export default function CommunityMarketChatDrawer({
                   type="submit"
                   disabled={(!activeRoom && !canCreateChat) || isChatLocked || !messageText.trim() || sending}
                   aria-label="메시지 보내기"
-                  className="group flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:shadow-none"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm transition-colors hover:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:bg-slate-200"
                 >
-                  <Send className={cn('size-4 transition-transform duration-200', !sending && 'group-hover:translate-x-0.5')} />
+                  <Send className="size-4" />
                 </button>
               </form>
             </div>
-          </>
+          </div>
         )}
       </aside>
     </div>

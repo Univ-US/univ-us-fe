@@ -1,7 +1,9 @@
 'use client';
 
+import { Client, type IStompSocket } from '@stomp/stompjs';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import SockJS from 'sockjs-client';
 import {
   Heart,
   MessageCircle,
@@ -15,9 +17,10 @@ import { Button } from '@/components/ui/button';
 import CommunityMarketChatDrawer from '@/components/common/CommunityMarketChatDrawer';
 import { API_BASE_URL } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { getMyLikeList, toggleProductLike } from '@/lib/marketApi';
+import { getMyLikeList, getTradeChatRooms, toggleProductLike } from '@/lib/marketApi';
+import { getWebSocketEndpointUrl } from '@/lib/realtime';
 import { useAuthStore } from '@/store/authStore';
-import type { Product, ProductCategory } from '@/types/community';
+import type { Product, ProductCategory, TradeChatMessage, TradeChatRoom } from '@/types/community';
 
 const CATEGORIES: ('전체' | ProductCategory)[] = [
   '전체',
@@ -199,10 +202,30 @@ export default function CommunityMarketList({
   // 낙관적 업데이트용 로컬 찜 상태 (Set: productId)
   const [likedSet, setLikedSet] = useState<Set<number>>(new Set());
   const [likeCountById, setLikeCountById] = useState<Map<number, number>>(new Map());
+  const [unreadProductIds, setUnreadProductIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setLikeCountById(new Map(products.map((product) => [product.productId, product.likeCount])));
+    setUnreadProductIds(
+      new Set(
+        products
+          .filter((product) => product.hasUnreadTradeChat)
+          .map((product) => product.productId),
+      ),
+    );
   }, [products]);
+
+  const setProductUnread = useCallback((productId: number, hasUnread: boolean) => {
+    setUnreadProductIds((current) => {
+      const next = new Set(current);
+      if (hasUnread) {
+        next.add(productId);
+      } else {
+        next.delete(productId);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!memberId) {
@@ -224,6 +247,81 @@ export default function CommunityMarketList({
       ignore = true;
     };
   }, [memberId]);
+
+  useEffect(() => {
+    if (!memberId) {
+      setUnreadProductIds(new Set());
+      return;
+    }
+
+    let disposed = false;
+    let client: Client | null = null;
+
+    void getTradeChatRooms()
+      .then((rooms) => {
+        if (disposed || rooms.length === 0) {
+          return;
+        }
+
+        client = new Client({
+          webSocketFactory: () =>
+            new SockJS(getWebSocketEndpointUrl()) as unknown as IStompSocket,
+          reconnectDelay: 5000,
+          heartbeatIncoming: 10000,
+          heartbeatOutgoing: 10000,
+          debug: () => {},
+          onConnect: () => {
+            if (disposed) {
+              return;
+            }
+
+            client?.subscribe('/user/queue/market-chat-notifications', (message) => {
+              if (!message.body) {
+                return;
+              }
+
+              try {
+                const room = JSON.parse(message.body) as TradeChatRoom;
+                setProductUnread(room.productId, true);
+                onRefresh?.();
+              } catch {
+                // Ignore malformed notification payloads without breaking the list.
+              }
+            });
+
+            rooms.forEach((room) => {
+              client?.subscribe(`/sub/market-chats/${room.roomId}`, (message) => {
+                if (!message.body) {
+                  return;
+                }
+
+                try {
+                  const payload = JSON.parse(message.body) as TradeChatMessage;
+                  if (payload.senderId === memberId) {
+                    return;
+                  }
+
+                  setProductUnread(room.productId, true);
+                  onRefresh?.();
+                } catch {
+                  // Ignore malformed realtime messages without breaking the list.
+                }
+              });
+            });
+          },
+        });
+
+        client.activate();
+      })
+      .catch((error) => {
+        console.error('중고거래 채팅방 실시간 구독 실패:', error);
+      });
+
+    return () => {
+      disposed = true;
+      void client?.deactivate();
+    };
+  }, [memberId, onRefresh, setProductUnread]);
 
   const toggleLike = useCallback(
     async (productId: number) => {
@@ -293,7 +391,7 @@ export default function CommunityMarketList({
     category === '전체' ? true : p.category === category,
   );
   if (onlyLiked) filtered = filtered.filter((p) => likedSet.has(p.productId));
-  const hasUnreadTradeChat = products.some((product) => product.hasUnreadTradeChat);
+  const hasUnreadTradeChat = unreadProductIds.size > 0;
 
   const handleOpenChatList = () => {
     if (!memberId) {
@@ -407,7 +505,10 @@ export default function CommunityMarketList({
             {filtered.map((product) => (
               <ProductCard
                 key={product.productId}
-                product={product}
+                product={{
+                  ...product,
+                  hasUnreadTradeChat: unreadProductIds.has(product.productId),
+                }}
                 liked={likedSet.has(product.productId)}
                 likeCount={likeCountById.get(product.productId) ?? product.likeCount}
                 onToggleLike={() => toggleLike(product.productId)}
@@ -425,6 +526,7 @@ export default function CommunityMarketList({
         onClose={() => setChatOpen(false)}
         onRoomsChanged={onRefresh}
         onTradeCompleted={onRefresh}
+        onProductUnreadChange={setProductUnread}
       />
     </>
   );
