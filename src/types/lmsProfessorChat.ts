@@ -13,6 +13,8 @@ export interface ProfessorChatRoom {
   lastMessage: string;
   lastAt: string;
   unread: number;
+  semYear?: number | null; // '채팅 만들기'(startable) 응답에만 채워짐 — 년도/학기 필터용
+  semTerm?: string | null; // SEM_TERM 코드(공통코드)
   avatarInitial: string;
   avatarColor: string;
 }

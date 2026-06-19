@@ -54,6 +54,14 @@ export const getProfessorChatRooms = async (): Promise<ProfessorChatRoom[]> => {
   return (res.data ?? []).map(normalizeRoom);
 };
 
+// '채팅 만들기' 후보 — 담당 강의 수강생 중 아직 대화 안 한 (강의,학생) 빈 방(BE: NOT EXISTS(messages)). semYear/semTerm 포함(년도/학기 필터용)
+export const getProfessorStartableChatRooms = async (): Promise<ProfessorChatRoom[]> => {
+  const res = await api.get<Omit<ProfessorChatRoom, "avatarInitial" | "avatarColor">[]>(
+    "/api/lms/professor/chats/startable",
+  );
+  return (res.data ?? []).map(normalizeRoom);
+};
+
 export const getProfessorChatThread = async (roomId: number): Promise<ProfessorChatThread> => {
   const res = await api.get<ProfessorChatThread>(`/api/lms/professor/chats/${roomId}`);
   return {

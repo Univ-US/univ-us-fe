@@ -64,6 +64,14 @@ export const getChatRooms = async (): Promise<ChatRoom[]> => {
   return (res.data ?? []).map(normalizeRoom);
 };
 
+// '채팅 만들기' 후보 — 수강 중이나 아직 대화 안 한 과목 방(BE: NOT EXISTS(messages)). semYear/semTerm 포함(년도/학기 필터용)
+export const getStartableChatRooms = async (): Promise<ChatRoom[]> => {
+  const res = await api.get<Omit<ChatRoom, "avatarInitial" | "avatarColor">[]>(
+    "/api/lms/student/chats/startable",
+  );
+  return (res.data ?? []).map(normalizeRoom);
+};
+
 export const getChatThread = async (roomId: number): Promise<ChatThread> => {
   const res = await api.get<ChatThread>(`/api/lms/student/chats/${roomId}`);
   return {
