@@ -377,14 +377,9 @@ export default function CommunityReservation() {
           setSelSeat(null);
         }
       }),
-      event.memberId === currentMemberId
-        ? loadMyReservations()
-        : Promise.resolve(),
     ]);
   }, [
-    currentMemberId,
     endTime,
-    loadMyReservations,
     refreshSelectedSeatAvailability,
     selSeat?.seatId,
     startTime,
@@ -401,13 +396,8 @@ export default function CommunityReservation() {
           current?.room.roomId === event.roomId ? null : current,
         );
       }),
-      event.memberId === currentMemberId
-        ? loadMyRoomReservations()
-        : Promise.resolve(),
     ]);
   }, [
-    currentMemberId,
-    loadMyRoomReservations,
     refreshRoomAvailability,
     selectedDay,
   ]);
@@ -415,6 +405,12 @@ export default function CommunityReservation() {
   const realtimeStatus = useReservationRealtimeStatus({
     onSeatEvent: handleSeatRealtimeEvent,
     onRoomEvent: handleRoomRealtimeEvent,
+    onMySeatEvent: () => {
+      void loadMyReservations();
+    },
+    onMyRoomEvent: () => {
+      void loadMyRoomReservations();
+    },
   });
   const isRealtimeConnected = realtimeStatus === 'connected';
 

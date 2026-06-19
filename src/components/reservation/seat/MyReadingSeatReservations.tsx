@@ -146,7 +146,7 @@ export default function MyReadingSeatReservations({
               && endTimeMs != null
               && checkInDeadlineMs != null
               && now >= startTimeMs
-              && now <= checkInDeadlineMs
+              && now < checkInDeadlineMs
               && now < endTimeMs;
             const checkInUnavailableLabel =
               startTimeMs == null || endTimeMs == null
