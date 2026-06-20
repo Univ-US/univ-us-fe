@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
@@ -441,7 +443,11 @@ function NoticeDetail({
       <h3 className="text-xl font-bold text-slate-900">{notice.lecAnnTitle}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
         <span className="flex items-center gap-2">
-          <AuthorAvatar src={notice.authorImageUrl} name={notice.author} />
+          <AuthorAvatar
+            src={notice.authorImageUrl}
+            seed={notice.professorLmsPrfId}
+            name={notice.author}
+          />
           <span className="font-medium text-slate-700">{notice.author}</span>
         </span>
         <span>{notice.lecAnnRegDate}</span>
@@ -486,16 +492,27 @@ function NoticeDetail({
   );
 }
 
-function AuthorAvatar({ src, name }: { src?: string | null; name: string }) {
+// 작성자 아바타 — 기본 프로필 규칙(lib/lmsAvatar): 업로드 이미지가 있으면 그 이미지,
+// 없으면 사람 식별자(교수 lmsPrfId) 시드 색 원형 + 이름 이니셜. 같은 교수는 어느 화면에서나 같은 색.
+function AuthorAvatar({
+  src,
+  seed,
+  name,
+}: {
+  src?: string | null;
+  seed: string | number | null | undefined;
+  name: string;
+}) {
+  const img = resolveImageUrl(src);
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
-      {src ? (
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white ${getLmsAvatarColor(seed)}`}
+    >
+      {img ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={name} className="h-full w-full object-cover" />
+        <img src={img} alt={name} className="h-full w-full object-cover" />
       ) : (
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-6 w-6 text-slate-400">
-          <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.69-8 6v2h16v-2c0-3.31-3.58-6-8-6Z" />
-        </svg>
+        getLmsAvatarInitial(name)
       )}
     </span>
   );

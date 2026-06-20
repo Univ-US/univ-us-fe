@@ -306,7 +306,7 @@ export default function ProfessorStudentsPage() {
               onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
               className={`${selectClass} w-28`}
             >
-              <option value="">전체 년도</option>
+              <option value="">전체 연도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년

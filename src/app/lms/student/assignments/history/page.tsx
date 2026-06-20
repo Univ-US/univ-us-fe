@@ -28,7 +28,6 @@ const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
 };
 
 const ASSIGNMENT_PAGE_SIZE = 10;
-const SEMESTER_PAGE_SIZE = 3;
 
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -42,7 +41,6 @@ export default function StudentAssignmentsHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
-  const [semesterPage, setSemesterPage] = useState(0);
 
   const [fileTarget, setFileTarget] = useState<StudentAssignment | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<StudentAssignment | null>(null);
@@ -88,10 +86,6 @@ export default function StudentAssignmentsHistoryPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    setSemesterPage(0);
-  }, [statusFilter, yearFilter, termFilter]);
-
   const yearOptions = useMemo(
     () => (data ? [...new Set(data.semesters.map((s) => s.semYear))].sort((a, b) => b - a) : []),
     [data]
@@ -115,14 +109,6 @@ export default function StudentAssignmentsHistoryPage() {
       }))
       .filter((sem) => sem.assignments.length > 0);
   }, [data, statusFilter, yearFilter, termFilter]);
-
-  const totalSemesterPages = Math.max(1, Math.ceil(visibleSemesters.length / SEMESTER_PAGE_SIZE));
-  const safeSemesterPage = Math.min(semesterPage, totalSemesterPages - 1);
-  const semesterStartIndex = safeSemesterPage * SEMESTER_PAGE_SIZE;
-  const pagedVisibleSemesters = visibleSemesters.slice(
-    semesterStartIndex,
-    semesterStartIndex + SEMESTER_PAGE_SIZE
-  );
 
   const unsubmittedCount = useMemo(
     () =>
@@ -213,39 +199,19 @@ export default function StudentAssignmentsHistoryPage() {
       ) : visibleSemesters.length === 0 ? (
         <p className="py-16 text-center text-sm text-slate-400">조건에 맞는 과제가 없습니다.</p>
       ) : (
-        <div className="space-y-4">
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visibleSemesters.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisibleSemesters.length}
-            onChange={setSemesterPage}
-          />
-
-          <div className="space-y-6">
-            {pagedVisibleSemesters.map((sem) => (
-              <SemesterAssignmentTable
-                key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
-                sem={sem}
-                sbmStatusMap={sbmStatusMap}
-                onViewFile={setFileTarget}
-                onViewFeedback={setFeedbackTarget}
-                onSubmit={(assignment) =>
-                  router.push(`/lms/student/assignments/submit?assignmentId=${assignment.id}`)
-                }
-              />
-            ))}
-          </div>
-
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visibleSemesters.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisibleSemesters.length}
-            onChange={setSemesterPage}
-          />
+        <div className="space-y-6">
+          {visibleSemesters.map((sem) => (
+            <SemesterAssignmentTable
+              key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
+              sem={sem}
+              sbmStatusMap={sbmStatusMap}
+              onViewFile={setFileTarget}
+              onViewFeedback={setFeedbackTarget}
+              onSubmit={(assignment) =>
+                router.push(`/lms/student/assignments/submit?assignmentId=${assignment.id}`)
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -430,46 +396,6 @@ function SemesterAssignmentTable({
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
       <AssignmentPager page={safePage} totalPages={totalPages} onChange={setPage} />
     </section>
-  );
-}
-
-function SemesterPager({
-  page,
-  totalPages,
-  totalItems,
-  startIndex,
-  visibleCount,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  startIndex: number;
-  visibleCount: number;
-  onChange: (p: number) => void;
-}) {
-  const rangeStart = startIndex + 1;
-  const rangeEnd = startIndex + visibleCount;
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-medium text-slate-500">
-        총 {totalItems}개 학기 중 {rangeStart}-{rangeEnd} 표시
-      </p>
-      <div className="flex items-center justify-center gap-1">
-        <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
-          이전
-        </PageBtn>
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
-            {i + 1}
-          </PageBtn>
-        ))}
-        <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
-          다음
-        </PageBtn>
-      </div>
-    </div>
   );
 }
 

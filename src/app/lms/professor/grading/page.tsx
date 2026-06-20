@@ -664,7 +664,7 @@ export default function ProfessorGradingPage() {
               }
               disabled={ungradedLoading || gradedLoading}
             >
-              <option value="all">전체 년도</option>
+              <option value="all">전체 연도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년

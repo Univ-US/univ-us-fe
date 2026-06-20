@@ -97,7 +97,7 @@ export default function ProfessorCoursesPage() {
             disabled={loading || semesters.length === 0}
             className={`${selectClass} w-28`}
           >
-            <option value="">전체 년도</option>
+            <option value="">전체 연도</option>
             {yearOptions.map((y) => (
               <option key={y} value={String(y)}>
                 {y}년

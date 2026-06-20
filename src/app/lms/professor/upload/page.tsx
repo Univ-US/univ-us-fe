@@ -242,10 +242,10 @@ export default function LectureUploadPage() {
                     value={yearFilter}
                     onChange={(e) => changeYear(e.target.value)}
                     disabled={loading}
-                    aria-label="년도 필터"
+                    aria-label="연도 필터"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
-                    <option value="all">전체 년도</option>
+                    <option value="all">전체 연도</option>
                     {yearOptions.map((y) => (
                       <option key={y} value={String(y)}>
                         {y}년
@@ -299,7 +299,7 @@ export default function LectureUploadPage() {
                             <div className="flex h-9 items-center justify-center">
                               {totalAll === 0
                                 ? "업로드된 자료가 없습니다."
-                                : "선택한 년도·학기에 해당하는 자료가 없습니다."}
+                                : "선택한 연도·학기에 해당하는 자료가 없습니다."}
                             </div>
                           </td>
                         </tr>

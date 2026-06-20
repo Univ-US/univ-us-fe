@@ -12,6 +12,8 @@ import {
   getSubmittableAssignments,
   submitStudentAssignment,
 } from "@/lib/lmsStudentSubmitApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
+import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
 import type { SubmitItem } from "@/types/lmsStudentSubmit";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
@@ -27,6 +29,8 @@ const FILE_ACCEPT_HINT =
   "영상(MP4·AVI·MOV·WMV) · 음성(MP3·M4A·WAV) · 문서(PDF·HWP·DOC·PPT·XLS·TXT) · 이미지(JPG·PNG·GIF) · ZIP — 최대 5GB";
 const MEMO_MAX = 1000;
 const SUBMIT_LIST_PAGE_SIZE = 6;
+const selectClass =
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function StudentSubmitPage() {
   const [items, setItems] = useState<SubmitItem[]>([]);
@@ -34,6 +38,12 @@ export default function StudentSubmitPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21). 강의(과목) 드롭다운은 두지 않음.
+  const [yearFilter, setYearFilter] = useState<number | "all">("all");
+  const [termFilter, setTermFilter] = useState<string | "all">("all");
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -45,6 +55,13 @@ export default function StudentSubmitPage() {
   const [listPage, setListPage] = useState(0);
   const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
 
+  useEffect(() => {
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
+  }, []);
+
   const selectItem = useCallback((item: SubmitItem) => {
     setSelectedId(item.id);
     setFile(null);
@@ -52,6 +69,12 @@ export default function StudentSubmitPage() {
     setSubmitError(null);
     setNotice(null);
   }, []);
+
+  const matchFilter = useCallback(
+    (item: SubmitItem, year: number | "all", term: string | "all") =>
+      (year === "all" || item.semYear === year) && (term === "all" || item.semTerm === term),
+    [],
+  );
 
   const load = useCallback(
     async (preferredId?: number) => {
@@ -61,18 +84,21 @@ export default function StudentSubmitPage() {
         const data = await getSubmittableAssignments();
         setItems(data);
         setSubmittableCount(data.length);
-        const preferredIndex =
-          preferredId == null ? -1 : data.findIndex((item) => item.id === preferredId);
-        const next = preferredIndex >= 0 ? data[preferredIndex] : data[0] ?? null;
-        setListPage(
-          preferredIndex >= 0 ? Math.floor(preferredIndex / SUBMIT_LIST_PAGE_SIZE) : 0,
-        );
-        if (next) {
-          selectItem(next);
+        // 딥링크(과제 내역 '제출하러 가기') 우선 → 해당 과제 선택 (필터는 '전체'로 풀어 노출)
+        const preferred =
+          preferredId == null ? null : data.find((item) => item.id === preferredId) ?? null;
+        const target = preferred ?? data[0] ?? null;
+        if (target) {
+          setYearFilter("all");
+          setTermFilter("all");
+          const idx = data.findIndex((item) => item.id === target.id);
+          setListPage(idx >= 0 ? Math.floor(idx / SUBMIT_LIST_PAGE_SIZE) : 0);
+          selectItem(target);
         } else {
           setSelectedId(null);
           setFile(null);
           setMemo("");
+          setListPage(0);
         }
       } catch (err) {
         setLoadError(describeApiError(err));
@@ -95,17 +121,29 @@ export default function StudentSubmitPage() {
     void load(preferredAssignmentId ?? undefined);
   }, [load, preferredAssignmentId, queryReady]);
 
+  const yearOptions = useMemo(
+    () => [...new Set(items.map((i) => i.semYear))].sort((a, b) => b - a),
+    [items],
+  );
+  const termOptions = termOrder;
+
+  // 선택 년도/학기에 매칭되는 미제출 과제 (강의 무관 — 전 과목)
+  const visibleItems = useMemo(
+    () => items.filter((item) => matchFilter(item, yearFilter, termFilter)),
+    [items, yearFilter, termFilter, matchFilter],
+  );
+
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
-  const totalListPages = Math.max(1, Math.ceil(items.length / SUBMIT_LIST_PAGE_SIZE));
+
+  const totalListPages = Math.max(1, Math.ceil(visibleItems.length / SUBMIT_LIST_PAGE_SIZE));
   const safeListPage = Math.min(listPage, totalListPages - 1);
   const listStartIndex = safeListPage * SUBMIT_LIST_PAGE_SIZE;
-  const pagedItems = items.slice(listStartIndex, listStartIndex + SUBMIT_LIST_PAGE_SIZE);
-  const listEndIndex = Math.min(listStartIndex + pagedItems.length, items.length);
-  const padListCount =
-    totalListPages > 1 ? SUBMIT_LIST_PAGE_SIZE - pagedItems.length : 0;
+  const pagedItems = visibleItems.slice(listStartIndex, listStartIndex + SUBMIT_LIST_PAGE_SIZE);
+  const listEndIndex = Math.min(listStartIndex + pagedItems.length, visibleItems.length);
+  const padListCount = totalListPages > 1 ? SUBMIT_LIST_PAGE_SIZE - pagedItems.length : 0;
 
   useEffect(() => {
     if (listPage !== safeListPage) {
@@ -117,12 +155,30 @@ export default function StudentSubmitPage() {
     (page: number) => {
       const nextPage = Math.max(0, Math.min(page, totalListPages - 1));
       setListPage(nextPage);
-      const nextItem = items[nextPage * SUBMIT_LIST_PAGE_SIZE];
+      const nextItem = visibleItems[nextPage * SUBMIT_LIST_PAGE_SIZE];
       if (nextItem) {
         selectItem(nextItem);
       }
     },
-    [items, selectItem, totalListPages],
+    [visibleItems, selectItem, totalListPages],
+  );
+
+  // 년도/학기 변경 → 목록 좁힘 + 첫 과제 자동 선택 (각 축 독립)
+  const applyFilter = useCallback(
+    (year: number | "all", term: string | "all") => {
+      setYearFilter(year);
+      setTermFilter(term);
+      setListPage(0);
+      const first = items.find((item) => matchFilter(item, year, term)) ?? null;
+      if (first) {
+        selectItem(first);
+      } else {
+        setSelectedId(null);
+        setFile(null);
+        setMemo("");
+      }
+    },
+    [items, matchFilter, selectItem],
   );
 
   const pickFiles = (list: FileList | null) => {
@@ -164,9 +220,38 @@ export default function StudentSubmitPage() {
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-slate-800">과제 제출</h1>
           <p className="mt-1 text-sm text-slate-500">미제출 과제 {items.length}건</p>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <select
+            value={yearFilter === "all" ? "" : String(yearFilter)}
+            onChange={(e) => applyFilter(e.target.value === "" ? "all" : Number(e.target.value), termFilter)}
+            disabled={loading || items.length === 0}
+            className={`${selectClass} w-28`}
+          >
+            <option value="">전체 연도</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={String(y)}>
+                {y}년
+              </option>
+            ))}
+          </select>
+          <select
+            value={termFilter === "all" ? "" : termFilter}
+            onChange={(e) => applyFilter(yearFilter, e.target.value === "" ? "all" : e.target.value)}
+            disabled={loading || items.length === 0}
+            className={`${selectClass} w-32`}
+          >
+            <option value="">전체 학기</option>
+            {termOptions.map((t) => (
+              <option key={t} value={t}>
+                {termMap[t] ?? t}
+              </option>
+            ))}
+          </select>
         </div>
       </header>
 
@@ -194,6 +279,11 @@ export default function StudentSubmitPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
           <p className="text-sm font-semibold text-slate-700">제출 가능한 과제가 없습니다.</p>
           <p className="mt-1 text-xs text-slate-400">미제출 상태이면서 제출 가능한 과제만 표시됩니다.</p>
+        </div>
+      ) : visibleItems.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+          <p className="text-sm font-semibold text-slate-700">조건에 맞는 과제가 없습니다.</p>
+          <p className="mt-1 text-xs text-slate-400">위 년도/학기 필터에 해당하는 미제출 과제가 없습니다.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_1fr]">
@@ -227,7 +317,13 @@ export default function StudentSubmitPage() {
                           )}
                         </span>
                         <span className="mt-0.5 block truncate text-xs text-slate-500">
-                          {item.note ? `${item.courseName} · ${item.note}` : item.courseName}
+                          {[
+                            item.courseName,
+                            item.lecSection != null ? `${item.lecSection}반` : null,
+                            item.note,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       </span>
                       <span
@@ -250,7 +346,7 @@ export default function StudentSubmitPage() {
             {totalListPages > 1 && (
               <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
                 <span className="text-[11px] font-medium text-slate-400">
-                  {listStartIndex + 1}-{listEndIndex} / {items.length}
+                  {listStartIndex + 1}-{listEndIndex} / {visibleItems.length}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -285,11 +381,21 @@ export default function StudentSubmitPage() {
             </section>
           ) : (
             <section className="rounded-2xl border-2 border-emerald-200 bg-white p-6">
-              <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                <h2 className="text-lg font-bold text-slate-900">{selected.lecAsnTitle}</h2>
-                <span className="shrink-0 text-sm font-semibold text-rose-600">
-                  마감 {selected.dueLabel}
-                </span>
+              <div className="mb-4 border-b border-slate-100 pb-4">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-lg font-bold text-slate-900">{selected.lecAsnTitle}</h2>
+                  <span className="shrink-0 text-sm font-semibold text-rose-600">
+                    마감 {selected.dueLabel}
+                  </span>
+                </div>
+                {/* 작성자 행 — 교수 + 과제 등록일시 (공지 상세 SLM-009 미러) */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span className="flex items-center gap-2">
+                    <AuthorAvatar seed={selected.guide.professorLmsPrfId} name={selected.guide.professor} />
+                    <span className="font-medium text-slate-700">{selected.guide.professor} 교수</span>
+                  </span>
+                  <span>{selected.lecAsnRegDate}</span>
+                </div>
               </div>
 
               {submitError && (
@@ -299,15 +405,12 @@ export default function StudentSubmitPage() {
               )}
 
               <div className="rounded-xl bg-slate-50 px-4 py-3">
-                <p className="mb-1.5 text-sm font-bold text-slate-700">과제 설명</p>
-                <ul className="space-y-1 text-sm text-slate-600">
-                  <li>
-                    · 과목: {selected.guide.courseName} ({selected.guide.professor} 교수)
-                  </li>
-                  {selected.guide.lines.map((line, i) => (
-                    <li key={i}>· {htmlToPlainText(line)}</li>
-                  ))}
-                </ul>
+                <p className="text-sm font-bold text-slate-700">과제 설명</p>
+                {selected.lecAsnContent?.trim() && (
+                  <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-slate-600">
+                    {htmlToPlainText(selected.lecAsnContent)}
+                  </p>
+                )}
               </div>
 
               <div className="mt-5">
@@ -421,5 +524,17 @@ export default function StudentSubmitPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// 작성자 아바타 — 기본 프로필 규칙(lib/lmsAvatar): 사람 식별자(교수 lmsPrfId) 시드 색 + 이름 이니셜.
+// 같은 교수는 채팅·출결 등 어느 화면에서나 같은 색.
+function AuthorAvatar({ seed, name }: { seed: string | number | null | undefined; name: string }) {
+  return (
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${getLmsAvatarColor(seed)}`}
+    >
+      {getLmsAvatarInitial(name)}
+    </span>
   );
 }
