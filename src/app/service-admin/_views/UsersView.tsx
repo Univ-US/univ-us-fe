@@ -19,6 +19,7 @@ import {
     ShieldCheck,
     UserRoundCheck,
     UserRoundX,
+    UserPlus,
     UsersRound,
     X,
 } from "lucide-react";
@@ -40,6 +41,7 @@ import {
     type ServiceAdminUserRole,
 } from "@/lib/serviceAdminApi";
 import type { MemberStatus } from "../_types";
+import ServiceAdminBulkSignupModal from "./ServiceAdminBulkSignupModal";
 
 type UserSort = NonNullable<ServiceAdminUserQuery["sort"]>;
 type PaginationItem = number | "ellipsis-start" | "ellipsis-end";
@@ -336,6 +338,7 @@ export default function UsersView() {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [changingMemberId, setChangingMemberId] = useState<number | null>(null);
     const [loggingOutMemberId, setLoggingOutMemberId] = useState<number | null>(null);
+    const [isBulkSignupOpen, setIsBulkSignupOpen] = useState(false);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -615,6 +618,14 @@ export default function UsersView() {
                         학교 관리자와 서비스 관리자를 제외한 이용자 계정을 조회하고 상태를 관리합니다.
                     </p>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setIsBulkSignupOpen(true)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white hover:bg-emerald-800"
+                    >
+                        <UserPlus className="size-4" />
+                        일괄 회원가입
+                    </button>
                 <button
                     onClick={() => void loadUsers()}
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
@@ -622,6 +633,7 @@ export default function UsersView() {
                     <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
                     새로고침
                 </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -1054,6 +1066,12 @@ export default function UsersView() {
                         </div>
                     </aside>
                 </div>
+            )}
+            {isBulkSignupOpen && (
+                <ServiceAdminBulkSignupModal
+                    onClose={() => setIsBulkSignupOpen(false)}
+                    onCompleted={() => void loadUsers()}
+                />
             )}
         </div>
     );
