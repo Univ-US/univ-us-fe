@@ -54,8 +54,13 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
       { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
-      { label: "채팅", icon: "💬", href: "/lms/student/chat" },
       { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
+    ],
+  },
+  {
+    title: "커뮤니케이션",
+    items: [
+      { label: "채팅", icon: "💬", href: "/lms/student/chat" },
       { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },
     ],
   },
