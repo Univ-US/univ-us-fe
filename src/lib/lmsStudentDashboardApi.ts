@@ -101,13 +101,21 @@ const pickSemester = (
   params: GetStudentDashboardParams | undefined,
   available: DashboardSemesterOption[],
   courseSemesters: SemesterCourses[],
-  attendanceSemesters: SemesterAttendance[]
+  attendanceSemesters: SemesterAttendance[],
+  termMap: Record<string, string>
 ): DashboardSemesterOption | null => {
-  const requested =
-    params?.year != null && params?.termCode
-      ? available.find((s) => s.year === params.year && s.termCode === params.termCode)
-      : null;
-  if (requested) return requested;
+  // 필터로 학기를 명시 선택하면 그 학기를 그대로 사용 — 수강 데이터가 없어도 폴백하지 않고
+  // 빈 상태("표시할 내역 없음")로 보여준다 (교수 강의 내역 PLM-002와 동일 정책).
+  // 폴백(진행중/첫 학기)은 초기 로드(params 없음)에만 적용.
+  if (params?.year != null && params?.termCode) {
+    return (
+      available.find((s) => s.year === params.year && s.termCode === params.termCode) ?? {
+        year: params.year,
+        termCode: params.termCode,
+        semesterLabel: semesterLabel(params.year, params.termCode, termMap),
+      }
+    );
+  }
 
   const inProgressCourse = courseSemesters.find((s) => s.inProgress);
   if (inProgressCourse)
@@ -197,7 +205,8 @@ export const getStudentDashboard = async (
     params,
     availableSemesters,
     courseSemesters,
-    attendanceSemesters
+    attendanceSemesters,
+    termMap
   );
 
   const fallbackYear = new Date().getFullYear();
@@ -214,7 +223,11 @@ export const getStudentDashboard = async (
     (attendanceSemester?.courses ?? []).map((course) => [course.lecId, course.attendanceRate])
   );
 
-  const courses: DashboardCourse[] = (courseSemester?.courses ?? []).map((course) => ({
+  // 대시보드 '수강 중'은 현재 상태 스냅샷 → 드랍(DRP)·폐강(CNCL) 제외 (전체를 보여주는 수강 내역과 분리)
+  const activeCourses = (courseSemester?.courses ?? []).filter(
+    (course) => course.lecStdEnrStatus !== "DRP" && course.lecValStatus !== "CNCL",
+  );
+  const courses: DashboardCourse[] = activeCourses.map((course) => ({
     lecId: course.lecId,
     courseName: course.courseName,
     credit: course.lecCredit,
@@ -243,9 +256,9 @@ export const getStudentDashboard = async (
     termCode: selected.termCode,
     availableSemesters,
     stats: {
-      courseCount: courseSemester?.courseCount ?? courses.length,
-      totalCredits:
-        courseSemester?.totalCredits ?? courses.reduce((sum, course) => sum + course.credit, 0),
+      // 활성 강의 기준 (BE courseCount/totalCredits는 드랍·폐강 포함이라 미사용)
+      courseCount: courses.length,
+      totalCredits: courses.reduce((sum, course) => sum + course.credit, 0),
       avgAttendance,
     },
     courses,

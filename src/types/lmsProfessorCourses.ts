@@ -6,6 +6,7 @@ export interface ProfessorCourseRow {
   lecId: number;
   courseName: string; // 과목명 (LECTURE_CODE.LEC_COD_NAME)
   lecSection: number; // 분반 (LECTURE.LEC_SECTION)
+  lecValStatus: string; // 강의 상태 (LEC_VAL_STATUS 공통코드: OPEN/PROG/CLSD/CNCL)
   studentCount: number; // 수강생 수 (명, DRP 제외)
   schedule: string; // 강의 시간 ("월 10:00 · 수 10:00"), 시간표 없으면 "" (FE는 `|| "-"`)
   attendanceRate: number; // 평균 출석률 (%)

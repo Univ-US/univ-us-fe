@@ -33,7 +33,7 @@ type NavItem = { label: string; icon: string; href?: string; badge?: number };
 const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   { title: "계정", items: [{ label: "프로필", icon: "👤", href: "/lms/professor/profile" }] },
   {
-    title: "강의 관리",
+    title: "메인",
     items: [
       { label: "강의 내역", icon: "📖", href: "/lms/professor/courses" },
       { label: "수강생 현황", icon: "👥", href: "/lms/professor/Enrollee" },
@@ -42,7 +42,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "콘텐츠",
+    title: "학습",
     items: [
       { label: "강의 업로드", icon: "🎬", href: "/lms/professor/upload" },
       { label: "과제 관리", icon: "📄", href: "/lms/professor/assignments" },
