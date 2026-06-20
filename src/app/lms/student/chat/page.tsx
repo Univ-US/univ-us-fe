@@ -65,7 +65,7 @@ export default function StudentChatPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("disconnected");
-  const [createOpen, setCreateOpen] = useState(false); // '채팅 만들기' 모달 (BE 연동 전 목업)
+  const [createOpen, setCreateOpen] = useState(false); // '채팅 만들기' 모달
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const loadUnreadCount = useLmsStudentChatStore((s) => s.loadUnreadCount);

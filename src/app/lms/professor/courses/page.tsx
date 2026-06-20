@@ -6,8 +6,8 @@
 // - 각 학기 카드 행: 과목명+학수번호 · 수강생 · 강의 시간 · 평균 출석률(막대) · 미채점 · 관리
 //   · 진행중 학기 = 미채점 'N건' 배지 / 마감 학기 = '마감' 배지(미채점 표시 안 함)
 // - 색상: 교수 = 네이비/슬레이트(§13) · 출석률 막대 색 = 95/80 임계(§21)
-// 🧪 mock-first: lib(lmsProfessorCoursesApi)이 mock 반환 — BE 명세 오면 lib만 실연결.
-// ⚠️ 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
+// mock-first: lib(lmsProfessorCoursesApi)이 mock 반환 — BE 명세 오면 lib만 실연결.
+// 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getProfessorCourses } from "@/lib/lmsProfessorCoursesApi";
@@ -295,7 +295,7 @@ function CourseRow({ course, closed }: { course: ProfessorCourseRow; closed: boo
         )}
       </td>
       <td className="px-5 py-3">
-        {/* 출결 관리 / 과제 관리 — 이 강의(course.lecId)를 물고 해당 화면으로 딥링크 (2026-06-17 BE 실연동 후 구현).
+        {/* 출결 관리 / 과제 관리 — 이 강의(course.lecId)를 물고 해당 화면으로 딥링크.
             받는 쪽(attendance·assignments)이 마운트 시 ?lecId= 를 읽어 담당 강의에 있으면 그 강의 자동 선택,
             없으면 첫 강의 fallback. 필터는 '전체' 기본이라 과거 학기 강의도 드롭다운에 있어 매칭됨. */}
         <div className="flex items-center justify-end gap-1.5">

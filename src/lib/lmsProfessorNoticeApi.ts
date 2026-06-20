@@ -1,16 +1,16 @@
 // src/lib/lmsProfessorNoticeApi.ts
 // PLM-007 공지사항 관리 — 교수가 담당 강의 공지를 작성·수정·삭제 (좌 목록 선택 → 우 상세)
 // ─────────────────────────────────────────────────────────────
-// BE 공식 연동(2026-06-15) — mock 제거. 전부 본인 담당 강의 한정(타 강의/공지 403, PROF 가드).
+// BE 공식 연동 — mock 제거. 전부 본인 담당 강의 한정(타 강의/공지 403, PROF 가드).
 //   · GET    /api/lms/professor/notices/lectures   — 공지 작성 대상(담당 강의 드롭다운)
 //   · GET    /api/lms/professor/notices?lecId=      — 선택 과목 공지(최신순, 페이지네이션 없음)
 //   · POST   /api/lms/professor/notices             — 작성(multipart: lecId·title 필수, content·files 선택)
 //   · PUT    /api/lms/professor/notices/{noticeId}  — 수정(multipart: title·content·files[추가]·removeAttachmentIds[제거], 과목 변경 불가)
 //   · DELETE /api/lms/professor/notices/{noticeId}  — 삭제(첨부 → 본체 물리 삭제)
-// ⚠️ 실패 시 가짜 데이터로 가리지 않음 — 페이지가 에러 상태를 표기(throw 그대로 전파).
-// ⚠️ content = Tiptap 에디터 HTML(CLOB). 표시 직전 sanitizeLmsHtml 정화(XSS 방지, PLM-005 패턴).
+// 실패 시 가짜 데이터로 가리지 않음 — 페이지가 에러 상태를 표기(throw 그대로 전파).
+// content = Tiptap 에디터 HTML(CLOB). 표시 직전 sanitizeLmsHtml 정화(XSS 방지, PLM-005 패턴).
 //   · 이 화면(교수 write) ↔ SLM-009 학생 공지(read)는 같은 LECTURE_ANNOUNCEMENT 데이터.
-// ⚠️ 첨부 다운로드 엔드포인트는 BE 미구현 → 상세 화면 다운로드는 준비 중(추후 인증 blob, PLM-004-01 패턴).
+// 첨부 다운로드 엔드포인트는 BE 미구현 → 상세 화면 다운로드는 준비 중(추후 인증 blob, PLM-004-01 패턴).
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import type {

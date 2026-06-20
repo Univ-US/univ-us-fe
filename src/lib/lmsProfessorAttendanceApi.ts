@@ -1,15 +1,15 @@
 // src/lib/lmsProfessorAttendanceApi.ts
 // PLM-008 교수 "출결 관리" — 강의별 학생 출석·지각·결석 조회 및 수정
 // ─────────────────────────────────────────────────────────────
-// ✅ BE 연동(2026-06-16): /api/lms/professor/attendance/** (PROF 가드)
+// BE 연동: /api/lms/professor/attendance/** (PROF 가드)
 //   · GET   /lectures                                   → AttendanceLecture[] (학기/강의 드롭다운 + 수강생 수)
 //   · GET   /lectures/{lecId}                            → LectureAttendance  (헤더 + 요약 + 학생별 회차)
 //   · PUT   /lectures/{lecId}/students/{memberId}        → 회차별 상태 저장 후 갱신된 AttendanceStudentRow
 //     body = { sessions: [{ sessionId, stdEnrAtdStsCode }] }  (stdEnrAtdRegDate는 BE 무시 — 최소 payload로 전송)
 // 본체 = STUDENT_ENROLLMENT_ATTENDANCE(회차별 STD_ENR_ATD_STS_CODE) · LECTURE · LECTURE_STUDENT_ENROLLMENT.
 // 회차 날짜 = STD_ENR_ATD_REG_DATE (전용 수업일 컬럼 없음).
-// ⚠️ 상태 코드(ATTD_STS): PRS 출석 · LAT 지각 · ABS 결석 (ELV 조퇴·EXC 공결 = VAL_STATUS DEL 미사용).
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기(describeApiError).
+// 상태 코드(ATTD_STS): PRS 출석 · LAT 지각 · ABS 결석 (ELV 조퇴·EXC 공결 = VAL_STATUS DEL 미사용).
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기(describeApiError).
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import type {
@@ -41,7 +41,7 @@ export const ATTENDANCE_STATUS: Record<
 };
 
 /** 출결 위험 기준(출석률 %) — 미만이면 붉은 배경 + 위험 카운트.
- *  ⭐색상 표준(교수 LMS, 2026-06-16 확정): 정상 ≥95 · 경고 80~94 · 위험 <80 */
+ *  색상 표준(교수 LMS): 정상 ≥95 · 경고 80~94 · 위험 <80 */
 export const AT_RISK_THRESHOLD = 80;
 
 // 학기 라벨 — 간이 맵(연동해도 라벨은 고정 4종이라 로컬 유지)

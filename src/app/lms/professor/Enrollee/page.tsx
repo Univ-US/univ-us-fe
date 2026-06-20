@@ -1,12 +1,12 @@
 "use client";
 
 // PLM-003 — 교수 "수강생 현황" (강의별 수강생 목록 + 출석·과제 현황)
-// BE 공식 명세 연동(2026-06-10): 서버 페이지네이션/검색/필터/정렬 + Excel 내보내기.
+// BE 공식 명세 연동: 서버 페이지네이션/검색/필터/정렬 + Excel 내보내기.
 // - 상단: 년도/학기(기본 둘 다 '전체')/강의 드롭다운 + 이름·학번 검색 + 필터(제출/정렬) + 명단 내보내기
 // - 통계 카드 3개(summary: 검색 전체 기준, 필터·정렬·페이지엔 안 바뀜)
 // - 목록 테이블 + 서버 페이지네이션(page 0-based)
 // - '상세' 클릭 → PLM-003-01 상세 리포트 모달
-// ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
+// 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import StudentReportDialog from "@/components/lms/StudentReportDialog";
@@ -667,7 +667,7 @@ function lecStatusBadgeClass(code: string | null) {
   }
 }
 
-// 출석률 막대 색 — 교수 LMS 색상 표준(95/80, 2026-06-16): 정상 ≥95 · 경고 80~94 · 위험 <80
+// 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
   if (rate >= 95) return "bg-emerald-500";
   if (rate >= 80) return "bg-amber-400";

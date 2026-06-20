@@ -1,7 +1,7 @@
 "use client";
 
 // PLM-004 — 교수 "채점 현황" (미채점/채점 과제 목록 + 점수·피드백 채점)
-//   + 서버 페이지네이션 전환(2026-06-13, 공통 PaginateUtilRestApi/Res)
+//   + 서버 페이지네이션 전환(공통 PaginateUtilRestApi/Res)
 // - 상단: 년도·학기 분리 필터(기본 '전체') + 미채점 배너(현재 필터 범위 안내) + 부제 '미채점 N건'(전체, 사이드바 배지와 동일)
 // - 미채점/채점 과제 목록 = 각각 서버 페이지네이션(GET /grading/assignments?graded=&year=&termCode=&page=&size=)
 //   · 미채점 목록 → '채점하기' / 채점 목록 → '채점 보기' → 목록 바로 아래에 채점 상세
@@ -9,7 +9,7 @@
 //   · 미채점 행 = 입력 가능 + '저장' · 채점완료 행 = 입력 잠금 + '완료' + '수정'(클릭 시 편집)
 //   · 미제출 학생(submissionId=null) = 회색 행
 // - '보기' → PLM-004-01 제출 파일 미리보기 모달(인증 다운로드)
-// ⚠️ 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
+// 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ProfessorSubmissionPreviewDialog from "@/components/lms/ProfessorSubmissionPreviewDialog";
@@ -408,7 +408,7 @@ export default function ProfessorGradingPage() {
               ) : (
                 visibleSubs.map((s) => {
                   // 제출 판정은 submissionId 기준(BE 지시). file 의존 금지 — 채점완료인데 file=null이면
-                  // 미제출로 오판하던 버그(2026-06-10). 채점여부는 graded/score로 판단(status는 채점해도 'SBM' 유지).
+                  // 미제출로 오판하던 버그. 채점여부는 graded/score로 판단(status는 채점해도 'SBM' 유지).
                   const submitted = s.submissionId != null && s.lecAsnSbmStatus !== "NSB";
                   const isEditing = editingIds.has(s.memberId);
                   const editable = !s.graded || isEditing; // 미채점=항상 편집 / 채점완료=수정 클릭 시만

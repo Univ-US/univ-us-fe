@@ -1,8 +1,8 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// PLM-005 — 교수 "강의 업로드" (영상·파일 업로드 & 텍스트 작성) — ✅ BE 실연동(2026-06-11)
-//   + 서버 페이지네이션 전환(2026-06-13, 공통 PaginateRestUtil/PageResponse)
+// PLM-005 — 교수 "강의 업로드" (영상·파일 업로드 & 텍스트 작성) — BE 실연동
+//   + 서버 페이지네이션 전환(공통 PaginateRestUtil/PageResponse)
 // - 마운트: 과목 드롭다운(GET /uploads/lectures) + SEM_TERM 공통코드 + 메타(GET /uploads/meta) + 첫 페이지
 // - 목록: GET /uploads?page=&size=&year=&termCode= → 서버가 필터·페이지 처리(PageResponse)
 //   · 필터 옵션(년도/학기)·전체 건수는 메타에서, 현재 페이지 항목·필터 건수는 페이지 응답에서
@@ -10,7 +10,7 @@
 // - 삭제: confirm → DELETE → 메타 + 현재 페이지 재조회(마지막 1건 삭제 시 페이지 보정)
 // - 목록은 페이지당 최대 10건 + 빈 행 패딩으로 높이 고정(0건 포함, 페이저 상시 표시)
 // - 유형 칼럼은 BE가 내려주는 확장자(EXT_TYPE) 문자열 그대로 표기(예: mp4·avi·pdf)
-// - ⚠️ 실패 시 가짜 데이터로 가리지 않음 — describeApiError 표기 + 재시도
+// - 실패 시 가짜 데이터로 가리지 않음 — describeApiError 표기 + 재시도
 // ─────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";

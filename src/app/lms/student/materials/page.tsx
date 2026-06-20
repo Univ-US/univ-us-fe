@@ -275,7 +275,7 @@ function MaterialsTable({
                 </td>
                 {/* 업로드일 */}
                 <td className="px-2 py-3 font-mono text-xs text-slate-500">{m.lecUplRegDate}</td>
-                {/* 유형 — 첫 첨부 확장자 배지(🎬/📄) + 나머지 +N. 첨부 없으면 — (교수 업로드 미러) */}
+                {/* 유형 — 첫 첨부 확장자 배지 + 나머지 +N. 첨부 없으면 — (교수 업로드 미러) */}
                 <td className="px-2 py-3">
                   {hasFile ? (
                     <span className="inline-flex items-center gap-1">

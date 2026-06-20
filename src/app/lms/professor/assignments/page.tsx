@@ -1,7 +1,7 @@
 "use client";
 
 // PLM-006 교수 과제 관리 — 과제 등록·수정·삭제 + 과목별 제출/채점 현황 (상세 채점은 PLM-004 채점 현황)
-// ✅ BE 실연동 + 서버 페이지네이션(2026-06-13). 구성 = 수강생 현황(PLM-003)과 동일 패턴:
+// BE 실연동 + 서버 페이지네이션. 구성 = 수강생 현황(PLM-003)과 동일 패턴:
 //   상단 년도/학기(기본 둘 다 '전체') + 과목 드롭다운(첫 과목 자동 선택) → 선택한 '한 과목'의 과제만 표시.
 //   → 과목이 페이지 경계에서 쪼개지는 문제가 없음(한 번에 한 과목).
 // - 마운트: 담당 강의(GET /assignments/lectures) 로드 → 첫 과목 선택
@@ -9,7 +9,7 @@
 // - 년도/학기: 담당 강의를 클라에서 좁힘(과목 드롭다운 옵션) + 첫 과목 자동 선택
 // - 등록 폼: 대상 과목(현재 과목 프리필)·마감 일시·과제명 필수 / 만점(100 고정)·설명·첨부(다중) 선택
 // - 수정: 행 '수정' → 폼 프리필(과목은 변경 불가) + dirty 가드 / 삭제: confirm 경유
-// - ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
+// - 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
@@ -283,7 +283,7 @@ export default function ProfessorAssignmentsPage() {
     setActionError(null);
   }, []);
 
-  // ESC = ✕/취소와 동일 처리 (LMS 모달 관례 — 저장 중엔 무시)
+  // ESC = 닫기/취소와 동일 처리 (LMS 모달 관례 — 저장 중엔 무시)
   useEscapeClose(formOpen && !saving, closeForm);
 
   // 등록 — 현재 보고 있는 과목을 기본 선택(다른 과목으로 변경 가능)
@@ -466,7 +466,7 @@ export default function ProfessorAssignmentsPage() {
         )}
 
         {/* 과제 등록/수정 모달 — '+ 과제 등록' 버튼/행 '수정'으로 열림.
-            ESC=✕와 동일(LMS 모달 관례), 백드롭 클릭 닫기는 입력 유실 방지를 위해 미적용 */}
+            ESC=닫기와 동일(LMS 모달 관례), 백드롭 클릭 닫기는 입력 유실 방지를 위해 미적용 */}
         {formOpen && (
           // pl-64(사이드바 w-60 + 여백 1rem)·pr-4 비대칭 패딩 → 백드롭은 전체 덮되 다이얼로그는 콘텐츠 영역 기준 가운데
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pl-64 pr-4">

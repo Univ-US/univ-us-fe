@@ -5,8 +5,8 @@
 // - 통계 카드 4개: 수강생 / 평균 출석률 / 지각 누계 / 결석 위험(≤70%)
 // - 목록 테이블: 학생별 출석·지각·결석·출석률 + '수정'(회차 태그 편집 모달)
 // - 출석률 70% 미만 학생은 붉은 배경 / 접근=교수(PROF) 전용 — ADM·SUA는 교수 LMS 미진입(어드민 출결 열람은 학교관리자 BO 별도 화면)
-// ✅ BE 연동(2026-06-16): /api/lms/professor/attendance/** (lib: lmsProfessorAttendanceApi).
-// ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError).
+// BE 연동: /api/lms/professor/attendance/** (lib: lmsProfessorAttendanceApi).
+// 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ProfessorAttendanceEditDialog from "@/components/lms/ProfessorAttendanceEditDialog";
 import {
@@ -511,7 +511,7 @@ function AttendanceDateCell({
   );
 }
 
-// 출석률 막대 색 — 교수 LMS 색상 표준(95/80, 2026-06-16): 정상 ≥95 · 경고 80~94 · 위험 <80
+// 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
   if (rate >= 95) return "bg-emerald-500";
   if (rate >= AT_RISK_THRESHOLD) return "bg-amber-400";

@@ -21,7 +21,7 @@ export const getStudentProfile = async () => {
 /**
  * PUT /api/lms/student/profile — 프로필 수정 (multipart/form-data)
  *
- * ⚠️ BE가 `@ModelAttribute`(multipart)로 받으므로 JSON이 아니라 FormData로 보내야 한다.
+ * BE가 `@ModelAttribute`(multipart)로 받으므로 JSON이 아니라 FormData로 보내야 한다.
  *   - FormData 키 이름은 BE ReqDto 필드명과 정확히 일치해야 함 (lmsPrfEmail / image)
  *   - api.ts 기본 헤더가 application/json이므로 이 요청만 multipart로 덮어쓴다.
  *     (axios가 FormData를 감지해 boundary 포함 헤더로 실제 전송함)

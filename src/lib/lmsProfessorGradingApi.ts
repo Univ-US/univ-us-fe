@@ -1,13 +1,13 @@
 // src/lib/lmsProfessorGradingApi.ts
 // PLM-004 / PLM-004-01 교수 "채점 현황" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// BE 공식 명세 연동(2026-06-10). 채점 개요 → 과제 채점 상세 → 점수·피드백 저장 → 제출 파일 다운로드.
+// BE 공식 명세 연동. 채점 개요 → 과제 채점 상세 → 점수·피드백 저장 → 제출 파일 다운로드.
 //  · GET  /api/lms/professor/grading/overview?semesterId=                              (없으면 최신 학기)
 //  · GET  /api/lms/professor/grading/assignments/{assignmentId}
 //  · PUT  /api/lms/professor/grading/assignments/{assignmentId}/submissions/{submissionId}
 //  · GET  /api/lms/professor/grading/submissions/{submissionId}/file                   (인증 필요 → blob)
-// ⚠️ 전부 PROF 본인 강의 한정(타 강의 403). 서버는 "코드값"만 반환(termCode) → 라벨은 SEM_TERM 공통코드로 FE 매핑.
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
+// 전부 PROF 본인 강의 한정(타 강의 403). 서버는 "코드값"만 반환(termCode) → 라벨은 SEM_TERM 공통코드로 FE 매핑.
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import type {

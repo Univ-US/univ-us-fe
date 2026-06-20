@@ -47,6 +47,6 @@ export const useProfessorProfileStore = create<LmsProfileState>((set, get) => ({
 
   update: async (input) => {
     const updated = await updateProfessorProfile(input);
-    set({ profile: updated }); // ★ 여기 한 곳만 갱신 → 구독 중인 폼·사이드바 동시 반영
+    set({ profile: updated }); // 여기 한 곳만 갱신 → 구독 중인 폼·사이드바 동시 반영
   },
 }));

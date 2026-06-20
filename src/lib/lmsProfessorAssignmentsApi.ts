@@ -1,14 +1,14 @@
 // src/lib/lmsProfessorAssignmentsApi.ts
 // PLM-006 교수 "과제 관리" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// BE 공식 연동(2026-06-13). 전부 본인 강의 한정(타 강의/과제 403).
+// BE 공식 연동. 전부 본인 강의 한정(타 강의/과제 403).
 //  · GET    /api/lms/professor/assignments/lectures   (과목 드롭다운 — 담당 강의 전체. 등록 폼 + 화면 상단 과목 선택 공용, 수강생 현황 패턴)
 //  · GET    /api/lms/professor/assignments?lecId=&page=&size=  (선택 과목 1개의 과제 1페이지 + 집계 + 첨부 — 서버 페이지네이션)
 //  · POST   /api/lms/professor/assignments            (multipart: lecId·title·dueDate 필수, description·files 선택)
 //  · PUT    /api/lms/professor/assignments/{id}       (multipart: files=추가 첨부, removeAttachmentIds=개별 제거)
 //  · DELETE /api/lms/professor/assignments/{id}
-// ⚠️ 만점 = 100 고정(스키마 미보유, 2026-06-12 확정). valStatus = 공통코드 LEC_ASN_VAL_STATUS.
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
+// 만점 = 100 고정(스키마 미보유). valStatus = 공통코드 LEC_ASN_VAL_STATUS.
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import type {
@@ -38,7 +38,7 @@ export const fileExtOf = (name: string): string => {
 
 // 학기(SEM_TERM)·과제 상태(LEC_ASN_VAL_STATUS) 라벨 = 공통코드 API(getCommonCodeMap)로 런타임 매핑(PLM-003/004/005 패턴).
 //   페이지에서 getCommonCodeMap("SEM_TERM")·getCommonCodeMap("LEC_ASN_VAL_STATUS") 조회 → map[code] ?? code.
-//   2026-06-15: 하드코딩 임시 라벨(ASN_STATUS_LABEL·TERM_LABEL) 제거 — 정본 라벨은 COMMON_CODE(가짜 라벨 안 만듦).
+//   하드코딩 임시 라벨(ASN_STATUS_LABEL·TERM_LABEL) 제거 — 정본 라벨은 COMMON_CODE(가짜 라벨 안 만듦).
 
 /* multipart 진행률(0~100) 콜백 — total 미상이면 호출 생략 */
 const progressConfig = (onProgress?: (pct: number) => void) => ({

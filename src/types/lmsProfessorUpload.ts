@@ -25,7 +25,7 @@ export interface Material {
   uploadId: number;
   lecId: number;
   courseName: string;
-  lecSection: number | null; // LECTURE.LEC_SECTION 분반 (2026-06-13 추가 — 목록 분반 컬럼)
+  lecSection: number | null; // LECTURE.LEC_SECTION 분반 — 목록 분반 컬럼
   semYear: number;     // 강의 학기 연도 (SEMESTERS.SEM_YEAR) — 목록 년도/학기 필터용
   semTerm: string;     // SM1/SMR/SM2/WNT (공통코드 SEM_TERM — 라벨은 termMap 매핑)
   lecUplTitle: string;      // LECTURE_UPLOADING.LEC_UPL_TITLE
@@ -34,7 +34,7 @@ export interface Material {
   attachments: Attachment[];
 }
 
-/** 등록/수정 공통 입력 — 첨부 다중(2026-06-11 정책: 교체 없음, 추가/개별 제거)
+/** 등록/수정 공통 입력 — 첨부 다중(정책: 교체 없음, 추가/개별 제거)
  *  · files: 등록=전체 첨부 / 수정=추가할 새 파일들(기존 유지에 더해짐)
  *  · removeAttachmentIds: 수정 전용 — 제거할 기존 첨부 ID들 */
 export interface MaterialSaveInput {

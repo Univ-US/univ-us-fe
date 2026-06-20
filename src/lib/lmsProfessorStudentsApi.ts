@@ -1,15 +1,15 @@
 // src/lib/lmsProfessorStudentsApi.ts
 // PLM-003 / PLM-003-01 교수 "수강생 현황" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// BE 공식 명세 연동(2026-06-10). 학기 → 강의 → 수강생(서버 페이지네이션/검색/필터/정렬) → 상세 리포트.
+// BE 공식 명세 연동. 학기 → 강의 → 수강생(서버 페이지네이션/검색/필터/정렬) → 상세 리포트.
 //  · GET /api/lms/professor/semesters
 //  · GET /api/lms/professor/lectures?semesterId={semId}
 //  · GET /api/lms/professor/lectures/{lecId}/students?search=&submission=&sort=&order=&page=&size=
 //  · GET /api/lms/professor/lectures/{lecId}/students/export?search=&submission=&sort=&order=   (xlsx)
 //  · GET /api/lms/professor/lectures/{lecId}/students/{memberId}/report
 //  · GET /api/common-codes/{groupCode}            (토큰 불필요, 라벨 매핑용)
-// ⚠️ 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
+// 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import { truncateLectureName } from "@/lib/lmsLectureName";

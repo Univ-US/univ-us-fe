@@ -39,7 +39,7 @@ export default function StudentSubmitPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21). 강의(과목) 드롭다운은 두지 않음.
+  // 년도·학기 분리 필터 — 기본 둘 다 '전체'. 강의(과목) 드롭다운은 두지 않음.
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [termMap, setTermMap] = useState<Record<string, string>>({});

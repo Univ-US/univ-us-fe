@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 // [교수 모달] PLM-004-01 제출 파일 미리보기 다이얼로그
 // - PLM-004(채점 현황) 채점 행의 '보기' 클릭 시 표시
-// - ⭐ 설계 변경(2026-06-10): 파일 상세 내용 미리보기 영역 제거 → 파일 정보 + 원본 다운로드만 제공.
+// - 설계 변경: 파일 상세 내용 미리보기 영역 제거 → 파일 정보 + 원본 다운로드만 제공.
 // - 다운로드는 인증 필요 → axios(blob)로 받아 저장(<a download>는 토큰을 못 실음).
 // - 데이터(submission)는 부모(페이지)가 주입 — 표시만 담당
 // ─────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ export default function ProfessorSubmissionPreviewDialog({
     setDownloadError(null);
   }, [submission, open]);
 
-  useEscapeClose(open && !!submission, onClose); // ESC = ✕ 버튼과 동일
+  useEscapeClose(open && !!submission, onClose); // ESC = 닫기 버튼과 동일
 
   if (!open || !submission) return null;
   const file = submission.file;
