@@ -17,16 +17,22 @@ export interface Material {
   lockedReason?: LockedReason | null;
 }
 
-export interface CourseMaterials {
+/** 수강 과목(강의) 드롭다운 1행 — 라벨은 FE가 SEM_TERM 공통코드로 매핑 */
+export interface Lecture {
   lecId: number;
   courseName: string;
   lecSection: number | null;
-  materials: Material[];
-}
-
-export interface SemesterMaterials {
   semYear: number;
   semTerm: string;
-  semesterLabel: string;
-  courses: CourseMaterials[];
+}
+
+/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 }

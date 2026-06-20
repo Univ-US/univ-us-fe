@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+// SLM-009 공지사항 — 수강 과목 1개 선택 → 그 과목 공지를 page/size로 서버 조회(클라 slice 없음, 교수 PLM-005 미러).
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
@@ -10,9 +11,10 @@ import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
   downloadStudentNoticeAttachment,
+  getStudentNoticeLectures,
   getStudentNotices,
 } from "@/lib/lmsStudentNoticeApi";
-import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
+import type { Lecture, Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 import "@/components/lms/lms-content.css";
 
 const selectClass =
@@ -29,44 +31,16 @@ type Toast = {
   message: string;
 };
 
-type CourseOption = {
-  lecId: number;
-  courseName: string;
-  lecSection?: number | null;
-  year: number;
-  termCode: string;
-};
-
-function courseOptionsOf(notices: Notice[], termOrder: string[]): CourseOption[] {
-  const map = new Map<number, CourseOption>();
-  for (const notice of notices) {
-    if (!map.has(notice.lecId)) {
-      map.set(notice.lecId, {
-        lecId: notice.lecId,
-        courseName: notice.courseFullName,
-        lecSection: notice.lecSection,
-        year: notice.semYear,
-        termCode: notice.semTerm,
-      });
-    }
-  }
-  return [...map.values()].sort(
-    (a, b) =>
-      b.year - a.year ||
-      termOrder.indexOf(b.termCode) - termOrder.indexOf(a.termCode) ||
-      a.courseName.localeCompare(b.courseName)
-  );
-}
-
-const matchCourses = (
+// (년도, 학기) 조합에 매칭되는 수강 과목들. 둘 다 'all'이면 전체
+const matchLectures = (
   year: number | "all",
   term: string | "all",
-  opts: CourseOption[]
-): CourseOption[] =>
-  opts.filter(
+  lectures: Lecture[]
+): Lecture[] =>
+  lectures.filter(
     (course) =>
-      (year === "all" || course.year === year) &&
-      (term === "all" || course.termCode === term)
+      (year === "all" || course.semYear === year) &&
+      (term === "all" || course.semTerm === term)
   );
 
 const NOTICE_PREVIEW_MAX = 20;
@@ -78,17 +52,27 @@ function noticeSummary(html: string): string {
 }
 
 export default function StudentNoticePage() {
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // 수강 과목 드롭다운 (마운트 1회 — 년도/학기/과목 필터 소스)
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [lecturesLoading, setLecturesLoading] = useState(true);
+  const [lecturesError, setLecturesError] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
+  // 선택 과목 공지 1페이지(서버 응답)
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [noticesLoading, setNoticesLoading] = useState(false);
+  const [noticesError, setNoticesError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [termOrder, setTermOrder] = useState<string[]>([]);
+  // 경쟁 요청 가드 (과목/페이지 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
 
   useEffect(() => {
     void getCommonCodeList("SEM_TERM").then((list) => {
@@ -102,94 +86,101 @@ export default function StudentNoticePage() {
     window.setTimeout(() => setToast(null), 2600);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getStudentNotices();
-      setNotices(data);
-      setSelectedLecId((prev) => {
-        const options = courseOptionsOf(data, termOrder);
-        return options.some((course) => course.lecId === prev)
-          ? prev
-          : options[0]?.lecId ?? null;
+  // 수강 과목 드롭다운 로드 + 첫 과목 자동 선택
+  const loadLectures = useCallback(() => {
+    setLecturesLoading(true);
+    setLecturesError(null);
+    let alive = true;
+    getStudentNoticeLectures()
+      .then((data) => {
+        if (!alive) return;
+        setLectures(data);
+        setSelectedLecId(data[0]?.lecId ?? null);
+      })
+      .catch((err) => alive && setLecturesError(describeApiError(err)))
+      .finally(() => alive && setLecturesLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => loadLectures(), [loadLectures]);
+
+  // 선택 과목 + page → 공지 페이지 서버 조회
+  const loadNotices = useCallback((lecId: number, p: number) => {
+    const reqId = ++reqIdRef.current;
+    setNoticesLoading(true);
+    setNoticesError(null);
+    getStudentNotices({ lecId, page: p, size: NOTICE_PAGE_SIZE })
+      .then((data) => {
+        if (reqId !== reqIdRef.current) return; // stale 응답 무시
+        setNotices(data.content);
+        setTotalElements(data.totalElements);
+        setTotalPages(data.totalPages);
+        setHasLoaded(true);
+      })
+      .catch((err) => {
+        if (reqId === reqIdRef.current) setNoticesError(describeApiError(err));
+      })
+      .finally(() => {
+        if (reqId === reqIdRef.current) setNoticesLoading(false);
       });
-    } catch (err) {
-      setError(describeApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [termOrder]);
+  }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (selectedLecId == null) {
+      setNotices([]);
+      setTotalElements(0);
+      setTotalPages(0);
+      setHasLoaded(false);
+      return;
+    }
+    loadNotices(selectedLecId, page);
+  }, [selectedLecId, page, loadNotices]);
 
-  const courseOptions = useMemo(
-    () => courseOptionsOf(notices, termOrder),
-    [notices, termOrder]
-  );
   const yearOptions = useMemo(
-    () => [...new Set(courseOptions.map((course) => course.year))].sort((a, b) => b - a),
-    [courseOptions]
+    () => [...new Set(lectures.map((course) => course.semYear))].sort((a, b) => b - a),
+    [lectures]
   );
   const termOptions = termOrder;
-  const filteredCourses = useMemo(
-    () => matchCourses(yearFilter, termFilter, courseOptions),
-    [yearFilter, termFilter, courseOptions]
+  const filteredLectures = useMemo(
+    () => matchLectures(yearFilter, termFilter, lectures),
+    [yearFilter, termFilter, lectures]
   );
-  const selectedCourse = useMemo(
-    () => courseOptions.find((course) => course.lecId === selectedLecId) ?? null,
-    [courseOptions, selectedLecId]
-  );
-
-  const list = useMemo(() => {
-    const filtered = notices.filter((notice) => notice.lecId === selectedLecId);
-    return [...filtered].sort((a, b) => b.lecAnnRegDate.localeCompare(a.lecAnnRegDate));
-  }, [notices, selectedLecId]);
-  const totalPages = Math.max(1, Math.ceil(list.length / NOTICE_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageStartIndex = safePage * NOTICE_PAGE_SIZE;
-  const pagedList = useMemo(
-    () => list.slice(pageStartIndex, pageStartIndex + NOTICE_PAGE_SIZE),
-    [list, pageStartIndex]
+  const selectedLecture = useMemo(
+    () => lectures.find((course) => course.lecId === selectedLecId) ?? null,
+    [lectures, selectedLecId]
   );
 
+  // 과목/필터 변경 → 선택 과목 교체 + page 0 리셋
+  const selectLecture = (lecId: number | null) => {
+    setSelectedLecId(lecId);
+    setPage(0);
+  };
   const handleYearChange = (year: number | "all") => {
     setYearFilter(year);
-    setSelectedLecId(matchCourses(year, termFilter, courseOptions)[0]?.lecId ?? null);
+    selectLecture(matchLectures(year, termFilter, lectures)[0]?.lecId ?? null);
   };
-
   const handleTermChange = (term: string | "all") => {
     setTermFilter(term);
-    setSelectedLecId(matchCourses(yearFilter, term, courseOptions)[0]?.lecId ?? null);
+    selectLecture(matchLectures(yearFilter, term, lectures)[0]?.lecId ?? null);
   };
 
+  // 현재 페이지 공지 변경 → 선택 공지 보정(현재 페이지에 없으면 첫 공지)
   useEffect(() => {
-    setPage(0);
-  }, [selectedLecId]);
-
-  useEffect(() => {
-    if (page !== safePage) {
-      setPage(safePage);
-    }
-  }, [page, safePage]);
-
-  useEffect(() => {
-    if (list.length === 0) {
+    if (notices.length === 0) {
       setSelectedId(null);
       return;
     }
-    const selectable = pagedList.length > 0 ? pagedList : list;
-    if (!selectable.some((notice) => notice.noticeId === selectedId)) {
-      setSelectedId((selectable.find((notice) => notice.featured) ?? selectable[0]).noticeId);
+    if (!notices.some((notice) => notice.noticeId === selectedId)) {
+      setSelectedId(notices[0].noticeId);
     }
-  }, [list, pagedList, selectedId]);
+  }, [notices, selectedId]);
 
   const selected = useMemo(
-    () => list.find((notice) => notice.noticeId === selectedId) ?? null,
-    [list, selectedId]
+    () => notices.find((notice) => notice.noticeId === selectedId) ?? null,
+    [notices, selectedId]
   );
+  const startIndex = page * NOTICE_PAGE_SIZE;
 
   return (
     <div className="mx-auto max-w-6xl px-8 py-8">
@@ -211,10 +202,10 @@ export default function StudentNoticePage() {
           <h1 className="text-2xl font-bold text-slate-800">공지사항</h1>
           <p
             className="mt-1 flex items-center gap-1 text-sm text-slate-500"
-            title={selectedCourse?.courseName ?? undefined}
+            title={selectedLecture?.courseName ?? undefined}
           >
-            <span className="min-w-0 truncate">{selectedCourse?.courseName ?? "과목 선택"}</span>
-            <span className="shrink-0">· 공지 {list.length}건</span>
+            <span className="min-w-0 truncate">{selectedLecture?.courseName ?? "과목 선택"}</span>
+            <span className="shrink-0">· 공지 {totalElements}건</span>
           </p>
         </div>
 
@@ -222,7 +213,7 @@ export default function StudentNoticePage() {
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
             onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
-            disabled={loading || courseOptions.length === 0}
+            disabled={lecturesLoading || lectures.length === 0}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -235,7 +226,7 @@ export default function StudentNoticePage() {
           <select
             value={termFilter === "all" ? "" : termFilter}
             onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || courseOptions.length === 0}
+            disabled={lecturesLoading || lectures.length === 0}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -247,16 +238,16 @@ export default function StudentNoticePage() {
           </select>
           <select
             value={selectedLecId ?? ""}
-            onChange={(e) => setSelectedLecId(Number(e.target.value))}
-            disabled={filteredCourses.length === 0}
+            onChange={(e) => selectLecture(Number(e.target.value))}
+            disabled={filteredLectures.length === 0}
             className={`${selectClass} w-64`}
           >
-            {filteredCourses.length === 0 ? (
+            {filteredLectures.length === 0 ? (
               <option value="" disabled>
                 수강 과목 없음
               </option>
             ) : (
-              filteredCourses.map((course) => (
+              filteredLectures.map((course) => (
                 <option
                   key={course.lecId}
                   value={course.lecId}
@@ -264,7 +255,7 @@ export default function StudentNoticePage() {
                 >
                   {truncateLectureName(course.courseName)}
                   {course.lecSection != null ? ` · ${course.lecSection}반` : ""} ·{" "}
-                  {semLabelOf(course.year, course.termCode, termMap)}
+                  {semLabelOf(course.semYear, course.semTerm, termMap)}
                 </option>
               ))
             )}
@@ -272,30 +263,45 @@ export default function StudentNoticePage() {
         </div>
       </header>
 
-      {error ? (
+      {lecturesError ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-          <p className="text-sm text-slate-500">{error}</p>
+          <p className="text-sm text-slate-500">{lecturesError}</p>
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={loadLectures}
             className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
           >
             다시 시도
           </button>
         </div>
-      ) : loading ? (
+      ) : lecturesLoading ? (
         <p className="py-16 text-center text-sm text-slate-400">불러오는 중...</p>
-      ) : list.length === 0 ? (
+      ) : selectedLecId == null ? (
+        <p className="py-16 text-center text-sm text-slate-400">표시할 공지가 없습니다.</p>
+      ) : noticesError ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <p className="text-sm text-slate-500">{noticesError}</p>
+          <button
+            type="button"
+            onClick={() => loadNotices(selectedLecId, page)}
+            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : !hasLoaded && noticesLoading ? (
+        <p className="py-16 text-center text-sm text-slate-400">불러오는 중...</p>
+      ) : notices.length === 0 ? (
         <p className="py-16 text-center text-sm text-slate-400">선택한 과목의 공지가 없습니다.</p>
       ) : (
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[22rem_1fr]">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
               <h2 className="text-sm font-bold text-slate-800">공지 목록</h2>
-              <span className="text-[11px] text-slate-400">{list.length}건</span>
+              <span className="text-[11px] text-slate-400">{totalElements}건</span>
             </div>
             <ul className="p-2">
-              {pagedList.map((notice) => {
+              {notices.map((notice) => {
                 const active = notice.noticeId === selectedId;
                 const summary = noticeSummary(notice.lecAnnContent);
                 return (
@@ -309,7 +315,7 @@ export default function StudentNoticePage() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
-                          {notice.courseName}
+                          {selectedLecture?.courseName ?? ""}
                         </span>
                         <span className="shrink-0 text-xs text-slate-400">{notice.listDate}</span>
                       </div>
@@ -328,11 +334,11 @@ export default function StudentNoticePage() {
             </ul>
             {totalPages > 1 && (
               <NoticePager
-                page={safePage}
+                page={page}
                 totalPages={totalPages}
-                totalItems={list.length}
-                startIndex={pageStartIndex}
-                visibleCount={pagedList.length}
+                totalItems={totalElements}
+                startIndex={startIndex}
+                visibleCount={notices.length}
                 onChange={setPage}
               />
             )}

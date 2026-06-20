@@ -1,9 +1,5 @@
 import api from "@/lib/api";
-import type {
-  CourseMaterials,
-  Material,
-  SemesterMaterials,
-} from "@/types/lmsStudentMaterials";
+import type { Lecture, Material, PageResponse } from "@/types/lmsStudentMaterials";
 
 const normalizeMaterial = (material: Material): Material => ({
   ...material,
@@ -13,17 +9,26 @@ const normalizeMaterial = (material: Material): Material => ({
   lockedReason: material.lockedReason ?? null,
 });
 
-const normalizeCourse = (course: CourseMaterials): CourseMaterials => ({
-  ...course,
-  materials: (course.materials ?? []).map(normalizeMaterial),
-});
+/** GET 수강 과목(강의) 드롭다운 — 년도/학기/과목 필터 소스 */
+export const getStudentMaterialLectures = async (): Promise<Lecture[]> => {
+  const res = await api.get<Lecture[]>("/api/lms/student/materials/lectures");
+  return res.data;
+};
 
-export const getStudentMaterials = async (): Promise<SemesterMaterials[]> => {
-  const res = await api.get<SemesterMaterials[]>("/api/lms/student/materials");
-  return res.data.map((semester) => ({
-    ...semester,
-    courses: (semester.courses ?? []).map(normalizeCourse),
-  }));
+/** GET 선택 과목 자료 1페이지 (서버 페이지네이션). page 0-based */
+export const getStudentMaterials = async (params: {
+  lecId: number;
+  page: number;
+  size: number;
+}): Promise<PageResponse<Material>> => {
+  const res = await api.get<PageResponse<Material>>("/api/lms/student/materials", {
+    params: {
+      lecId: String(params.lecId),
+      page: String(params.page),
+      size: String(params.size),
+    },
+  });
+  return { ...res.data, content: (res.data.content ?? []).map(normalizeMaterial) };
 };
 
 export const downloadStudentMaterialAttachment = async (

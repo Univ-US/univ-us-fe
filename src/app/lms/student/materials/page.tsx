@@ -1,20 +1,17 @@
 "use client";
 
 // SLM-006 강의 자료 — 학생이 수강 중인 강의의 업로드 자료를 과목별 확인하고 첨부를 다운로드한다.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+// 서버 페이지네이션: 수강 과목 1개 선택 → 그 과목 자료를 page/size로 서버 조회(클라 slice 없음, 교수 PLM-005 미러).
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { isVideoExt } from "@/lib/lmsProfessorUploadApi"; // 영상 확장자 판정(교수 업로드와 동일)
 import { htmlToPlainText } from "@/lib/lmsSanitize"; // 강의 내용 컬럼 요약(content HTML → plain text)
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import StudentMaterialViewDialog from "@/components/lms/StudentMaterialViewDialog";
-import { getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
+import { getStudentMaterialLectures, getStudentMaterials } from "@/lib/lmsStudentMaterialsApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
-import type {
-  CourseMaterials,
-  Material,
-  SemesterMaterials,
-} from "@/types/lmsStudentMaterials";
+import type { Lecture, Material } from "@/types/lmsStudentMaterials";
 
-// 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 표시한다.
+// 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 서버 조회한다.
 const MATERIALS_PAGE_SIZE = 10;
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
@@ -22,34 +19,42 @@ const selectClass =
 const semLabelOf = (year: number, termCode: string, termMap: Record<string, string>) =>
   `${year}년 ${termMap[termCode] ?? termCode}`;
 
-// 과목 드롭다운 1행 = 과목 + 소속 학기(년도/학기로 좁힘·라벨 표기용)
-type CourseOption = CourseMaterials & { year: number; termCode: string };
-
-// (년도, 학기) 조합에 매칭되는 과목들. 둘 다 'all'이면 전체 (PLM-006 동일)
-const matchCourses = (
+// (년도, 학기) 조합에 매칭되는 수강 과목들. 둘 다 'all'이면 전체
+const matchLectures = (
   year: number | "all",
   term: string | "all",
-  opts: CourseOption[]
-): CourseOption[] =>
-  opts.filter(
-    (c) => (year === "all" || c.year === year) && (term === "all" || c.termCode === term)
+  lectures: Lecture[]
+): Lecture[] =>
+  lectures.filter(
+    (c) => (year === "all" || c.semYear === year) && (term === "all" || c.semTerm === term)
   );
 
 export default function StudentMaterialsPage() {
-  const [semesters, setSemesters] = useState<SemesterMaterials[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21)
+  // 수강 과목 드롭다운 (마운트 1회 로드 — 년도/학기/과목 필터 소스)
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [lecturesLoading, setLecturesLoading] = useState(true);
+  const [lecturesError, setLecturesError] = useState(false);
+  // 년도·학기 분리 필터 — 기본 둘 다 '전체'
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
-  // 선택된 과목 (첫 과목 자동 선택)
+  // 선택된 과목 + 서버 페이지 (0-based)
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  // 선택 과목 자료 1페이지(서버 응답) — null=미로드. 새 요청 성공 시에만 교체(로딩 중 이전 페이지 유지)
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [materialsError, setMaterialsError] = useState(false);
   // '강의 보기' 모달 대상 (null = 닫힘)
   const [viewing, setViewing] = useState<Material | null>(null);
-  // 학기 코드→라벨 공통코드 맵 (마운트 시 fetch, 실패 시 {} → 코드 원본 폴백)
+  // 학기 코드→라벨 / 표시순서 (공통코드 — 로드 전 []·{} 폴백)
   const [termMap, setTermMap] = useState<Record<string, string>>({});
-  // 학기 표시 순서 — SEM_TERM 공통코드(CODE_ORDER 정렬)에서 도출 (로드 전 []·재정렬 없음)
   const [termOrder, setTermOrder] = useState<string[]>([]);
+  // 경쟁 요청 가드 (과목/페이지 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
+
   useEffect(() => {
     void getCommonCodeList("SEM_TERM").then((list) => {
       setTermOrder(list.map((c) => c.codeVal));
@@ -57,74 +62,99 @@ export default function StudentMaterialsPage() {
     });
   }, []);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(false);
+  // 수강 과목 드롭다운 로드 + 첫 과목 자동 선택
+  const loadLectures = useCallback(() => {
+    setLecturesLoading(true);
+    setLecturesError(false);
     let alive = true;
-    getStudentMaterials()
-      .then((d) => {
+    getStudentMaterialLectures()
+      .then((data) => {
         if (!alive) return;
-        setSemesters(d);
-        const first = d.flatMap((s) => s.courses)[0]; // 첫 과목 자동 선택
-        setSelectedLecId(first ? first.lecId : null);
+        setLectures(data);
+        setSelectedLecId(data[0]?.lecId ?? null);
       })
-      .catch(() => alive && setError(true))
-      .finally(() => alive && setLoading(false));
+      .catch(() => alive && setLecturesError(true))
+      .finally(() => alive && setLecturesLoading(false));
     return () => {
       alive = false;
     };
   }, []);
+  useEffect(() => loadLectures(), [loadLectures]);
 
-  useEffect(() => load(), [load]);
+  // 선택 과목 + page → 자료 페이지 서버 조회
+  const loadMaterials = useCallback((lecId: number, p: number) => {
+    const reqId = ++reqIdRef.current;
+    setMaterialsLoading(true);
+    setMaterialsError(false);
+    getStudentMaterials({ lecId, page: p, size: MATERIALS_PAGE_SIZE })
+      .then((data) => {
+        if (reqId !== reqIdRef.current) return; // stale 응답 무시
+        setMaterials(data.content);
+        setTotalElements(data.totalElements);
+        setTotalPages(data.totalPages);
+        setHasLoaded(true);
+      })
+      .catch(() => {
+        if (reqId === reqIdRef.current) setMaterialsError(true);
+      })
+      .finally(() => {
+        if (reqId === reqIdRef.current) setMaterialsLoading(false);
+      });
+  }, []);
 
-  // 학기별 과목을 평면화 — 각 과목에 소속 학기(년도/학기) 부착 (드롭다운 옵션 소스)
-  const courseOptions = useMemo<CourseOption[]>(
-    () =>
-      semesters.flatMap((s) =>
-        s.courses.map((c) => ({ ...c, year: s.semYear, termCode: s.semTerm }))
-      ),
-    [semesters]
-  );
+  useEffect(() => {
+    if (selectedLecId == null) {
+      setMaterials([]);
+      setTotalElements(0);
+      setTotalPages(0);
+      setHasLoaded(false);
+      return;
+    }
+    loadMaterials(selectedLecId, page);
+  }, [selectedLecId, page, loadMaterials]);
 
   const yearOptions = useMemo(
-    () => [...new Set(courseOptions.map((c) => c.year))].sort((a, b) => b - a),
-    [courseOptions]
+    () => [...new Set(lectures.map((c) => c.semYear))].sort((a, b) => b - a),
+    [lectures]
   );
   // 학기 필터는 데이터 유무와 무관하게 항상 학기 노출(공통코드 표시 순서)
   const termOptions = termOrder;
-  const filteredCourses = useMemo(
-    () => matchCourses(yearFilter, termFilter, courseOptions),
-    [yearFilter, termFilter, courseOptions]
+  const filteredLectures = useMemo(
+    () => matchLectures(yearFilter, termFilter, lectures),
+    [yearFilter, termFilter, lectures]
   );
-  const selectedCourse = useMemo(
-    () => courseOptions.find((c) => c.lecId === selectedLecId) ?? null,
-    [courseOptions, selectedLecId]
+  const selectedLecture = useMemo(
+    () => lectures.find((c) => c.lecId === selectedLecId) ?? null,
+    [lectures, selectedLecId]
   );
 
-  // 년도/학기 변경 → 과목 목록 좁힘 + 첫 과목 자동 선택 (각 축 독립, PLM-006 동일)
+  // 과목/필터 변경 → 선택 과목 교체 + page 0 리셋 (열린 모달 닫기)
+  const selectLecture = (lecId: number | null) => {
+    setViewing(null);
+    setSelectedLecId(lecId);
+    setPage(0);
+  };
   const handleYearChange = (year: number | "all") => {
-    setViewing(null); // 필터 전환 시 열린 모달 닫기(stale 방어)
     setYearFilter(year);
-    setSelectedLecId(matchCourses(year, termFilter, courseOptions)[0]?.lecId ?? null);
+    selectLecture(matchLectures(year, termFilter, lectures)[0]?.lecId ?? null);
   };
   const handleTermChange = (term: string | "all") => {
-    setViewing(null);
     setTermFilter(term);
-    setSelectedLecId(matchCourses(yearFilter, term, courseOptions)[0]?.lecId ?? null);
+    selectLecture(matchLectures(yearFilter, term, lectures)[0]?.lecId ?? null);
   };
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
-      {/* 헤더 — 좌: 제목+선택 과목·자료 수 / 우: 년도·학기·과목 드롭다운 (PLM-006 레이아웃) */}
+      {/* 헤더 — 좌: 제목+선택 과목·자료 수(서버 totalElements) / 우: 년도·학기·과목 드롭다운 */}
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-slate-800">강의 자료</h1>
           <p
             className="mt-1 flex items-center gap-1 text-sm text-slate-500"
-            title={selectedCourse?.courseName ?? undefined}
+            title={selectedLecture?.courseName ?? undefined}
           >
-            <span className="min-w-0 truncate">{selectedCourse?.courseName ?? "과목 선택"}</span>
-            <span className="shrink-0">· 자료 {selectedCourse?.materials.length ?? 0}건</span>
+            <span className="min-w-0 truncate">{selectedLecture?.courseName ?? "과목 선택"}</span>
+            <span className="shrink-0">· 자료 {totalElements}건</span>
           </p>
         </div>
 
@@ -132,7 +162,7 @@ export default function StudentMaterialsPage() {
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
             onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
-            disabled={loading || courseOptions.length === 0}
+            disabled={lecturesLoading || lectures.length === 0}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -145,7 +175,7 @@ export default function StudentMaterialsPage() {
           <select
             value={termFilter === "all" ? "" : termFilter}
             onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || courseOptions.length === 0}
+            disabled={lecturesLoading || lectures.length === 0}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -158,23 +188,23 @@ export default function StudentMaterialsPage() {
           {/* 과목 드롭다운 — 년도/학기로 좁힌 수강 과목, 첫 과목 자동 선택 */}
           <select
             value={selectedLecId ?? ""}
-            onChange={(e) => setSelectedLecId(Number(e.target.value))}
-            disabled={filteredCourses.length === 0}
+            onChange={(e) => selectLecture(Number(e.target.value))}
+            disabled={filteredLectures.length === 0}
             className={`${selectClass} w-64`}
           >
-            {filteredCourses.length === 0 ? (
+            {filteredLectures.length === 0 ? (
               <option value="" disabled>
                 수강 과목 없음
               </option>
             ) : (
-              filteredCourses.map((c) => (
+              filteredLectures.map((c) => (
                 <option
                   key={c.lecId}
                   value={c.lecId}
                   title={c.courseName.length > LECTURE_NAME_MAX ? c.courseName : undefined}
                 >
                   {truncateLectureName(c.courseName)}
-                  {c.lecSection != null ? ` · ${c.lecSection}반` : ""} · {semLabelOf(c.year, c.termCode, termMap)}
+                  {c.lecSection != null ? ` · ${c.lecSection}반` : ""} · {semLabelOf(c.semYear, c.semTerm, termMap)}
                 </option>
               ))
             )}
@@ -182,30 +212,47 @@ export default function StudentMaterialsPage() {
         </div>
       </header>
 
-      {error ? (
+      {lecturesError ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
           <p className="text-sm text-slate-500">강의 자료를 불러오지 못했습니다.</p>
           <button
             type="button"
-            onClick={load}
+            onClick={loadLectures}
             className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
           >
             다시 시도
           </button>
         </div>
-      ) : loading ? (
+      ) : lecturesLoading ? (
         <p className="py-16 text-center text-sm text-slate-400">불러오는 중…</p>
-      ) : !selectedCourse ? (
+      ) : selectedLecId == null ? (
         <p className="py-16 text-center text-sm text-slate-400">표시할 강의 자료가 없습니다.</p>
+      ) : materialsError ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <p className="text-sm text-slate-500">강의 자료를 불러오지 못했습니다.</p>
+          <button
+            type="button"
+            onClick={() => loadMaterials(selectedLecId, page)}
+            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            다시 시도
+          </button>
+        </div>
       ) : (
-        // 과목 전환 시 key로 MaterialsTable 리마운트 → 페이지 0으로 리셋
-        <MaterialsTable key={selectedCourse.lecId} materials={selectedCourse.materials} onView={setViewing} />
+        <MaterialsTable
+          materials={materials}
+          page={page}
+          totalPages={totalPages}
+          loading={materialsLoading && !hasLoaded}
+          onView={setViewing}
+          onPageChange={setPage}
+        />
       )}
 
       <StudentMaterialViewDialog
         open={viewing !== null}
         material={viewing}
-        courseName={selectedCourse?.courseName}
+        courseName={selectedLecture?.courseName}
         onClose={() => setViewing(null)}
       />
     </div>
@@ -214,30 +261,30 @@ export default function StudentMaterialsPage() {
 
 function MaterialsTable({
   materials,
+  page,
+  totalPages,
+  loading,
   onView,
+  onPageChange,
 }: {
   materials: Material[];
+  page: number;
+  totalPages: number;
+  loading: boolean;
   onView: (m: Material) => void;
+  onPageChange: (p: number) => void;
 }) {
-  const [page, setPage] = useState(0);
-
   if (materials.length === 0) {
     return (
       <p className="rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-400">
-        이 과목의 강의 자료가 없습니다.
+        {loading ? "불러오는 중…" : "이 과목의 강의 자료가 없습니다."}
       </p>
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(materials.length / MATERIALS_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = materials.slice(
-    safePage * MATERIALS_PAGE_SIZE,
-    safePage * MATERIALS_PAGE_SIZE + MATERIALS_PAGE_SIZE
-  );
   const multiPage = totalPages > 1;
   // 다중 페이지일 때만 빈 행으로 높이 고정(페이지 이동 시 표 높이 안정). 단일 페이지는 자연 높이.
-  const padCount = multiPage ? MATERIALS_PAGE_SIZE - pageRows.length : 0;
+  const padCount = multiPage ? MATERIALS_PAGE_SIZE - materials.length : 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -252,7 +299,7 @@ function MaterialsTable({
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((m) => {
+          {materials.map((m) => {
             const hasFile = m.attachments.length > 0;
             const contentSummary = m.lecUplContent?.trim() ? htmlToPlainText(m.lecUplContent) : "";
             return (
@@ -320,8 +367,8 @@ function MaterialsTable({
         </tbody>
       </table>
 
-      {/* 페이저 — 다중 페이지일 때만 노출(에메랄드 학생 테마) */}
-      {multiPage && <MaterialsPager page={safePage} totalPages={totalPages} onChange={setPage} />}
+      {/* 페이저 — 다중 페이지일 때만 노출(에메랄드 학생 테마). page 변경 시 서버 재조회 */}
+      {multiPage && <MaterialsPager page={page} totalPages={totalPages} onChange={onPageChange} />}
     </div>
   );
 }
