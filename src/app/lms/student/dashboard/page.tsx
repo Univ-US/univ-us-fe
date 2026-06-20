@@ -203,10 +203,13 @@ export default function StudentDashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-800">수강 중인 강의</h2>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                  {data.semesterLabel}
-                </span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-800">수강 중인 강의</h2>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    {data.semesterLabel}
+                  </span>
+                </div>
+                <span className="shrink-0 pr-2 text-xs font-semibold text-slate-400">출석률</span>
               </div>
               {data.courses.length === 0 ? (
                 <p className="py-10 text-center text-sm text-slate-400">수강 중인 강의가 없습니다.</p>
@@ -275,16 +278,14 @@ export default function StudentDashboardPage() {
                             <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
                             {sbmStatusMap[assignment.status] ?? assignment.status}
                           </span>
-                          <Link
-                            href={
-                              assignment.status === "NSB"
-                                ? `/lms/student/assignments/submit?assignmentId=${assignment.id}`
-                                : "/lms/student/assignments/history"
-                            }
-                            className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
-                          >
-                            {assignment.status === "NSB" ? "제출" : "과제 내역"}
-                          </Link>
+                          {assignment.status === "NSB" && (
+                            <Link
+                              href={`/lms/student/assignments/submit?assignmentId=${assignment.id}`}
+                              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
+                            >
+                              제출
+                            </Link>
+                          )}
                         </div>
                       </li>
                     );

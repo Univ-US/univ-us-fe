@@ -101,13 +101,21 @@ const pickSemester = (
   params: GetStudentDashboardParams | undefined,
   available: DashboardSemesterOption[],
   courseSemesters: SemesterCourses[],
-  attendanceSemesters: SemesterAttendance[]
+  attendanceSemesters: SemesterAttendance[],
+  termMap: Record<string, string>
 ): DashboardSemesterOption | null => {
-  const requested =
-    params?.year != null && params?.termCode
-      ? available.find((s) => s.year === params.year && s.termCode === params.termCode)
-      : null;
-  if (requested) return requested;
+  // 필터로 학기를 명시 선택하면 그 학기를 그대로 사용 — 수강 데이터가 없어도 폴백하지 않고
+  // 빈 상태("표시할 내역 없음")로 보여준다 (교수 강의 내역 PLM-002와 동일 정책).
+  // 폴백(진행중/첫 학기)은 초기 로드(params 없음)에만 적용.
+  if (params?.year != null && params?.termCode) {
+    return (
+      available.find((s) => s.year === params.year && s.termCode === params.termCode) ?? {
+        year: params.year,
+        termCode: params.termCode,
+        semesterLabel: semesterLabel(params.year, params.termCode, termMap),
+      }
+    );
+  }
 
   const inProgressCourse = courseSemesters.find((s) => s.inProgress);
   if (inProgressCourse)
@@ -197,7 +205,8 @@ export const getStudentDashboard = async (
     params,
     availableSemesters,
     courseSemesters,
-    attendanceSemesters
+    attendanceSemesters,
+    termMap
   );
 
   const fallbackYear = new Date().getFullYear();
