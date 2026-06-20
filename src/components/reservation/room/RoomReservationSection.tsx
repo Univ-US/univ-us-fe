@@ -19,6 +19,9 @@ import MyRoomReservations from './MyRoomReservations';
 
 type RoomReservationSectionProps = {
   reservations: RoomReservation[];
+  reservationTotalElements: number;
+  reservationPage: number;
+  reservationTotalPages: number;
   reservationsLoading: boolean;
   reservationError: string;
   cancelingReservationId: number | null;
@@ -27,6 +30,7 @@ type RoomReservationSectionProps = {
   onCancelReservation: (reservation: RoomReservation) => void;
   onCheckInReservation: (reservationId: number) => void;
   onOpenPenaltyHistory: () => void;
+  onReservationPageChange: (page: number) => void;
   onRefreshReservations: () => void;
   availabilityError: string;
   availabilityLoading: boolean;
@@ -49,6 +53,9 @@ type RoomReservationSectionProps = {
 
 export default function RoomReservationSection({
   reservations,
+  reservationTotalElements,
+  reservationPage,
+  reservationTotalPages,
   reservationsLoading,
   reservationError,
   cancelingReservationId,
@@ -57,6 +64,7 @@ export default function RoomReservationSection({
   onCancelReservation,
   onCheckInReservation,
   onOpenPenaltyHistory,
+  onReservationPageChange,
   onRefreshReservations,
   availabilityError,
   availabilityLoading,
@@ -76,6 +84,9 @@ export default function RoomReservationSection({
     <div>
       <MyRoomReservations
         reservations={reservations}
+        totalElements={reservationTotalElements}
+        page={reservationPage}
+        totalPages={reservationTotalPages}
         loading={reservationsLoading}
         error={reservationError}
         cancelingReservationId={cancelingReservationId}
@@ -84,6 +95,7 @@ export default function RoomReservationSection({
         onCancel={onCancelReservation}
         onCheckIn={onCheckInReservation}
         onOpenPenaltyHistory={onOpenPenaltyHistory}
+        onPageChange={onReservationPageChange}
         onRefresh={onRefreshReservations}
       />
 
