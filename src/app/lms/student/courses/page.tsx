@@ -17,6 +17,8 @@ export default function StudentCoursesPage() {
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [termOrder, setTermOrder] = useState<string[]>([]);
+  const [enrMap, setEnrMap] = useState<Record<string, string>>({});
+  const [valMap, setValMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,6 +42,12 @@ export default function StudentCoursesPage() {
       setTermOrder(list.map((c) => c.codeVal));
       setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
     });
+    void getCommonCodeList("ENR_STS").then((list) =>
+      setEnrMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName]))),
+    );
+    void getCommonCodeList("LEC_VAL_STATUS").then((list) =>
+      setValMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName]))),
+    );
   }, []);
 
   const yearOptions = useMemo(
@@ -114,7 +122,12 @@ export default function StudentCoursesPage() {
       ) : (
         <div className="space-y-6">
           {visible.map((sem) => (
-            <SemesterCard key={`${sem.semYear}-${sem.semTerm}`} sem={sem} />
+            <SemesterCard
+              key={`${sem.semYear}-${sem.semTerm}`}
+              sem={sem}
+              enrMap={enrMap}
+              valMap={valMap}
+            />
           ))}
         </div>
       )}
@@ -122,7 +135,29 @@ export default function StudentCoursesPage() {
   );
 }
 
-function SemesterCard({ sem }: { sem: SemesterCourses }) {
+// 수강 상태(ENR_STS) / 강의 상태(LEC_VAL_STATUS) 배지 색 — 드랍·실패·폐강은 rose로 강조
+const ENR_BADGE: Record<string, string> = {
+  ENR: "bg-emerald-50 text-emerald-700",
+  CMP: "bg-slate-100 text-slate-600",
+  DRP: "bg-rose-50 text-rose-600",
+  FAL: "bg-rose-50 text-rose-600",
+};
+const VAL_BADGE: Record<string, string> = {
+  OPEN: "bg-sky-50 text-sky-700",
+  PROG: "bg-emerald-50 text-emerald-700",
+  CLSD: "bg-slate-100 text-slate-500",
+  CNCL: "bg-rose-50 text-rose-600",
+};
+
+function SemesterCard({
+  sem,
+  enrMap,
+  valMap,
+}: {
+  sem: SemesterCourses;
+  enrMap: Record<string, string>;
+  valMap: Record<string, string>;
+}) {
   const [page, setPage] = useState(0);
   const totalPages = Math.max(1, Math.ceil(sem.courses.length / COURSE_PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -156,6 +191,8 @@ function SemesterCard({ sem }: { sem: SemesterCourses }) {
         <thead>
           <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
             <th className="px-5 py-2.5 font-medium">과목명</th>
+            <th className="w-24 px-2 py-2.5 font-medium">수강 상태</th>
+            <th className="w-24 px-2 py-2.5 font-medium">강의 상태</th>
             <th className="w-20 px-2 py-2.5 font-medium">분반</th>
             <th className="w-16 px-2 py-2.5 font-medium">학점</th>
             <th className="w-28 px-2 py-2.5 font-medium">교수</th>
@@ -164,11 +201,11 @@ function SemesterCard({ sem }: { sem: SemesterCourses }) {
         </thead>
         <tbody>
           {pageRows.map((course) => (
-            <CourseTableRow key={course.lecId} course={course} />
+            <CourseTableRow key={course.lecId} course={course} enrMap={enrMap} valMap={valMap} />
           ))}
           {Array.from({ length: padCount }).map((_, i) => (
             <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-              <td colSpan={5} className="px-5 py-3">
+              <td colSpan={7} className="px-5 py-3">
                 <span className="block h-5" />
               </td>
             </tr>
@@ -181,13 +218,39 @@ function SemesterCard({ sem }: { sem: SemesterCourses }) {
   );
 }
 
-function CourseTableRow({ course }: { course: CourseRow }) {
+function CourseTableRow({
+  course,
+  enrMap,
+  valMap,
+}: {
+  course: CourseRow;
+  enrMap: Record<string, string>;
+  valMap: Record<string, string>;
+}) {
   return (
     <tr className="border-b border-slate-50 last:border-0">
       <td className="px-5 py-3">
         <p className="truncate font-semibold text-slate-800" title={course.courseName}>
           {course.courseName}
         </p>
+      </td>
+      <td className="px-2 py-3">
+        <span
+          className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            ENR_BADGE[course.lecStdEnrStatus] ?? "bg-slate-100 text-slate-500"
+          }`}
+        >
+          {enrMap[course.lecStdEnrStatus] ?? course.lecStdEnrStatus ?? "-"}
+        </span>
+      </td>
+      <td className="px-2 py-3">
+        <span
+          className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            VAL_BADGE[course.lecValStatus] ?? "bg-slate-100 text-slate-500"
+          }`}
+        >
+          {valMap[course.lecValStatus] ?? course.lecValStatus ?? "-"}
+        </span>
       </td>
       <td className="px-2 py-3 text-slate-600">
         {course.lecSection != null ? `${course.lecSection}반` : "-"}
