@@ -96,6 +96,8 @@ type ReservationToast = {
   type: 'success' | 'error';
 } | null;
 
+const RESERVATION_HISTORY_PAGE_SIZE = 9;
+
 const S = {
   pageContainer: 'min-h-screen bg-slate-50 px-[30px] py-6',
   contentWrapper: 'mx-auto max-w-[1140px]',
@@ -171,9 +173,18 @@ export default function CommunityReservation() {
     slotIndex: number;
   } | null>(null);
   const [myReservations, setMyReservations] = useState<ReadingSeatReservation[]>([]);
+  const [myReservationsPage, setMyReservationsPage] = useState(0);
+  const [myReservationsTotalElements, setMyReservationsTotalElements] =
+    useState(0);
+  const [myReservationsTotalPages, setMyReservationsTotalPages] = useState(0);
   const [myReservationsLoading, setMyReservationsLoading] = useState(true);
   const [myReservationError, setMyReservationError] = useState('');
   const [myRoomReservations, setMyRoomReservations] = useState<RoomReservation[]>([]);
+  const [myRoomReservationsPage, setMyRoomReservationsPage] = useState(0);
+  const [myRoomReservationsTotalElements, setMyRoomReservationsTotalElements] =
+    useState(0);
+  const [myRoomReservationsTotalPages, setMyRoomReservationsTotalPages] =
+    useState(0);
   const [myRoomReservationsLoading, setMyRoomReservationsLoading] = useState(true);
   const [myRoomReservationError, setMyRoomReservationError] = useState('');
   const [cancelingReservationId, setCancelingReservationId] = useState<
@@ -298,32 +309,50 @@ export default function CommunityReservation() {
     return true;
   }, [penaltyStatus]);
 
-  const loadMyReservations = useCallback(async () => {
+  const loadMyReservations = useCallback(async (page = 0) => {
     setMyReservationsLoading(true);
     setMyReservationError('');
 
     try {
-      const data = await getMyReadingSeatReservations();
-      setMyReservations(data);
+      const data = await getMyReadingSeatReservations(
+        page,
+        RESERVATION_HISTORY_PAGE_SIZE,
+      );
+      setMyReservations(data.content);
+      setMyReservationsPage(data.page);
+      setMyReservationsTotalElements(data.totalElements);
+      setMyReservationsTotalPages(data.totalPages);
     } catch (error) {
       console.error(error);
       setMyReservations([]);
+      setMyReservationsPage(0);
+      setMyReservationsTotalElements(0);
+      setMyReservationsTotalPages(0);
       setMyReservationError('로그인 후 내 예약을 확인할 수 있습니다.');
     } finally {
       setMyReservationsLoading(false);
     }
   }, []);
 
-  const loadMyRoomReservations = useCallback(async () => {
+  const loadMyRoomReservations = useCallback(async (page = 0) => {
     setMyRoomReservationsLoading(true);
     setMyRoomReservationError('');
 
     try {
-      const data = await getMyRoomReservations();
-      setMyRoomReservations(data);
+      const data = await getMyRoomReservations(
+        page,
+        RESERVATION_HISTORY_PAGE_SIZE,
+      );
+      setMyRoomReservations(data.content);
+      setMyRoomReservationsPage(data.page);
+      setMyRoomReservationsTotalElements(data.totalElements);
+      setMyRoomReservationsTotalPages(data.totalPages);
     } catch (error) {
       console.error(error);
       setMyRoomReservations([]);
+      setMyRoomReservationsPage(0);
+      setMyRoomReservationsTotalElements(0);
+      setMyRoomReservationsTotalPages(0);
       setMyRoomReservationError('로그인 후 내 예약 현황을 확인할 수 있습니다.');
     } finally {
       setMyRoomReservationsLoading(false);
@@ -419,64 +448,12 @@ export default function CommunityReservation() {
   }, [refreshPenaltyStatus]);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadInitialMyReservations() {
-      try {
-        const data = await getMyReadingSeatReservations();
-        if (!mounted) return;
-
-        setMyReservations(data);
-        setMyReservationError('');
-      } catch (error) {
-        console.error(error);
-        if (mounted) {
-          setMyReservations([]);
-          setMyReservationError('로그인 후 내 예약을 확인할 수 있습니다.');
-        }
-      } finally {
-        if (mounted) {
-          setMyReservationsLoading(false);
-        }
-      }
-    }
-
-    loadInitialMyReservations();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    void loadMyReservations(0);
+  }, [loadMyReservations]);
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadInitialMyRoomReservations() {
-      try {
-        const data = await getMyRoomReservations();
-        if (!mounted) return;
-
-        setMyRoomReservations(data);
-        setMyRoomReservationError('');
-      } catch (error) {
-        console.error(error);
-        if (mounted) {
-          setMyRoomReservations([]);
-          setMyRoomReservationError('로그인 후 내 예약 현황을 확인할 수 있습니다.');
-        }
-      } finally {
-        if (mounted) {
-          setMyRoomReservationsLoading(false);
-        }
-      }
-    }
-
-    loadInitialMyRoomReservations();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    void loadMyRoomReservations(0);
+  }, [loadMyRoomReservations]);
 
   useEffect(() => {
     if (!selectedDay) {
@@ -1186,6 +1163,9 @@ export default function CommunityReservation() {
             selectedDurationHours={selectedDurationHours}
             onTimeSlotClick={handleTimeSlotClick}
             reservations={myReservations}
+            reservationTotalElements={myReservationsTotalElements}
+            reservationPage={myReservationsPage}
+            reservationTotalPages={myReservationsTotalPages}
             reservationsLoading={myReservationsLoading}
             reservationError={myReservationError}
             cancelingReservationId={cancelingReservationId}
@@ -1196,7 +1176,10 @@ export default function CommunityReservation() {
             onCheckInReservation={handleCheckInReservation}
             onExtendReservation={handleExtendReservation}
             onOpenPenaltyHistory={() => setPenaltyHistoryOpen(true)}
-            onRefreshReservations={loadMyReservations}
+            onReservationPageChange={loadMyReservations}
+            onRefreshReservations={() =>
+              loadMyReservations(myReservationsPage)
+            }
             rooms={rooms}
             currentRoom={currentRoom}
             selectedRoomId={selRoomId}
@@ -1218,6 +1201,9 @@ export default function CommunityReservation() {
         {tab === 'room' && (
           <RoomReservationSection
             reservations={myRoomReservations}
+            reservationTotalElements={myRoomReservationsTotalElements}
+            reservationPage={myRoomReservationsPage}
+            reservationTotalPages={myRoomReservationsTotalPages}
             reservationsLoading={myRoomReservationsLoading}
             reservationError={myRoomReservationError}
             cancelingReservationId={cancelingRoomReservationId}
@@ -1226,7 +1212,10 @@ export default function CommunityReservation() {
             onCancelReservation={handleOpenCancelRoomReservationModal}
             onCheckInReservation={handleCheckInRoomReservation}
             onOpenPenaltyHistory={() => setPenaltyHistoryOpen(true)}
-            onRefreshReservations={loadMyRoomReservations}
+            onReservationPageChange={loadMyRoomReservations}
+            onRefreshReservations={() =>
+              loadMyRoomReservations(myRoomReservationsPage)
+            }
             availabilityError={roomAvailabilityError}
             availabilityLoading={roomAvailabilityLoading}
             roomAvailabilities={roomAvailabilities}

@@ -1,4 +1,11 @@
-import { CheckCircle2, Clock, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 
 import type {
   ReservationPenaltyStatus,
@@ -15,6 +22,9 @@ import {
 
 type MyRoomReservationsProps = {
   reservations: RoomReservation[];
+  totalElements: number;
+  page: number;
+  totalPages: number;
   loading: boolean;
   error: string;
   cancelingReservationId: number | null;
@@ -23,11 +33,15 @@ type MyRoomReservationsProps = {
   onCancel: (reservation: RoomReservation) => void;
   onCheckIn: (reservationId: number) => void;
   onOpenPenaltyHistory: () => void;
+  onPageChange: (page: number) => void;
   onRefresh: () => void;
 };
 
 export default function MyRoomReservations({
   reservations,
+  totalElements,
+  page,
+  totalPages,
   loading,
   error,
   cancelingReservationId,
@@ -36,6 +50,7 @@ export default function MyRoomReservations({
   onCancel,
   onCheckIn,
   onOpenPenaltyHistory,
+  onPageChange,
   onRefresh,
 }: MyRoomReservationsProps) {
   return (
@@ -46,7 +61,7 @@ export default function MyRoomReservations({
             내 예약 현황
           </div>
           <div className='mt-0.5 text-[12px] font-semibold text-slate-400'>
-            {reservations.length > 0 ? `${reservations.length}건` : '예약 없음'}
+            {totalElements > 0 ? `${totalElements}건` : '예약 없음'}
           </div>
         </div>
         <div className='flex items-center gap-2'>
@@ -163,6 +178,32 @@ export default function MyRoomReservations({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className='mt-4 flex items-center justify-center gap-3'>
+          <button
+            type='button'
+            onClick={() => onPageChange(page - 1)}
+            disabled={loading || page === 0}
+            className='flex size-8 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40'
+            aria-label='이전 회의실 예약 페이지'
+          >
+            <ChevronLeft className='size-4' />
+          </button>
+          <span className='text-[12px] font-semibold text-slate-500'>
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            type='button'
+            onClick={() => onPageChange(page + 1)}
+            disabled={loading || page >= totalPages - 1}
+            className='flex size-8 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40'
+            aria-label='다음 회의실 예약 페이지'
+          >
+            <ChevronRight className='size-4' />
+          </button>
         </div>
       )}
     </div>

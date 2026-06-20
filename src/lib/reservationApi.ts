@@ -141,6 +141,16 @@ export type ReservationPenaltyHistoryPage = {
   last: boolean;
 };
 
+export type ReservationPage<T> = {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+};
+
 export type ActiveSeatReservation = {
   reservationId: number;
   memberId: number;
@@ -276,9 +286,12 @@ export async function sendSeatChatMessage(
   return res.data;
 }
 
-export async function getMyReadingSeatReservations() {
-  const res = await api.get<ReadingSeatReservation[]>(
-    '/api/reservations/seats/me',
+export async function getMyReadingSeatReservations(page = 0, size = 9) {
+  const res = await api.get<ReservationPage<ReadingSeatReservation>>(
+    '/api/reservations/seats/me/history',
+    {
+      params: { page, size },
+    },
   );
 
   return res.data;
@@ -321,9 +334,12 @@ export async function getRoomAvailability(date: string) {
   return res.data;
 }
 
-export async function getMyRoomReservations() {
-  const res = await api.get<RoomReservation[]>(
-    '/api/reservations/rooms/me',
+export async function getMyRoomReservations(page = 0, size = 9) {
+  const res = await api.get<ReservationPage<RoomReservation>>(
+    '/api/reservations/rooms/me/history',
+    {
+      params: { page, size },
+    },
   );
 
   return res.data;
