@@ -14,6 +14,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useStudentProfileStore } from "@/store/lms/lmsStudentProfileStore";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 import { useLmsStudentChatStore } from "@/store/lms/lmsStudentChatStore";
+import { resetLmsUserStores } from "@/store/lms/lmsStoreReset";
 import LmsGuard from "@/components/auth/LmsGuard";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import {
@@ -127,6 +128,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
     } catch {
       /* 무시 */
     } finally {
+      resetLmsUserStores(); // per-user LMS 스토어 초기화 → 다음 로그인 시 이전 계정 정보 잔존 방지
       alert("로그아웃되었습니다.");
       router.push("/");
     }
