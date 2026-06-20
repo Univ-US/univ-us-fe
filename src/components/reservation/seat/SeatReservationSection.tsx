@@ -22,6 +22,9 @@ type SeatReservationSectionProps = {
   selectedDurationHours: number;
   onTimeSlotClick: (slotIndex: number) => void;
   reservations: ReadingSeatReservation[];
+  reservationTotalElements: number;
+  reservationPage: number;
+  reservationTotalPages: number;
   reservationsLoading: boolean;
   reservationError: string;
   cancelingReservationId: number | null;
@@ -32,6 +35,7 @@ type SeatReservationSectionProps = {
   onCheckInReservation?: (reservationId: number) => void;
   onExtendReservation?: (reservationId: number) => void;
   onOpenPenaltyHistory: () => void;
+  onReservationPageChange: (page: number) => void;
   onRefreshReservations: () => void;
   rooms: ReadingRoomAvailability[];
   currentRoom: ReadingRoomAvailability | undefined;
@@ -59,6 +63,9 @@ export default function SeatReservationSection({
   selectedDurationHours,
   onTimeSlotClick,
   reservations,
+  reservationTotalElements,
+  reservationPage,
+  reservationTotalPages,
   reservationsLoading,
   reservationError,
   cancelingReservationId,
@@ -69,6 +76,7 @@ export default function SeatReservationSection({
   onCheckInReservation,
   onExtendReservation,
   onOpenPenaltyHistory,
+  onReservationPageChange,
   onRefreshReservations,
   rooms,
   currentRoom,
@@ -100,6 +108,9 @@ export default function SeatReservationSection({
 
       <MyReadingSeatReservations
         reservations={reservations}
+        totalElements={reservationTotalElements}
+        page={reservationPage}
+        totalPages={reservationTotalPages}
         loading={reservationsLoading}
         error={reservationError}
         cancelingReservationId={cancelingReservationId}
@@ -110,6 +121,7 @@ export default function SeatReservationSection({
         onCheckIn={onCheckInReservation}
         onExtend={onExtendReservation}
         onOpenPenaltyHistory={onOpenPenaltyHistory}
+        onPageChange={onReservationPageChange}
         onRefresh={onRefreshReservations}
       />
 

@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Clock, RefreshCw, Trash2, CheckCircle2, Clock4, Info } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Clock4,
+  Info,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 
 import type {
   ReadingSeatReservation,
@@ -29,6 +38,9 @@ function getDateTimeMs(dateTime: string) {
 
 type MyReadingSeatReservationsProps = {
   reservations: ReadingSeatReservation[];
+  totalElements: number;
+  page: number;
+  totalPages: number;
   loading: boolean;
   error: string;
   cancelingReservationId: number | null;
@@ -39,11 +51,15 @@ type MyReadingSeatReservationsProps = {
   onCheckIn?: (reservationId: number) => void;
   onExtend?: (reservationId: number) => void;
   onOpenPenaltyHistory: () => void;
+  onPageChange: (page: number) => void;
   onRefresh: () => void;
 };
 
 export default function MyReadingSeatReservations({
   reservations,
+  totalElements,
+  page,
+  totalPages,
   loading,
   error,
   cancelingReservationId,
@@ -54,6 +70,7 @@ export default function MyReadingSeatReservations({
   onCheckIn,
   onExtend,
   onOpenPenaltyHistory,
+  onPageChange,
   onRefresh,
 }: MyReadingSeatReservationsProps) {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -81,7 +98,7 @@ export default function MyReadingSeatReservations({
             내 좌석 예약
           </div>
           <div className='mt-0.5 text-[12px] font-semibold text-slate-400'>
-            {reservations.length > 0 ? `${reservations.length}건` : '예약 없음'}
+            {totalElements > 0 ? `${totalElements}건` : '예약 없음'}
           </div>
         </div>
         <div className='flex items-center gap-2'>
@@ -254,6 +271,32 @@ export default function MyReadingSeatReservations({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className='mt-4 flex items-center justify-center gap-3'>
+          <button
+            type='button'
+            onClick={() => onPageChange(page - 1)}
+            disabled={loading || page === 0}
+            className='flex size-8 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40'
+            aria-label='이전 예약 페이지'
+          >
+            <ChevronLeft className='size-4' />
+          </button>
+          <span className='text-[12px] font-semibold text-slate-500'>
+            {page + 1} / {totalPages}
+          </span>
+          <button
+            type='button'
+            onClick={() => onPageChange(page + 1)}
+            disabled={loading || page >= totalPages - 1}
+            className='flex size-8 items-center justify-center rounded-lg border border-border text-slate-500 transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40'
+            aria-label='다음 예약 페이지'
+          >
+            <ChevronRight className='size-4' />
+          </button>
         </div>
       )}
 
