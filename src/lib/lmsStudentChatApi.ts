@@ -1,17 +1,9 @@
 import api from "@/lib/api";
+import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
 import type { ChatRoom, ChatMessage, ChatThread } from "@/types/lmsStudentChat";
 
 // 타입은 src/types/lmsStudentChat.ts로 분리 — 기존 소비처가 이 lib에서 type import하던 호환 유지(re-export)
 export type { ChatRoom, ChatMessage, ChatThread } from "@/types/lmsStudentChat";
-
-const avatarColors = [
-  "bg-emerald-600",
-  "bg-sky-600",
-  "bg-indigo-600",
-  "bg-rose-600",
-  "bg-amber-600",
-  "bg-teal-600",
-];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -47,7 +39,6 @@ export function formatChatDateLabel(at: string | Date): string {
 
 const normalizeRoom = (room: Omit<ChatRoom, "avatarInitial" | "avatarColor">): ChatRoom => {
   const professorName = room.professorName?.trim() || "교수";
-  const seed = professorName.charCodeAt(0) + room.roomId;
 
   return {
     ...room,
@@ -56,8 +47,9 @@ const normalizeRoom = (room: Omit<ChatRoom, "avatarInitial" | "avatarColor">): C
     lecSection: room.lecSection ?? null,
     lastMessage: room.lastMessage || "아직 메시지가 없습니다.",
     unread: room.unread ?? 0,
-    avatarInitial: professorName[0] ?? "교",
-    avatarColor: avatarColors[Math.abs(seed) % avatarColors.length],
+    avatarInitial: getLmsAvatarInitial(professorName, "교"),
+    // 같은 교수는 어느 화면에서나 같은 색 → 교수 식별자(professorLmsPrfId)로 시드
+    avatarColor: getLmsAvatarColor(room.professorLmsPrfId),
   };
 };
 
@@ -69,6 +61,14 @@ const normalizeMessage = (message: ChatMessage): ChatMessage => ({
 
 export const getChatRooms = async (): Promise<ChatRoom[]> => {
   const res = await api.get<Omit<ChatRoom, "avatarInitial" | "avatarColor">[]>("/api/lms/student/chats");
+  return (res.data ?? []).map(normalizeRoom);
+};
+
+// '채팅 만들기' 후보 — 수강 중이나 아직 대화 안 한 과목 방(BE: NOT EXISTS(messages)). semYear/semTerm 포함(년도/학기 필터용)
+export const getStartableChatRooms = async (): Promise<ChatRoom[]> => {
+  const res = await api.get<Omit<ChatRoom, "avatarInitial" | "avatarColor">[]>(
+    "/api/lms/student/chats/startable",
+  );
   return (res.data ?? []).map(normalizeRoom);
 };
 

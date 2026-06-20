@@ -1,7 +1,7 @@
 "use client";
 
 // PLM-010 교수 캘린더 — 담당 강의 일정 + 과제 마감 자동 연동 월별 캘린더
-// ✅ BE 실연동: GET /api/lms/professor/calendar?from=&to= (lmsProfessorCalendarApi.getProfessorCalendar). 그리드=교수 전용 ProfessorCalendar(학생과 소유경계 분리).
+// BE 실연동: GET /api/lms/professor/calendar?from=&to= (lmsProfessorCalendarApi.getProfessorCalendar). 그리드=교수 전용 ProfessorCalendar(학생과 소유경계 분리).
 // 색상 = 교수 슬레이트 계열(§13). 월 이동 시 해당 월 범위로 재조회.
 import { useCallback, useEffect, useState } from "react";
 import ProfessorCalendar, { type CalendarTheme } from "@/components/lms/ProfessorCalendar";

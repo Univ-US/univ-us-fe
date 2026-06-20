@@ -28,7 +28,7 @@ export default function ProfessorMaterialUploadDialog({
   onClose,
   onSubmit,
 }: ProfessorMaterialUploadDialogProps) {
-  useEscapeClose(open, onClose); // ESC = ✕ 버튼과 동일
+  useEscapeClose(open, onClose); // ESC = 닫기 버튼과 동일
 
   if (!open) return null;
 

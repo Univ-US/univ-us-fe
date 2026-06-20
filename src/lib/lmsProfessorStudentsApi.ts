@@ -1,15 +1,15 @@
 // src/lib/lmsProfessorStudentsApi.ts
 // PLM-003 / PLM-003-01 교수 "수강생 현황" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// BE 공식 명세 연동(2026-06-10). 학기 → 강의 → 수강생(서버 페이지네이션/검색/필터/정렬) → 상세 리포트.
+// BE 공식 명세 연동. 학기 → 강의 → 수강생(서버 페이지네이션/검색/필터/정렬) → 상세 리포트.
 //  · GET /api/lms/professor/semesters
 //  · GET /api/lms/professor/lectures?semesterId={semId}
 //  · GET /api/lms/professor/lectures/{lecId}/students?search=&submission=&sort=&order=&page=&size=
 //  · GET /api/lms/professor/lectures/{lecId}/students/export?search=&submission=&sort=&order=   (xlsx)
 //  · GET /api/lms/professor/lectures/{lecId}/students/{memberId}/report
 //  · GET /api/common-codes/{groupCode}            (토큰 불필요, 라벨 매핑용)
-// ⚠️ 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
+// 서버는 "코드값"만 반환(semTerm/lecAsnSbmStatus). 라벨은 공통코드로 FE가 매핑.
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 "에러 상태"를 표기한다.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import { truncateLectureName } from "@/lib/lmsLectureName";
@@ -124,6 +124,25 @@ export const getCommonCodeMap = async (
     return map;
   } catch {
     return {};
+  }
+};
+
+/**
+ * GET /api/common-codes/{groupCode} — 공통코드 "목록"(서버가 CODE_ORDER로 정렬해 반환).
+ * 코드의 순서가 필요할 때 사용(예: 학기 드롭다운/정렬 — DB CODE_ORDER가 단일 소스).
+ * 모듈 캐시. 실패 시 빈 배열([]) → 호출부가 코드/순서 fallback.
+ */
+const _codeListCache: Record<string, CommonCode[]> = {};
+export const getCommonCodeList = async (
+  groupCode: string
+): Promise<CommonCode[]> => {
+  if (_codeListCache[groupCode]) return _codeListCache[groupCode];
+  try {
+    const res = await api.get<CommonCode[]>(`/api/common-codes/${groupCode}`);
+    _codeListCache[groupCode] = res.data;
+    return res.data;
+  } catch {
+    return [];
   }
 };
 

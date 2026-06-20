@@ -6,8 +6,8 @@
 // - 각 학기 카드 행: 과목명+학수번호 · 수강생 · 강의 시간 · 평균 출석률(막대) · 미채점 · 관리
 //   · 진행중 학기 = 미채점 'N건' 배지 / 마감 학기 = '마감' 배지(미채점 표시 안 함)
 // - 색상: 교수 = 네이비/슬레이트(§13) · 출석률 막대 색 = 95/80 임계(§21)
-// 🧪 mock-first: lib(lmsProfessorCoursesApi)이 mock 반환 — BE 명세 오면 lib만 실연결.
-// ⚠️ 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
+// mock-first: lib(lmsProfessorCoursesApi)이 mock 반환 — BE 명세 오면 lib만 실연결.
+// 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getProfessorCourses } from "@/lib/lmsProfessorCoursesApi";
@@ -16,7 +16,7 @@ import type {
   ProfessorSemesterCourses,
   ProfessorCoursesOverview,
 } from "@/types/lmsProfessorCourses";
-import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 const TERM_LABEL: Record<string, string> = {
   SM1: "1학기",
@@ -24,7 +24,6 @@ const TERM_LABEL: Record<string, string> = {
   SM2: "2학기",
   WNT: "겨울 계절",
 };
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -37,6 +36,7 @@ export default function ProfessorCoursesPage() {
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,20 +57,21 @@ export default function ProfessorCoursesPage() {
   }, [load]);
 
   // 학기 드롭다운은 공통코드 SEM_TERM 기준 — 강의 데이터에 없는 미시작 학기('여름 계절')도 노출
+  // 서버가 CODE_ORDER로 정렬해 반환 → 정렬순(termOrder)과 라벨맵(termMap)을 한 번의 호출로 도출
   useEffect(() => {
-    void getCommonCodeMap("SEM_TERM").then(setTermMap);
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
   }, []);
 
   const yearOptions = useMemo(
     () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters],
   );
-  // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시). 미로드 시 TERM_ORDER 상수 fallback.
-  const termOptions = useMemo(() => {
-    const codes = Object.keys(termMap);
-    const base = codes.length > 0 ? codes : TERM_ORDER;
-    return [...base].sort((a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b));
-  }, [termMap]);
+  // 학기 옵션 = 공통코드 SEM_TERM 전체(강의 유무 무관 — 미시작 '여름 계절'도 표시).
+  // termOrder는 서버가 CODE_ORDER로 이미 정렬해 반환 → 재정렬 불필요. 미로드 시 빈 배열(라벨 로딩과 동일 성격).
+  const termOptions = termOrder;
 
   const visible = useMemo(
     () =>
@@ -96,7 +97,7 @@ export default function ProfessorCoursesPage() {
             disabled={loading || semesters.length === 0}
             className={`${selectClass} w-28`}
           >
-            <option value="">전체 년도</option>
+            <option value="">전체 연도</option>
             {yearOptions.map((y) => (
               <option key={y} value={String(y)}>
                 {y}년
@@ -294,7 +295,7 @@ function CourseRow({ course, closed }: { course: ProfessorCourseRow; closed: boo
         )}
       </td>
       <td className="px-5 py-3">
-        {/* 출결 관리 / 과제 관리 — 이 강의(course.lecId)를 물고 해당 화면으로 딥링크 (2026-06-17 BE 실연동 후 구현).
+        {/* 출결 관리 / 과제 관리 — 이 강의(course.lecId)를 물고 해당 화면으로 딥링크.
             받는 쪽(attendance·assignments)이 마운트 시 ?lecId= 를 읽어 담당 강의에 있으면 그 강의 자동 선택,
             없으면 첫 강의 fallback. 필터는 '전체' 기본이라 과거 학기 강의도 드롭다운에 있어 매칭됨. */}
         <div className="flex items-center justify-end gap-1.5">

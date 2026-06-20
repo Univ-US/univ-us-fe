@@ -5,6 +5,7 @@
 // - 지각·결석 수치(>0) 클릭 → 해당 날짜(YYYY-MM-DD) 팝오버 / 70% 미만 출석률 강조
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { getStudentAttendance } from "@/lib/lmsStudentAttendanceApi";
 import type {
   AttendanceCourse,
@@ -12,8 +13,6 @@ import type {
   SemesterAttendance,
 } from "@/types/lmsStudentAttendance";
 
-const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
@@ -23,16 +22,16 @@ const rateColor = (rate: number) =>
 
 // 학기 테이블 페이지네이션 — 한 페이지당 과목 수.
 const ATTENDANCE_PAGE_SIZE = 5;
-const SEMESTER_PAGE_SIZE = 3;
 
 export default function StudentAttendancePage() {
   const [semesters, setSemesters] = useState<SemesterAttendance[]>([]);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21)
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
-  const [semesterPage, setSemesterPage] = useState(0);
   // 팝오버 키: `${lecId}-late` | `${lecId}-absent`
   const [openPop, setOpenPop] = useState<string | null>(null);
 
@@ -52,8 +51,14 @@ export default function StudentAttendancePage() {
   useEffect(() => load(), [load]);
 
   useEffect(() => {
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
+  }, []);
+
+  useEffect(() => {
     setOpenPop(null);
-    setSemesterPage(0);
   }, [yearFilter, termFilter]);
 
   const keyOf = (s: SemesterAttendance) => `${s.semYear}-${s.semTerm}`;
@@ -61,13 +66,8 @@ export default function StudentAttendancePage() {
     () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
     [semesters]
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [semesters]
-  );
+  // 데이터 유무와 무관하게 공통코드 학기 노출(CODE_ORDER 순) — 라벨은 termMap[t] ?? t
+  const termOptions = termOrder;
   const visible = useMemo(
     () =>
       semesters.filter(
@@ -76,13 +76,6 @@ export default function StudentAttendancePage() {
           (termFilter === "all" || s.semTerm === termFilter)
       ),
     [semesters, yearFilter, termFilter]
-  );
-  const totalSemesterPages = Math.max(1, Math.ceil(visible.length / SEMESTER_PAGE_SIZE));
-  const safeSemesterPage = Math.min(semesterPage, totalSemesterPages - 1);
-  const semesterStartIndex = safeSemesterPage * SEMESTER_PAGE_SIZE;
-  const pagedVisible = visible.slice(
-    semesterStartIndex,
-    semesterStartIndex + SEMESTER_PAGE_SIZE
   );
 
   return (
@@ -100,7 +93,7 @@ export default function StudentAttendancePage() {
             disabled={loading || semesters.length === 0}
             className={`${selectClass} w-28`}
           >
-            <option value="">전체 년도</option>
+            <option value="">전체 연도</option>
             {yearOptions.map((y) => (
               <option key={y} value={String(y)}>
                 {y}년
@@ -116,7 +109,7 @@ export default function StudentAttendancePage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? t}
               </option>
             ))}
           </select>
@@ -142,41 +135,15 @@ export default function StudentAttendancePage() {
       ) : visible.length === 0 ? (
         <p className="py-16 text-center text-sm text-slate-400">표시할 출석 내역이 없습니다.</p>
       ) : (
-        <div className="space-y-4">
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visible.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisible.length}
-            onChange={(page) => {
-              setOpenPop(null);
-              setSemesterPage(page);
-            }}
-          />
-
-          <div className="space-y-6">
-            {pagedVisible.map((sem) => (
-              <SemesterAttendanceTable
-                key={keyOf(sem)}
-                sem={sem}
-                openPop={openPop}
-                setOpenPop={setOpenPop}
-              />
-            ))}
-          </div>
-
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visible.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisible.length}
-            onChange={(page) => {
-              setOpenPop(null);
-              setSemesterPage(page);
-            }}
-          />
+        <div className="space-y-6">
+          {visible.map((sem) => (
+            <SemesterAttendanceTable
+              key={keyOf(sem)}
+              sem={sem}
+              openPop={openPop}
+              setOpenPop={setOpenPop}
+            />
+          ))}
         </div>
       )}
 
@@ -290,46 +257,6 @@ function SemesterAttendanceTable({
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
       <AttendancePager page={safePage} totalPages={totalPages} onChange={goPage} />
     </section>
-  );
-}
-
-function SemesterPager({
-  page,
-  totalPages,
-  totalItems,
-  startIndex,
-  visibleCount,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  startIndex: number;
-  visibleCount: number;
-  onChange: (p: number) => void;
-}) {
-  const rangeStart = startIndex + 1;
-  const rangeEnd = startIndex + visibleCount;
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-medium text-slate-500">
-        총 {totalItems}개 학기 중 {rangeStart}-{rangeEnd} 표시
-      </p>
-      <div className="flex items-center justify-center gap-1">
-        <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
-          이전
-        </PageBtn>
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
-            {i + 1}
-          </PageBtn>
-        ))}
-        <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
-          다음
-        </PageBtn>
-      </div>
-    </div>
   );
 }
 

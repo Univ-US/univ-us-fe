@@ -1,13 +1,12 @@
 "use client";
 
-// ─────────────────────────────────────────────────────────────
-// [공용 모달 컴포넌트] PLM-003-01 수강생 상세 리포트 다이얼로그
+// PLM-003-01 수강생 상세 리포트 다이얼로그
 // - PLM-003(수강생 현황) 목록의 '상세' 클릭 시 표시
 // - 출석률·과제 제출·평균 점수 요약 + 과제별 점수 + 출결 요약
 // - 데이터(report)는 부모(페이지)가 주입 — 컴포넌트는 표시만 담당(프레젠테이셔널)
-// ─────────────────────────────────────────────────────────────
 import { Button } from "@/components/ui/button";
 import useEscapeClose from "@/components/lms/useEscapeClose";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 import type { StudentReport } from "@/types/lmsProfessorStudents";
 
@@ -28,7 +27,7 @@ export default function StudentReportDialog({
   onClose,
   onSendMessage,
 }: StudentReportDialogProps) {
-  useEscapeClose(open, onClose); // ESC = ✕ 버튼과 동일
+  useEscapeClose(open, onClose); // ESC = 닫기 버튼과 동일
 
   if (!open) return null;
 
@@ -72,7 +71,7 @@ export default function StudentReportDialog({
             <>
               {/* 학생 식별 */}
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-rose-400 text-lg font-semibold text-white">
+                <div className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(report.studentNo)} text-lg font-semibold text-white`}>
                   {resolveImageUrl(report.imageUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={resolveImageUrl(report.imageUrl)!} alt="" className="h-full w-full object-cover" />

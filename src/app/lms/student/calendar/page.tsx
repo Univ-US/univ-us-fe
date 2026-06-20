@@ -1,7 +1,7 @@
 "use client";
 
 // SLM-010 학생 캘린더 — 수강 강의 일정 + 과제 마감 자동 연동 월별 캘린더
-// ✅ BE 실연동: GET /api/lms/student/calendar?from=&to= (lmsStudentCalendarApi.getStudentCalendar). 그리드=학생 전용 StudentCalendar(교수와 소유경계 분리).
+// BE 실연동: GET /api/lms/student/calendar?from=&to= (lmsStudentCalendarApi.getStudentCalendar). 그리드=학생 전용 StudentCalendar(교수와 소유경계 분리).
 // 색상 = 학생 에메랄드 계열(§13). 월 이동 시 해당 월 범위로 재조회.
 import { useCallback, useEffect, useState } from "react";
 import StudentCalendar, { type CalendarTheme } from "@/components/lms/StudentCalendar";

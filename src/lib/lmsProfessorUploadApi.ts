@@ -1,14 +1,14 @@
 // src/lib/lmsProfessorUploadApi.ts
 // PLM-005 / PLM-005-01 교수 "강의 업로드" API 클라이언트 + 타입
 // ─────────────────────────────────────────────────────────────
-// BE 공식 연동(2026-06-11) — mock 제거. 전부 본인 강의 한정(타 강의/자료 403).
+// BE 공식 연동 — mock 제거. 전부 본인 강의 한정(타 강의/자료 403).
 //  · GET    /api/lms/professor/uploads/lectures        (등록 폼 과목 드롭다운 — 담당 강의)
 //  · GET    /api/lms/professor/uploads                 (자료 목록, 최신순 — 페이지네이션은 FE 슬라이싱)
 //  · POST   /api/lms/professor/uploads                 (multipart: lecId·title 필수, content·files[다중] 선택 — 텍스트만 등록 가능)
 //  · PUT    /api/lms/professor/uploads/{uploadId}      (multipart: files=추가 첨부, removeAttachmentIds=기존 첨부 개별 제거)
 //  · DELETE /api/lms/professor/uploads/{uploadId}
-// ⚠️ 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
-// ⚠️ content = Tiptap 에디터 HTML 문자열(CLOB). 목록 요약 표시는 htmlToPlainText(lmsSanitize) 사용.
+// 실패 시 가짜 데이터로 가리지 않는다 — 페이지가 describeApiError로 "에러 상태"를 표기한다.
+// content = Tiptap 에디터 HTML 문자열(CLOB). 목록 요약 표시는 htmlToPlainText(lmsSanitize) 사용.
 // ─────────────────────────────────────────────────────────────
 import api from "@/lib/api";
 import type {

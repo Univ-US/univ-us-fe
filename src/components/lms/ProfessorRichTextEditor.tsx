@@ -1,16 +1,14 @@
 "use client";
 
-// ─────────────────────────────────────────────────────────────
-// [교수] LMS 리치텍스트 에디터 — Tiptap 래퍼 (트라이얼 2026-06-11)
-// - 제공 기능 5종 한정(사용자 확정): 굵게 · 기울임 · 밑줄 · 글자 크기 · 글자 색상
+// [교수] LMS 리치텍스트 에디터 — Tiptap 래퍼
+// - 제공 기능 5종 한정: 굵게 · 기울임 · 밑줄 · 글자 크기 · 글자 색상
 //   (StarterKit의 나머지 확장은 configure로 비활성 — 마크다운 단축키로도 헤딩/목록 안 생김)
 // - 인터페이스 textarea 호환(value/onChange = HTML 문자열) → 원복 시 textarea로 한 줄 교체
-// - ⚠️ Tiptap v3는 기본적으로 트랜잭션마다 리렌더하지 않음(shouldRerenderOnTransaction=false)
+// - Tiptap v3는 기본적으로 트랜잭션마다 리렌더하지 않음(shouldRerenderOnTransaction=false)
 //   → 툴바 활성 상태는 반드시 useEditorState 구독으로 읽는다(렌더 시 isActive 직독은 stale →
 //   "토글이 안 풀리는" 버그의 원인이었음)
 // - SSR/정적 export: useEditor({ immediatelyRender:false })로 프리렌더 안전
 // - 콘텐츠 스타일 = 공용 lms-content.css (학생 뷰와 표시 동일성)
-// ─────────────────────────────────────────────────────────────
 import { useEffect } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -108,8 +106,8 @@ export default function ProfessorRichTextEditor({
     editor?.setEditable(!disabled);
   }, [disabled, editor]);
 
-  // ⚠️ 플레이스홀더/카운터는 useEditorState 스냅샷을 쓰지 않는다 — 수정 모드처럼 내용이 채워진 채
-  // 생성되면 첫 트랜잭션 전까지 스냅샷이 빈 문서(isEmpty/0자)로 남아 겹침 버그가 남(2026-06-11 발견).
+  // 플레이스홀더/카운터는 useEditorState 스냅샷을 쓰지 않는다 — 수정 모드처럼 내용이 채워진 채
+  // 생성되면 첫 트랜잭션 전까지 스냅샷이 빈 문서(isEmpty/0자)로 남아 겹침 버그가 남.
   // 플레이스홀더 = value prop(항상 현재 HTML) 기준, 카운터 = 에디터 직접 읽기(리렌더는 구독이 보장).
   const showPlaceholder = !disabled && (!value || value === "<p></p>");
   const characters = editor?.storage.characterCount.characters() ?? 0;

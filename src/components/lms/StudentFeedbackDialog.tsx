@@ -20,7 +20,7 @@ export default function StudentFeedbackDialog({
   assignment,
   onClose,
 }: StudentFeedbackDialogProps) {
-  useEscapeClose(open && !!assignment, onClose); // ESC = ✕ 버튼과 동일
+  useEscapeClose(open && !!assignment, onClose); // ESC = 닫기 버튼과 동일
 
   if (!open || !assignment) return null;
   const fb = assignment.feedback;
@@ -34,7 +34,7 @@ export default function StudentFeedbackDialog({
       aria-label="채점 피드백 보기"
     >
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        {/* 헤더 — ✕ 제거(닫기는 푸터 버튼 / ESC로 처리) */}
+        {/* 헤더 — 닫기 버튼 제거(닫기는 푸터 버튼 / ESC로 처리) */}
         <div className="flex items-center border-b border-slate-100 px-6 py-4">
           <h3 className="text-base font-semibold text-slate-800">
             피드백 보기 <span className="text-slate-400">—</span> {assignment.lecAsnTitle}

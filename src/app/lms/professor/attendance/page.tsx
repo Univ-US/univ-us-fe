@@ -5,8 +5,8 @@
 // - 통계 카드 4개: 수강생 / 평균 출석률 / 지각 누계 / 결석 위험(≤70%)
 // - 목록 테이블: 학생별 출석·지각·결석·출석률 + '수정'(회차 태그 편집 모달)
 // - 출석률 70% 미만 학생은 붉은 배경 / 접근=교수(PROF) 전용 — ADM·SUA는 교수 LMS 미진입(어드민 출결 열람은 학교관리자 BO 별도 화면)
-// ✅ BE 연동(2026-06-16): /api/lms/professor/attendance/** (lib: lmsProfessorAttendanceApi).
-// ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError).
+// BE 연동: /api/lms/professor/attendance/** (lib: lmsProfessorAttendanceApi).
+// 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ProfessorAttendanceEditDialog from "@/components/lms/ProfessorAttendanceEditDialog";
 import {
@@ -26,9 +26,8 @@ import type {
   LectureAttendance,
 } from "@/types/lmsProfessorAttendance";
 import { describeApiError } from "@/lib/lmsApiError";
-
-// 학기 정렬 순서(SEM_TERM) — 학기 드롭다운 정렬용
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 // (년도, 학기) 조합에 매칭되는 강의들. 둘 다 'all'이면 전체. — PLM-003 수강생 현황과 동일 패턴
 const matchLectures = (
@@ -44,6 +43,8 @@ export default function ProfessorAttendancePage() {
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
+  // 학기 정렬 순서(SEM_TERM) — 공통코드 CODE_ORDER 기준(서버 정렬). 학기 드롭다운 정렬용
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   const [data, setData] = useState<LectureAttendance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,11 @@ export default function ProfessorAttendancePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   // 지각/결석 날짜 팝오버 — 키 `${memberId}-LAT` | `${memberId}-ABS`
   const [openPop, setOpenPop] = useState<string | null>(null);
+
+  // 학기 정렬 순서(SEM_TERM) 로드 — 실패 시 [](재정렬 없음)
+  useEffect(() => {
+    getCommonCodeList("SEM_TERM").then((list) => setTermOrder(list.map((c) => c.codeVal)));
+  }, []);
 
   // 구조 로드(마운트): 담당 강의 → 기본 '전체/전체' → 첫 강의 선택
   useEffect(() => {
@@ -108,9 +114,9 @@ export default function ProfessorAttendancePage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
   const filteredLectures = useMemo(
     () => matchLectures(yearFilter, termFilter, lectures),
@@ -181,7 +187,7 @@ export default function ProfessorAttendancePage() {
               onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
               className={`${selectClass} w-28`}
             >
-              <option value="">전체 년도</option>
+              <option value="">전체 연도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년
@@ -297,7 +303,7 @@ export default function ProfessorAttendancePage() {
                       >
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700 text-xs font-semibold text-white">
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(s.studentNo)} text-xs font-semibold text-white`}>
                               {s.studentName.trim()[0] ?? "?"}
                             </div>
                             <div className="min-w-0">
@@ -505,7 +511,7 @@ function AttendanceDateCell({
   );
 }
 
-// 출석률 막대 색 — 교수 LMS 색상 표준(95/80, 2026-06-16): 정상 ≥95 · 경고 80~94 · 위험 <80
+// 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
   if (rate >= 95) return "bg-emerald-500";
   if (rate >= AT_RISK_THRESHOLD) return "bg-amber-400";

@@ -1,7 +1,7 @@
 "use client";
 
 // 교수 LMS "미채점 건수" 공유 스토어 (사이드바 배지 ↔ 채점 현황 화면)
-// - 사이드바(layout) '채점 현황' 배지 = ⭐ **항상 '전체' 학기**의 미채점 합. 화면에서 어떤 학기를 골라도 배지는 전체.
+// - 사이드바(layout) '채점 현황' 배지 = 항상 '전체' 학기의 미채점 합. 화면에서 어떤 학기를 골라도 배지는 전체.
 // - 0이거나 미로딩/실패면 ungradedCount=null → 배지 숨김 (가짜 숫자로 가리지 않음).
 // - 사이드바는 loadUngradedCount(BE 단일 카운트 엔드포인트)로 조회, 채점 화면(page)은 '전체' 볼 때만 setUngradedCount로 갱신.
 import { create } from "zustand";

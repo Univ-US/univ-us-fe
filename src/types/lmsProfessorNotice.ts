@@ -1,5 +1,5 @@
 // src/types/lmsProfessorNotice.ts
-// PLM-007 공지사항 관리 타입 선언 (lmsProfessorNoticeApi.ts에서 분리)
+// PLM-007 공지사항 관리 타입 선언
 
 /** 공지 작성 대상 = 담당 강의 1개 (BE LectureResDto). 배지·드롭다운은 truncateLectureName으로 축약 */
 export interface NoticeLecture {

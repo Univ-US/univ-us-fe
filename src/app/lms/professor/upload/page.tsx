@@ -1,8 +1,8 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// PLM-005 — 교수 "강의 업로드" (영상·파일 업로드 & 텍스트 작성) — ✅ BE 실연동(2026-06-11)
-//   + 서버 페이지네이션 전환(2026-06-13, 공통 PaginateRestUtil/PageResponse)
+// PLM-005 — 교수 "강의 업로드" (영상·파일 업로드 & 텍스트 작성) — BE 실연동
+//   + 서버 페이지네이션 전환(공통 PaginateRestUtil/PageResponse)
 // - 마운트: 과목 드롭다운(GET /uploads/lectures) + SEM_TERM 공통코드 + 메타(GET /uploads/meta) + 첫 페이지
 // - 목록: GET /uploads?page=&size=&year=&termCode= → 서버가 필터·페이지 처리(PageResponse)
 //   · 필터 옵션(년도/학기)·전체 건수는 메타에서, 현재 페이지 항목·필터 건수는 페이지 응답에서
@@ -10,7 +10,7 @@
 // - 삭제: confirm → DELETE → 메타 + 현재 페이지 재조회(마지막 1건 삭제 시 페이지 보정)
 // - 목록은 페이지당 최대 10건 + 빈 행 패딩으로 높이 고정(0건 포함, 페이저 상시 표시)
 // - 유형 칼럼은 BE가 내려주는 확장자(EXT_TYPE) 문자열 그대로 표기(예: mp4·avi·pdf)
-// - ⚠️ 실패 시 가짜 데이터로 가리지 않음 — describeApiError 표기 + 재시도
+// - 실패 시 가짜 데이터로 가리지 않음 — describeApiError 표기 + 재시도
 // ─────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -24,19 +24,18 @@ import {
   isVideoExt,
 } from "@/lib/lmsProfessorUploadApi";
 import type { Lecture, Material, SemesterOption } from "@/types/lmsProfessorUpload";
-import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 
 // 페이지당 표시 건수 (서버 페이지네이션 size)
 const MATERIALS_PAGE_SIZE = 10;
 
-// 학기 필터 옵션 정렬 순서 (공통코드 SEM_TERM — 연중 순서)
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
-
 export default function LectureUploadPage() {
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  // 학기 필터 정렬 순서 — 공통코드 SEM_TERM(서버 CODE_ORDER 정렬)에서 유도
+  const [termOrder, setTermOrder] = useState<string[]>([]);
 
   // 메타 — 전체 건수(필터 무관) + 필터 옵션(자료 보유 년도/학기)
   const [totalAll, setTotalAll] = useState(0);
@@ -69,9 +68,9 @@ export default function LectureUploadPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(semesters.map((s) => s.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [semesters]
+    [semesters, termOrder]
   );
 
   // 메타 로드 (마운트 + 등록/삭제 후) — 전체 건수·필터 옵션. 실패는 페이지 로드 에러로 통합 처리.
@@ -107,16 +106,18 @@ export default function LectureUploadPage() {
     }
   }, []);
 
-  // 마운트: 강의 드롭다운 + 학기 라벨 + 메타 (페이지는 아래 effect가 로드)
+  // 마운트: 강의 드롭다운 + 학기 공통코드(순서+라벨 통합) + 메타 (페이지는 아래 effect가 로드)
   useEffect(() => {
     (async () => {
       try {
-        const [lectureList, semTermMap] = await Promise.all([
+        const [lectureList, semTermList] = await Promise.all([
           getUploadLectures(),
-          getCommonCodeMap("SEM_TERM"),
+          getCommonCodeList("SEM_TERM"),
         ]);
         setLectures(lectureList);
-        setTermMap(semTermMap);
+        // 서버 CODE_ORDER 정렬 배열에서 정렬 순서(termOrder)와 라벨맵(termMap) 둘 다 유도
+        setTermOrder(semTermList.map((c) => c.codeVal));
+        setTermMap(Object.fromEntries(semTermList.map((c) => [c.codeVal, c.codeName])));
         await loadMeta();
       } catch (err) {
         setError(describeApiError(err));
@@ -241,10 +242,10 @@ export default function LectureUploadPage() {
                     value={yearFilter}
                     onChange={(e) => changeYear(e.target.value)}
                     disabled={loading}
-                    aria-label="년도 필터"
+                    aria-label="연도 필터"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
-                    <option value="all">전체 년도</option>
+                    <option value="all">전체 연도</option>
                     {yearOptions.map((y) => (
                       <option key={y} value={String(y)}>
                         {y}년
@@ -298,7 +299,7 @@ export default function LectureUploadPage() {
                             <div className="flex h-9 items-center justify-center">
                               {totalAll === 0
                                 ? "업로드된 자료가 없습니다."
-                                : "선택한 년도·학기에 해당하는 자료가 없습니다."}
+                                : "선택한 연도·학기에 해당하는 자료가 없습니다."}
                             </div>
                           </td>
                         </tr>

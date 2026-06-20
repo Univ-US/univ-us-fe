@@ -1,12 +1,12 @@
 "use client";
 
 // PLM-003 — 교수 "수강생 현황" (강의별 수강생 목록 + 출석·과제 현황)
-// BE 공식 명세 연동(2026-06-10): 서버 페이지네이션/검색/필터/정렬 + Excel 내보내기.
+// BE 공식 명세 연동: 서버 페이지네이션/검색/필터/정렬 + Excel 내보내기.
 // - 상단: 년도/학기(기본 둘 다 '전체')/강의 드롭다운 + 이름·학번 검색 + 필터(제출/정렬) + 명단 내보내기
 // - 통계 카드 3개(summary: 검색 전체 기준, 필터·정렬·페이지엔 안 바뀜)
 // - 목록 테이블 + 서버 페이지네이션(page 0-based)
 // - '상세' 클릭 → PLM-003-01 상세 리포트 모달
-// ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
+// 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import StudentReportDialog from "@/components/lms/StudentReportDialog";
@@ -15,6 +15,7 @@ import {
   getLectureStudents,
   getStudentReport,
   getCommonCodeMap,
+  getCommonCodeList,
   exportEnrollees,
   lectureLabel,
   LECTURE_NAME_MAX,
@@ -29,11 +30,9 @@ import type {
   StudentsQuery,
 } from "@/types/lmsProfessorStudents";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 
 const PAGE_SIZE = 10;
-
-// 학기 정렬 순서(공통코드 SEM_TERM) — 학기 드롭다운 옵션 정렬용
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 // 선택된 (년도, 학기) 조합에 매칭되는 담당 강의들. 둘 다 'all'이면 전 강의.
 // 강의 응답의 semYear/semTerm으로 클라이언트 필터(getLectures가 학기 1개만 받으므로 전체 로드 후 거른다).
@@ -53,6 +52,7 @@ type Order = "asc" | "desc";
 export default function ProfessorStudentsPage() {
   // 드롭다운/구조
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]); // SEM_TERM 정렬 순서(CODE_ORDER)
   const [statusMap, setStatusMap] = useState<Record<string, string>>({}); // LEC_VAL_STATUS
   const [lectures, setLectures] = useState<Lecture[]>([]); // 담당 강의 전체(년도/학기 필터는 클라이언트)
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
@@ -94,10 +94,12 @@ export default function ProfessorStudentsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const tMap = await getCommonCodeMap("SEM_TERM");
+        // 학기: 라벨(termMap)과 정렬순서(termOrder)를 한 번의 호출(목록)에서 도출 — 단일 소스(DB CODE_ORDER)
+        const termList = await getCommonCodeList("SEM_TERM");
         const stMap = await getCommonCodeMap("LEC_VAL_STATUS");
         const lecs = await getLectures(); // 담당 강의 전체(년도/학기 필터는 클라이언트)
-        setTermMap(tMap);
+        setTermMap(Object.fromEntries(termList.map((c) => [c.codeVal, c.codeName])));
+        setTermOrder(termList.map((c) => c.codeVal));
         setStatusMap(stMap);
         setLectures(lecs);
         // 기본값 = 년도/학기 둘 다 '전체'(전 화면 공통 규칙) + 전체 강의 중 첫 강의 선택
@@ -184,9 +186,9 @@ export default function ProfessorStudentsPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm).filter((t): t is string => !!t))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
 
   // 필터 패널: 열 때 현재 적용값을 드래프트로 복사 → 선택은 드래프트만 변경 → '확인'에서만 적용
@@ -304,7 +306,7 @@ export default function ProfessorStudentsPage() {
               onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
               className={`${selectClass} w-28`}
             >
-              <option value="">전체 년도</option>
+              <option value="">전체 연도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년
@@ -518,7 +520,7 @@ export default function ProfessorStudentsPage() {
                     <tr key={s.enrollmentId} className="border-b border-slate-50 last:border-0">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-700 text-xs font-semibold text-white">
+                          <div className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(s.studentNo)} text-xs font-semibold text-white`}>
                             {resolveImageUrl(s.imageUrl) ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={resolveImageUrl(s.imageUrl)!} alt="" className="h-full w-full object-cover" />
@@ -665,7 +667,7 @@ function lecStatusBadgeClass(code: string | null) {
   }
 }
 
-// 출석률 막대 색 — 교수 LMS 색상 표준(95/80, 2026-06-16): 정상 ≥95 · 경고 80~94 · 위험 <80
+// 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
   if (rate >= 95) return "bg-emerald-500";
   if (rate >= 80) return "bg-amber-400";

@@ -1,7 +1,7 @@
 "use client";
 
 // PLM-006 교수 과제 관리 — 과제 등록·수정·삭제 + 과목별 제출/채점 현황 (상세 채점은 PLM-004 채점 현황)
-// ✅ BE 실연동 + 서버 페이지네이션(2026-06-13). 구성 = 수강생 현황(PLM-003)과 동일 패턴:
+// BE 실연동 + 서버 페이지네이션. 구성 = 수강생 현황(PLM-003)과 동일 패턴:
 //   상단 년도/학기(기본 둘 다 '전체') + 과목 드롭다운(첫 과목 자동 선택) → 선택한 '한 과목'의 과제만 표시.
 //   → 과목이 페이지 경계에서 쪼개지는 문제가 없음(한 번에 한 과목).
 // - 마운트: 담당 강의(GET /assignments/lectures) 로드 → 첫 과목 선택
@@ -9,7 +9,7 @@
 // - 년도/학기: 담당 강의를 클라에서 좁힘(과목 드롭다운 옵션) + 첫 과목 자동 선택
 // - 등록 폼: 대상 과목(현재 과목 프리필)·마감 일시·과제명 필수 / 만점(100 고정)·설명·첨부(다중) 선택
 // - 수정: 행 '수정' → 폼 프리필(과목은 변경 불가) + dirty 가드 / 삭제: confirm 경유
-// - ⚠️ 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
+// - 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
@@ -30,14 +30,13 @@ import {
 } from "@/lib/lmsProfessorAssignmentsApi";
 import type { Assignment, AssignmentLecture } from "@/types/lmsProfessorAssignments";
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 const selectClass =
   "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 const inputClass =
   "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 const labelClass = "text-sm font-semibold text-slate-700";
-
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 
 // 서버 페이지네이션 size — 선택 과목 과제 목록(타 화면과 통일 10건)
 const PAGE_SIZE = 10;
@@ -94,6 +93,7 @@ export default function ProfessorAssignmentsPage() {
 
   // 공통코드 라벨 맵 (PLM-003/004/005 패턴) — SEM_TERM 학기 · LEC_ASN_VAL_STATUS 과제 상태. 실패 시 {}(원본 코드 표시).
   const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]); // SEM_TERM 정렬 순서(DB CODE_ORDER) — 학기 드롭다운 정렬용
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
   const semLabelOf = (year: number, termCode: string) =>
     `${year}년 ${termMap[termCode] ?? termCode}`;
@@ -146,14 +146,16 @@ export default function ProfessorAssignmentsPage() {
     })();
   }, []);
 
-  // 공통코드 라벨 맵 로드 (SEM_TERM · LEC_ASN_VAL_STATUS) — 실패해도 {}라 화면은 동작(원본 코드 표시)
+  // 공통코드 로드 (SEM_TERM · LEC_ASN_VAL_STATUS) — 실패해도 빈 값이라 화면은 동작(원본 코드 표시)
+  // SEM_TERM은 list 1회로 정렬(termOrder=CODE_ORDER)·라벨맵(termMap) 둘 다 도출(단일 소스).
   useEffect(() => {
     (async () => {
-      const [t, s] = await Promise.all([
-        getCommonCodeMap("SEM_TERM"),
+      const [termList, s] = await Promise.all([
+        getCommonCodeList("SEM_TERM"),
         getCommonCodeMap("LEC_ASN_VAL_STATUS"),
       ]);
-      setTermMap(t);
+      setTermOrder(termList.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(termList.map((c) => [c.codeVal, c.codeName])));
       setStatusMap(s);
     })();
   }, []);
@@ -250,9 +252,9 @@ export default function ProfessorAssignmentsPage() {
   const termOptions = useMemo(
     () =>
       [...new Set(lectures.map((l) => l.semTerm))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
+        (a, b) => termOrder.indexOf(a) - termOrder.indexOf(b)
       ),
-    [lectures]
+    [lectures, termOrder]
   );
   const selectedLecture = useMemo(
     () => lectures.find((l) => l.lecId === selectedLecId) ?? null,
@@ -281,7 +283,7 @@ export default function ProfessorAssignmentsPage() {
     setActionError(null);
   }, []);
 
-  // ESC = ✕/취소와 동일 처리 (LMS 모달 관례 — 저장 중엔 무시)
+  // ESC = 닫기/취소와 동일 처리 (LMS 모달 관례 — 저장 중엔 무시)
   useEscapeClose(formOpen && !saving, closeForm);
 
   // 등록 — 현재 보고 있는 과목을 기본 선택(다른 과목으로 변경 가능)
@@ -400,7 +402,7 @@ export default function ProfessorAssignmentsPage() {
               disabled={loading && lectures.length === 0}
               className={`${selectClass} w-28`}
             >
-              <option value="">전체 년도</option>
+              <option value="">전체 연도</option>
               {yearOptions.map((y) => (
                 <option key={y} value={String(y)}>
                   {y}년
@@ -464,7 +466,7 @@ export default function ProfessorAssignmentsPage() {
         )}
 
         {/* 과제 등록/수정 모달 — '+ 과제 등록' 버튼/행 '수정'으로 열림.
-            ESC=✕와 동일(LMS 모달 관례), 백드롭 클릭 닫기는 입력 유실 방지를 위해 미적용 */}
+            ESC=닫기와 동일(LMS 모달 관례), 백드롭 클릭 닫기는 입력 유실 방지를 위해 미적용 */}
         {formOpen && (
           // pl-64(사이드바 w-60 + 여백 1rem)·pr-4 비대칭 패딩 → 백드롭은 전체 덮되 다이얼로그는 콘텐츠 영역 기준 가운데
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 pl-64 pr-4">

@@ -3,6 +3,7 @@ export type SubmitStatus = "OPEN" | "EXTENDED" | "CLOSED";
 export interface SubmitGuide {
   courseName: string;
   professor: string;
+  professorLmsPrfId: number;
   lines: string[];
 }
 
@@ -14,7 +15,13 @@ export interface SubmitDraft {
 
 export interface SubmitItem {
   id: number;
+  semYear: number;
+  semTerm: string;
+  lecId: number;
+  lecSection: number | null;
   lecAsnTitle: string;
+  lecAsnContent: string | null;
+  lecAsnRegDate: string;
   courseName: string;
   dueLabel: string;
   status: SubmitStatus;

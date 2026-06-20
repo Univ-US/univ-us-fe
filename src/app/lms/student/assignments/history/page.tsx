@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import StudentSubmissionPreviewDialog from "@/components/lms/StudentSubmissionPreviewDialog";
 import StudentFeedbackDialog from "@/components/lms/StudentFeedbackDialog";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getCommonCodeList, getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
-import {
-  getStudentAssignments,
-  STUDENT_ASSIGNMENT_STATUS_LABEL,
-} from "@/lib/lmsStudentAssignmentsApi";
+import { getStudentAssignments } from "@/lib/lmsStudentAssignmentsApi";
 import type {
   StudentAssignment,
   StudentAssignmentStatus,
@@ -20,12 +18,8 @@ import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentSt
 
 type StatusFilter = "all" | StudentAssignmentStatus;
 
-const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "전체" },
-  { key: "NSB", label: "미제출" },
-  { key: "SBM", label: "제출" },
-  { key: "GRD", label: "채점완료" },
-];
+// 필터 버튼 순서 — 키만 하드코딩(라벨은 sbmStatusMap 런타임 매핑, "all"은 "전체" 정적)
+const STATUS_FILTER_KEYS: StatusFilter[] = ["all", "NSB", "SBM", "GRD"];
 
 const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
   NSB: "bg-rose-50 text-rose-600",
@@ -34,10 +28,7 @@ const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
 };
 
 const ASSIGNMENT_PAGE_SIZE = 10;
-const SEMESTER_PAGE_SIZE = 3;
 
-const TERM_LABEL: Record<string, string> = { SM1: "1학기", SMR: "여름 계절", SM2: "2학기", WNT: "겨울 계절" };
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
@@ -50,11 +41,26 @@ export default function StudentAssignmentsHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
-  const [semesterPage, setSemesterPage] = useState(0);
 
   const [fileTarget, setFileTarget] = useState<StudentAssignment | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<StudentAssignment | null>(null);
   const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
+
+  // 라벨은 BE 공통코드 API로 런타임 매핑(코드→라벨 하드코딩 제거). 실패 시 {} → 코드 원본 표시.
+  // 학기 순서/라벨은 SEM_TERM 한 번의 getCommonCodeList(서버 CODE_ORDER 정렬)에서 둘 다 도출.
+  const [termOrder, setTermOrder] = useState<string[]>([]);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [sbmStatusMap, setSbmStatusMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    void Promise.all([
+      getCommonCodeList("SEM_TERM"),
+      getCommonCodeMap("LEC_ASN_SBM_STATUS"),
+    ]).then(([term, sbm]) => {
+      setTermOrder(term.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(term.map((c) => [c.codeVal, c.codeName])));
+      setSbmStatusMap(sbm);
+    });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,23 +86,12 @@ export default function StudentAssignmentsHistoryPage() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    setSemesterPage(0);
-  }, [statusFilter, yearFilter, termFilter]);
-
   const yearOptions = useMemo(
     () => (data ? [...new Set(data.semesters.map((s) => s.semYear))].sort((a, b) => b - a) : []),
     [data]
   );
-  const termOptions = useMemo(
-    () =>
-      data
-        ? [...new Set(data.semesters.map((s) => s.semTerm))].sort(
-            (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-          )
-        : [],
-    [data]
-  );
+  // 데이터 유무와 무관하게 SEM_TERM 전체 학기 노출(서버 CODE_ORDER 순서)
+  const termOptions = termOrder;
 
   const visibleSemesters = useMemo(() => {
     if (!data) return [];
@@ -114,14 +109,6 @@ export default function StudentAssignmentsHistoryPage() {
       }))
       .filter((sem) => sem.assignments.length > 0);
   }, [data, statusFilter, yearFilter, termFilter]);
-
-  const totalSemesterPages = Math.max(1, Math.ceil(visibleSemesters.length / SEMESTER_PAGE_SIZE));
-  const safeSemesterPage = Math.min(semesterPage, totalSemesterPages - 1);
-  const semesterStartIndex = safeSemesterPage * SEMESTER_PAGE_SIZE;
-  const pagedVisibleSemesters = visibleSemesters.slice(
-    semesterStartIndex,
-    semesterStartIndex + SEMESTER_PAGE_SIZE
-  );
 
   const unsubmittedCount = useMemo(
     () =>
@@ -164,7 +151,7 @@ export default function StudentAssignmentsHistoryPage() {
             <option value="">전체 학기</option>
             {termOptions.map((t) => (
               <option key={t} value={t}>
-                {TERM_LABEL[t] ?? t}
+                {termMap[t] ?? t}
               </option>
             ))}
           </select>
@@ -173,20 +160,22 @@ export default function StudentAssignmentsHistoryPage() {
 
       <div className="mb-5 flex flex-wrap items-center justify-start gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_FILTERS.map((f) => {
-            const active = statusFilter === f.key;
+          {STATUS_FILTER_KEYS.map((key) => {
+            const active = statusFilter === key;
+            // "all"은 "전체" 정적, 나머지는 sbmStatusMap[code] ?? code(런타임 라벨)
+            const label = key === "all" ? "전체" : sbmStatusMap[key] ?? key;
             return (
               <button
-                key={f.key}
+                key={key}
                 type="button"
-                onClick={() => setStatusFilter(f.key)}
+                onClick={() => setStatusFilter(key)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-emerald-700 text-white"
                     : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                {f.label}
+                {label}
               </button>
             );
           })}
@@ -210,38 +199,19 @@ export default function StudentAssignmentsHistoryPage() {
       ) : visibleSemesters.length === 0 ? (
         <p className="py-16 text-center text-sm text-slate-400">조건에 맞는 과제가 없습니다.</p>
       ) : (
-        <div className="space-y-4">
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visibleSemesters.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisibleSemesters.length}
-            onChange={setSemesterPage}
-          />
-
-          <div className="space-y-6">
-            {pagedVisibleSemesters.map((sem) => (
-              <SemesterAssignmentTable
-                key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
-                sem={sem}
-                onViewFile={setFileTarget}
-                onViewFeedback={setFeedbackTarget}
-                onSubmit={(assignment) =>
-                  router.push(`/lms/student/assignments/submit?assignmentId=${assignment.id}`)
-                }
-              />
-            ))}
-          </div>
-
-          <SemesterPager
-            page={safeSemesterPage}
-            totalPages={totalSemesterPages}
-            totalItems={visibleSemesters.length}
-            startIndex={semesterStartIndex}
-            visibleCount={pagedVisibleSemesters.length}
-            onChange={setSemesterPage}
-          />
+        <div className="space-y-6">
+          {visibleSemesters.map((sem) => (
+            <SemesterAssignmentTable
+              key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
+              sem={sem}
+              sbmStatusMap={sbmStatusMap}
+              onViewFile={setFileTarget}
+              onViewFeedback={setFeedbackTarget}
+              onSubmit={(assignment) =>
+                router.push(`/lms/student/assignments/submit?assignmentId=${assignment.id}`)
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -321,11 +291,13 @@ function RowAction({
 // 학기 과제 테이블 — 학기별 독립 클라이언트 페이지네이션, 페이지당 ASSIGNMENT_PAGE_SIZE건
 function SemesterAssignmentTable({
   sem,
+  sbmStatusMap,
   onViewFile,
   onViewFeedback,
   onSubmit,
 }: {
   sem: SemesterAssignments;
+  sbmStatusMap: Record<string, string>;
   onViewFile: (a: StudentAssignment) => void;
   onViewFeedback: (a: StudentAssignment) => void;
   onSubmit: (a: StudentAssignment) => void;
@@ -388,7 +360,7 @@ function SemesterAssignmentTable({
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_PILL[a.status]}`}
                   >
-                    {STUDENT_ASSIGNMENT_STATUS_LABEL[a.status]}
+                    {sbmStatusMap[a.status] ?? a.status}
                   </span>
                 </td>
                 <td className="px-2 py-3">
@@ -424,46 +396,6 @@ function SemesterAssignmentTable({
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
       <AssignmentPager page={safePage} totalPages={totalPages} onChange={setPage} />
     </section>
-  );
-}
-
-function SemesterPager({
-  page,
-  totalPages,
-  totalItems,
-  startIndex,
-  visibleCount,
-  onChange,
-}: {
-  page: number;
-  totalPages: number;
-  totalItems: number;
-  startIndex: number;
-  visibleCount: number;
-  onChange: (p: number) => void;
-}) {
-  const rangeStart = startIndex + 1;
-  const rangeEnd = startIndex + visibleCount;
-
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-medium text-slate-500">
-        총 {totalItems}개 학기 중 {rangeStart}-{rangeEnd} 표시
-      </p>
-      <div className="flex items-center justify-center gap-1">
-        <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>
-          이전
-        </PageBtn>
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <PageBtn key={i} active={i === page} onClick={() => onChange(i)}>
-            {i + 1}
-          </PageBtn>
-        ))}
-        <PageBtn disabled={page === totalPages - 1} onClick={() => onChange(page + 1)}>
-          다음
-        </PageBtn>
-      </div>
-    </div>
   );
 }
 

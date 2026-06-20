@@ -1,12 +1,12 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────
-// [폼] PLM-005-01 강의 자료 등록·수정 폼 — ProfessorMaterialUploadDialog(모달) 본문
-// - 등록 폼은 상시 노출하지 않음: '새 자료 업로드' 버튼 → 모달로만 표시(2026-06-11 확정)
-// - ✅ BE 실연동: 폼이 직접 createUpload/updateUpload 호출(진행률 = axios onUploadProgress),
+// PLM-005-01 강의 자료 등록·수정 폼 — ProfessorMaterialUploadDialog(모달) 본문
+// - 등록 폼은 상시 노출하지 않음: '새 자료 업로드' 버튼 → 모달로만 표시
+// - BE 실연동: 폼이 직접 createUpload/updateUpload 호출(진행률 = axios onUploadProgress),
 //   성공 시 onSubmit(저장된 Material) 콜백 → 페이지가 목록 재조회. 실패 시 describeApiError 표기.
-// - ⭐ 첨부 다중(2026-06-11 정책: 교체 없음): 여러 파일 선택/드롭 가능, 수정 시 기존 첨부 유지 +
-//   새 파일 추가 + 기존 첨부 개별 ✕ 제거(제거 예약 → '수정 완료' 시 적용, 되돌리기 가능)
+// - 첨부 다중(교체 없음): 여러 파일 선택/드롭 가능, 수정 시 기존 첨부 유지 +
+//   새 파일 추가 + 기존 첨부 개별 제거(제거 예약 → '수정 완료' 시 적용, 되돌리기 가능)
 // - 제출 전 런타임 검증: 제목 필수(trim) / 파일별 확장자·파일명 255·5GB / 신규 파일 합계 5GB(초과 시 alert)
 // - 교수 화면 색상 컨벤션(네이비/슬레이트) — 드롭존·포커스 링도 slate 계열
 // ─────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ interface ProfessorMaterialUploadFormProps {
   mode?: "create" | "edit";
   // 수정 모드 초기값 (등록 모드면 미사용)
   initial?: { lecId: number; title: string; content: string };
-  initialAttachments?: Attachment[]; // 수정 모드: 기존 첨부 목록 (카드 표시 + 개별 ✕ 제거)
+  initialAttachments?: Attachment[]; // 수정 모드: 기존 첨부 목록 (카드 표시 + 개별 제거)
   editUploadId?: number; // 수정 모드 대상 자료 ID
   onSubmit: (saved: Material) => void; // BE 저장 성공 시 호출 (저장된 자료)
   onCancel?: () => void; // 모달 닫기
@@ -300,7 +300,7 @@ export default function ProfessorMaterialUploadForm({
           />
         </div>
 
-        {/* 수정 모드: 기존 첨부 카드들 — ✕로 개별 제거 예약(수정 완료 시 적용), 되돌리기 가능 */}
+        {/* 수정 모드: 기존 첨부 카드들 — 개별 제거 예약(수정 완료 시 적용), 되돌리기 가능 */}
         {existingAttachments.map((att) =>
           removedIds.includes(att.attachmentId) ? (
             <div

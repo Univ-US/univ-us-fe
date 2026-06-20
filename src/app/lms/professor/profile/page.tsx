@@ -13,6 +13,7 @@ import {
 } from "@/lib/lmsProfessorApi";
 import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 import ImageCropDialog from "@/components/lms/ImageCropDialog";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
@@ -191,7 +192,7 @@ export default function ProfessorProfilePage() {
           {/* 프로필 이미지 */}
           <div className="mb-8 flex flex-col items-center gap-2">
             <div className="relative">
-              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-teal-600 text-4xl font-semibold text-white">
+              <div className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.employeeNo)} text-4xl font-semibold text-white`}>
                 {avatarSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarSrc} alt="프로필 이미지" className="h-full w-full object-cover" />

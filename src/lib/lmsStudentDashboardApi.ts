@@ -3,6 +3,7 @@ import { getStudentAttendance, type SemesterAttendance } from "@/lib/lmsStudentA
 import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
 import type { SemesterCourses } from "@/types/lmsStudentCourses";
 import { getStudentProfile } from "@/lib/lmsStudentApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type {
   DashboardAssignment,
   DashboardCourse,
@@ -21,20 +22,6 @@ export type {
   LectureTime,
   StudentDashboard,
 } from "@/types/lmsStudentDashboard";
-
-const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절",
-  SM2: "2학기",
-  WNT: "겨울 계절",
-};
-
-const TERM_ORDER: Record<string, number> = {
-  SM1: 1,
-  SMR: 2,
-  SM2: 3,
-  WNT: 4,
-};
 
 const DAY_CODE_BY_LABEL: Record<string, string> = {
   월: "MON",
@@ -62,20 +49,28 @@ type SemesterLike = {
 
 const semesterKey = (year: number, termCode: string) => `${year}:${termCode}`;
 
-const sortSemesters = <T extends SemesterLike>(items: T[]) =>
+const sortSemesters = <T extends SemesterLike>(
+  items: T[],
+  termOrder: Record<string, number>
+) =>
   [...items].sort(
     (a, b) =>
       b.year - a.year ||
-      (TERM_ORDER[b.termCode] ?? 0) - (TERM_ORDER[a.termCode] ?? 0)
+      (termOrder[b.termCode] ?? 0) - (termOrder[a.termCode] ?? 0)
   );
 
-const semesterLabel = (year: number, termCode: string) =>
-  `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
+const semesterLabel = (
+  year: number,
+  termCode: string,
+  termMap: Record<string, string>
+) => `${year}년 ${termMap[termCode] ?? termCode}`;
 
 const buildAvailableSemesters = (
   courseSemesters: SemesterCourses[],
   assignmentSemesters: SemesterAssignments[],
-  attendanceSemesters: SemesterAttendance[]
+  attendanceSemesters: SemesterAttendance[],
+  termMap: Record<string, string>,
+  termOrder: Record<string, number>
 ): DashboardSemesterOption[] => {
   const byKey = new Map<string, DashboardSemesterOption>();
   const add = (s: SemesterLike) => {
@@ -84,7 +79,7 @@ const buildAvailableSemesters = (
       byKey.set(key, {
         year: s.year,
         termCode: s.termCode,
-        semesterLabel: s.semesterLabel || semesterLabel(s.year, s.termCode),
+        semesterLabel: s.semesterLabel || semesterLabel(s.year, s.termCode, termMap),
       });
     }
   };
@@ -99,7 +94,7 @@ const buildAvailableSemesters = (
     add({ year: s.semYear, termCode: s.semTerm, semesterLabel: s.semesterLabel }),
   );
 
-  return sortSemesters([...byKey.values()]);
+  return sortSemesters([...byKey.values()], termOrder);
 };
 
 const pickSemester = (
@@ -177,20 +172,26 @@ const resolveAssignmentLecId = (
 };
 
 export const getStudentDashboard = async (
-  params?: GetStudentDashboardParams
+  params?: GetStudentDashboardParams,
+  termMap: Record<string, string> = {}
 ): Promise<StudentDashboard> => {
-  const [profile, courseSemesters, assignmentResult, attendanceSemesters] = await Promise.all([
-    getStudentProfile(),
-    getStudentCourses(),
-    getStudentAssignments(),
-    getStudentAttendance(),
-  ]);
+  const [profile, courseSemesters, assignmentResult, attendanceSemesters, termCodes] =
+    await Promise.all([
+      getStudentProfile(),
+      getStudentCourses(),
+      getStudentAssignments(),
+      getStudentAttendance(),
+      getCommonCodeList("SEM_TERM"),
+    ]);
 
+  const termOrder = Object.fromEntries(termCodes.map((c, i) => [c.codeVal, i]));
   const assignmentSemesters = assignmentResult.semesters ?? [];
   const availableSemesters = buildAvailableSemesters(
     courseSemesters,
     assignmentSemesters,
-    attendanceSemesters
+    attendanceSemesters,
+    termMap,
+    termOrder
   );
   const selectedSemester = pickSemester(
     params,
@@ -203,7 +204,7 @@ export const getStudentDashboard = async (
   const selected = selectedSemester ?? {
     year: fallbackYear,
     termCode: "SM1",
-    semesterLabel: semesterLabel(fallbackYear, "SM1"),
+    semesterLabel: semesterLabel(fallbackYear, "SM1", termMap),
   };
   const key = semesterKey(selected.year, selected.termCode);
   const courseSemester = courseSemesters.find((s) => semesterKey(s.semYear, s.semTerm) === key);

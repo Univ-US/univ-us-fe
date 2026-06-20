@@ -1,7 +1,7 @@
 "use client";
 
 import { Client, type IStompSocket } from "@stomp/stompjs";
-import { MessageCircle, RefreshCw, Send, Wifi, WifiOff } from "lucide-react";
+import { MessageCircle, Plus, RefreshCw, Send, Wifi, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import SockJS from "sockjs-client";
 
@@ -12,6 +12,7 @@ import {
   formatChatMessageTime,
   getProfessorChatRooms,
   getProfessorChatThread,
+  getProfessorStartableChatRooms,
   LMS_PROFESSOR_CHAT_TOPIC_PREFIX,
   normalizeProfessorMessageForRoom,
   sendProfessorChatMessage,
@@ -23,8 +24,14 @@ import type {
   ProfessorChatRoom,
   ProfessorChatThread,
 } from "@/types/lmsProfessorChat";
+import useEscapeClose from "@/components/lms/useEscapeClose";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 type RealtimeStatus = "connected" | "disconnected";
+
+const NEW_CHAT_SELECT_CLASS =
+  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500";
+const STUDENT_PAGE_SIZE = 5; // '채팅 만들기' 수강생 클릭 리스트 한 페이지당 표시 인원
 
 function sortRooms(rooms: ProfessorChatRoom[]) {
   return [...rooms].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
@@ -63,6 +70,7 @@ export default function ProfessorChatPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("disconnected");
+  const [createOpen, setCreateOpen] = useState(false); // '채팅 만들기' 모달 열림
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const loadUnreadCount = useLmsProfessorChatStore((s) => s.loadUnreadCount);
@@ -81,8 +89,10 @@ export default function ProfessorChatPage() {
       const data = sortRooms(await getProfessorChatRooms());
       setRooms(data);
       setSelectedRoomId((current) => {
+        // 새로고침 시 보던 방은 유지하되 첫 진입은 자동 선택하지 않음
+        // (자동 선택하면 loadThread가 해당 방을 읽음 처리 → 페이지 진입만으로 읽음되는 문제 방지)
         if (current && data.some((room) => room.roomId === current)) return current;
-        return data[0]?.roomId ?? null;
+        return null;
       });
       setUnreadCount(data.reduce((sum, room) => sum + room.unread, 0));
     } catch (loadError) {
@@ -208,6 +218,17 @@ export default function ProfessorChatPage() {
     inputRef.current?.focus();
   }, [selectedRoomId]);
 
+  useEscapeClose(createOpen, () => setCreateOpen(false)); // ESC = 모달 닫기
+
+  // '채팅 만들기'에서 고른 (빈) 방을 목록에 추가하고 선택 → 우측 패널에서 첫 메시지 전송 (학생 페이지와 동일)
+  const handleStartChat = useCallback((room: ProfessorChatRoom) => {
+    setRooms((prev) =>
+      prev.some((r) => r.roomId === room.roomId) ? prev : sortRooms([room, ...prev]),
+    );
+    setSelectedRoomId(room.roomId);
+    setCreateOpen(false);
+  }, []);
+
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = input.trim();
@@ -236,15 +257,25 @@ export default function ProfessorChatPage() {
           <h1 className="text-2xl font-bold text-slate-900">학생 채팅</h1>
           <p className="mt-1 text-sm text-slate-500">안읽은 메시지 {totalUnread}건</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadRooms()}
-          disabled={loading}
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-500 hover:text-slate-900 disabled:opacity-50"
-        >
-          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          새로고침
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void loadRooms()}
+            disabled={loading}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-slate-500 hover:text-slate-900 disabled:opacity-50"
+          >
+            <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+            새로고침
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-slate-800 px-3 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            <Plus className="size-4" />
+            채팅 만들기
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -428,6 +459,301 @@ export default function ProfessorChatPage() {
           </section>
         </div>
       )}
+
+      {/* '채팅 만들기' 모달 — 담당 강의 수강생 중 아직 대화 안 한 학생에게 첫 메시지(년도/학기 + 과목 + 수강생 클릭 리스트) */}
+      {createOpen && (
+        <NewChatModal onClose={() => setCreateOpen(false)} onStart={handleStartChat} />
+      )}
+    </div>
+  );
+}
+
+// '채팅 만들기' 모달 — 담당 강의 수강생 중 아직 대화 안 한 (강의,학생) 빈 방(GET /api/lms/professor/chats/startable, NOT EXISTS(messages)).
+// PLM 필터 패턴: 년도/학기 + 과목 드롭다운(첫 강의 자동선택) → 그 강의 수강생을 '클릭 선택 리스트'(한 페이지 5명·페이지네이션)에서 골라 채팅 시작.
+// (학생 모달은 과목=교수 1:1이라 드롭다운이지만, 교수 모달은 과목 안에서 학생까지 골라야 해 리스트 클릭 방식.)
+// 선택 시 onStart로 그 (이미 생성된) 빈 방을 넘겨 목록 추가+선택 → 우측 패널에서 첫 메시지 전송.
+function NewChatModal({
+  onClose,
+  onStart,
+}: {
+  onClose: () => void;
+  onStart: (room: ProfessorChatRoom) => void;
+}) {
+  const [candidates, setCandidates] = useState<ProfessorChatRoom[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
+  const [yearFilter, setYearFilter] = useState<number | "all">("all");
+  const [termFilter, setTermFilter] = useState<string | "all">("all");
+  const [selLecId, setSelLecId] = useState<number | null>(null);
+  const [selRoomId, setSelRoomId] = useState<number | null>(null);
+  const [studentPage, setStudentPage] = useState(0); // 수강생 리스트 페이지(0-based)
+
+  // 후보 = 담당 강의 수강생 중 아직 대화 안 한 (강의,학생) 빈 방
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getProfessorStartableChatRooms()
+      .then((data) => {
+        if (active) setCandidates(data);
+      })
+      .catch((e) => {
+        if (active) setError(getApiErrorMessage(e, "대화 가능한 수강생을 불러오지 못했습니다."));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // 학기 라벨·순서 = 공통코드(SEM_TERM) — 하드코딩 금지
+  useEffect(() => {
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
+  }, []);
+
+  const yearOptions = useMemo(
+    () =>
+      [...new Set(candidates.map((c) => c.semYear).filter((y): y is number => y != null))].sort(
+        (a, b) => b - a,
+      ),
+    [candidates],
+  );
+  // 학기 옵션 = 공통코드 순서(CODE_ORDER) 중 후보에 존재하는 학기만
+  const termOptions = useMemo(
+    () => termOrder.filter((code) => candidates.some((c) => c.semTerm === code)),
+    [termOrder, candidates],
+  );
+  const filtered = useMemo(
+    () =>
+      candidates.filter(
+        (c) =>
+          (yearFilter === "all" || c.semYear === yearFilter) &&
+          (termFilter === "all" || c.semTerm === termFilter),
+      ),
+    [candidates, yearFilter, termFilter],
+  );
+  // 과목(강의) 옵션 = 거른 후보의 distinct 강의(lecId)
+  const courseOptions = useMemo(() => {
+    const seen = new Map<number, ProfessorChatRoom>();
+    filtered.forEach((c) => {
+      if (!seen.has(c.lecId)) seen.set(c.lecId, c);
+    });
+    return [...seen.values()];
+  }, [filtered]);
+
+  // 첫 강의 자동선택 — 필터 변경 시 재선택
+  useEffect(() => {
+    setSelLecId((prev) =>
+      courseOptions.some((c) => c.lecId === prev) ? prev : courseOptions[0]?.lecId ?? null,
+    );
+  }, [courseOptions]);
+
+  // 선택 강의의 수강생
+  const students = useMemo(
+    () => filtered.filter((c) => c.lecId === selLecId),
+    [filtered, selLecId],
+  );
+  // 첫 학생 자동선택 — 강의 변경 시 재선택
+  useEffect(() => {
+    setSelRoomId((prev) =>
+      students.some((s) => s.roomId === prev) ? prev : students[0]?.roomId ?? null,
+    );
+  }, [students]);
+  // 강의/필터 변경 시 수강생 리스트 1페이지로 복귀
+  useEffect(() => {
+    setStudentPage(0);
+  }, [students]);
+
+  // 수강생 페이지네이션 (한 페이지 5명)
+  const totalPages = Math.max(1, Math.ceil(students.length / STUDENT_PAGE_SIZE));
+  const page = Math.min(studentPage, totalPages - 1); // 삭제 등으로 범위 벗어나면 클램프
+  const pagedStudents = students.slice(
+    page * STUDENT_PAGE_SIZE,
+    page * STUDENT_PAGE_SIZE + STUDENT_PAGE_SIZE,
+  );
+
+  const selected = students.find((s) => s.roomId === selRoomId) ?? null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="새 채팅 시작"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900">새 채팅 시작</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            ✕
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-slate-500">
+          담당 강의의 수강생에게 먼저 채팅을 보낼 수 있습니다.
+        </p>
+
+        {error && (
+          <p className="mb-3 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm font-semibold text-red-500">
+            {error}
+          </p>
+        )}
+
+        {loading ? (
+          <p className="py-10 text-center text-sm text-slate-400">불러오는 중입니다.</p>
+        ) : candidates.length === 0 ? (
+          <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-8 text-center text-sm text-slate-400">
+            새로 시작할 수 있는 채팅이 없습니다.
+            <br />
+            (담당 강의 수강생 전원과 이미 대화 중이거나, 수강생이 없습니다.)
+          </p>
+        ) : (
+          <>
+            {/* 년도 / 학기 필터 */}
+            <div className="mb-3 flex flex-wrap gap-2">
+              <select
+                value={yearFilter === "all" ? "" : String(yearFilter)}
+                onChange={(e) =>
+                  setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))
+                }
+                className={`${NEW_CHAT_SELECT_CLASS} w-28`}
+              >
+                <option value="">전체 연도</option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y}년
+                  </option>
+                ))}
+              </select>
+              <select
+                value={termFilter === "all" ? "" : termFilter}
+                onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
+                className={`${NEW_CHAT_SELECT_CLASS} w-32`}
+              >
+                <option value="">전체 학기</option>
+                {termOptions.map((t) => (
+                  <option key={t} value={t}>
+                    {termMap[t] ?? t}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 과목(강의) 드롭다운 — 첫 강의 자동선택 */}
+            <select
+              value={selLecId == null ? "" : String(selLecId)}
+              onChange={(e) => setSelLecId(e.target.value === "" ? null : Number(e.target.value))}
+              disabled={courseOptions.length === 0}
+              className={`${NEW_CHAT_SELECT_CLASS} mb-3 w-full disabled:cursor-not-allowed disabled:bg-slate-100`}
+            >
+              {courseOptions.length === 0 ? (
+                <option value="">담당 강의 없음</option>
+              ) : (
+                courseOptions.map((c) => (
+                  <option key={c.lecId} value={String(c.lecId)}>
+                    {c.courseName}
+                    {c.lecSection ? ` ${c.lecSection}반` : ""}
+                  </option>
+                ))
+              )}
+            </select>
+
+            {/* 수강생 = 클릭 선택 리스트 (한 페이지 5명, 클릭 시 선택) */}
+            <p className="mb-1 text-xs font-semibold text-slate-500">수강생 {students.length}명</p>
+            <div className="rounded-xl border border-slate-200 p-1">
+              {students.length === 0 ? (
+                <p className="px-3 py-10 text-center text-sm text-slate-400">
+                  선택한 조건에 채팅 가능한 학생이 없습니다.
+                </p>
+              ) : (
+                <ul>
+                  {pagedStudents.map((s) => {
+                    const active = s.roomId === selRoomId;
+                    return (
+                      <li key={s.roomId}>
+                        <button
+                          type="button"
+                          onClick={() => setSelRoomId(s.roomId)}
+                          aria-pressed={active}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
+                            active ? "bg-slate-100 ring-1 ring-slate-400" : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${s.avatarColor}`}
+                          >
+                            {s.avatarInitial}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-800">
+                              {s.studentName}
+                            </p>
+                            <p className="truncate text-xs text-slate-500">{s.studentNo}</p>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {/* 마지막 페이지 빈 행 패딩 — 인원 수와 무관하게 모달 높이 고정 */}
+                  {Array.from({ length: STUDENT_PAGE_SIZE - pagedStudents.length }).map((_, i) => (
+                    <li key={`pad-${i}`} aria-hidden className="px-3 py-2">
+                      <div className="h-9" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* 페이지네이션 — 한 페이지 5명 */}
+            <div className="mb-4 mt-2 flex items-center justify-center gap-4 text-sm">
+              <button
+                type="button"
+                onClick={() => setStudentPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                aria-label="이전 페이지"
+                className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                ‹
+              </button>
+              <span className="tabular-nums text-slate-500">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setStudentPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                aria-label="다음 페이지"
+                className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                ›
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => selected && onStart(selected)}
+              disabled={!selected}
+              className="w-full rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              채팅 시작
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

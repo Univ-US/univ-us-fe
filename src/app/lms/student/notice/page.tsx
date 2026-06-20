@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
 import { sanitizeLmsHtml, htmlToPlainText } from "@/lib/lmsSanitize";
 import { describeApiError } from "@/lib/lmsApiError";
+import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
+import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { formatFileSize } from "@/lib/lmsStudentAssignmentsApi";
 import {
   downloadStudentNoticeAttachment,
@@ -12,18 +15,14 @@ import {
 import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
 import "@/components/lms/lms-content.css";
 
-const TERM_LABEL: Record<string, string> = {
-  SM1: "1학기",
-  SMR: "여름 계절",
-  SM2: "2학기",
-  WNT: "겨울 계절",
-};
-const TERM_ORDER = ["SM1", "SMR", "SM2", "WNT"];
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
-const semLabelOf = (year: number, termCode: string) =>
-  `${year}년 ${TERM_LABEL[termCode] ?? termCode}`;
+const semLabelOf = (
+  year: number,
+  termCode: string,
+  termMap: Record<string, string>
+) => `${year}년 ${termMap[termCode] ?? termCode}`;
 
 type Toast = {
   type: "success" | "error";
@@ -38,7 +37,7 @@ type CourseOption = {
   termCode: string;
 };
 
-function courseOptionsOf(notices: Notice[]): CourseOption[] {
+function courseOptionsOf(notices: Notice[], termOrder: string[]): CourseOption[] {
   const map = new Map<number, CourseOption>();
   for (const notice of notices) {
     if (!map.has(notice.lecId)) {
@@ -54,7 +53,7 @@ function courseOptionsOf(notices: Notice[]): CourseOption[] {
   return [...map.values()].sort(
     (a, b) =>
       b.year - a.year ||
-      TERM_ORDER.indexOf(b.termCode) - TERM_ORDER.indexOf(a.termCode) ||
+      termOrder.indexOf(b.termCode) - termOrder.indexOf(a.termCode) ||
       a.courseName.localeCompare(b.courseName)
   );
 }
@@ -88,6 +87,15 @@ export default function StudentNoticePage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [termMap, setTermMap] = useState<Record<string, string>>({});
+  const [termOrder, setTermOrder] = useState<string[]>([]);
+
+  useEffect(() => {
+    void getCommonCodeList("SEM_TERM").then((list) => {
+      setTermOrder(list.map((c) => c.codeVal));
+      setTermMap(Object.fromEntries(list.map((c) => [c.codeVal, c.codeName])));
+    });
+  }, []);
 
   const showToast = useCallback((nextToast: Toast) => {
     setToast(nextToast);
@@ -101,7 +109,7 @@ export default function StudentNoticePage() {
       const data = await getStudentNotices();
       setNotices(data);
       setSelectedLecId((prev) => {
-        const options = courseOptionsOf(data);
+        const options = courseOptionsOf(data, termOrder);
         return options.some((course) => course.lecId === prev)
           ? prev
           : options[0]?.lecId ?? null;
@@ -111,24 +119,21 @@ export default function StudentNoticePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [termOrder]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const courseOptions = useMemo(() => courseOptionsOf(notices), [notices]);
+  const courseOptions = useMemo(
+    () => courseOptionsOf(notices, termOrder),
+    [notices, termOrder]
+  );
   const yearOptions = useMemo(
     () => [...new Set(courseOptions.map((course) => course.year))].sort((a, b) => b - a),
     [courseOptions]
   );
-  const termOptions = useMemo(
-    () =>
-      [...new Set(courseOptions.map((course) => course.termCode))].sort(
-        (a, b) => TERM_ORDER.indexOf(a) - TERM_ORDER.indexOf(b)
-      ),
-    [courseOptions]
-  );
+  const termOptions = termOrder;
   const filteredCourses = useMemo(
     () => matchCourses(yearFilter, termFilter, courseOptions),
     [yearFilter, termFilter, courseOptions]
@@ -236,7 +241,7 @@ export default function StudentNoticePage() {
             <option value="">전체 학기</option>
             {termOptions.map((term) => (
               <option key={term} value={term}>
-                {TERM_LABEL[term] ?? term}
+                {termMap[term] ?? term}
               </option>
             ))}
           </select>
@@ -259,7 +264,7 @@ export default function StudentNoticePage() {
                 >
                   {truncateLectureName(course.courseName)}
                   {course.lecSection != null ? ` · ${course.lecSection}반` : ""} ·{" "}
-                  {semLabelOf(course.year, course.termCode)}
+                  {semLabelOf(course.year, course.termCode, termMap)}
                 </option>
               ))
             )}
@@ -438,7 +443,11 @@ function NoticeDetail({
       <h3 className="text-xl font-bold text-slate-900">{notice.lecAnnTitle}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
         <span className="flex items-center gap-2">
-          <AuthorAvatar src={notice.authorImageUrl} name={notice.author} />
+          <AuthorAvatar
+            src={notice.authorImageUrl}
+            seed={notice.professorLmsPrfId}
+            name={notice.author}
+          />
           <span className="font-medium text-slate-700">{notice.author}</span>
         </span>
         <span>{notice.lecAnnRegDate}</span>
@@ -483,16 +492,27 @@ function NoticeDetail({
   );
 }
 
-function AuthorAvatar({ src, name }: { src?: string | null; name: string }) {
+// 작성자 아바타 — 기본 프로필 규칙(lib/lmsAvatar): 업로드 이미지가 있으면 그 이미지,
+// 없으면 사람 식별자(교수 lmsPrfId) 시드 색 원형 + 이름 이니셜. 같은 교수는 어느 화면에서나 같은 색.
+function AuthorAvatar({
+  src,
+  seed,
+  name,
+}: {
+  src?: string | null;
+  seed: string | number | null | undefined;
+  name: string;
+}) {
+  const img = resolveImageUrl(src);
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
-      {src ? (
+    <span
+      className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white ${getLmsAvatarColor(seed)}`}
+    >
+      {img ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={name} className="h-full w-full object-cover" />
+        <img src={img} alt={name} className="h-full w-full object-cover" />
       ) : (
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className="h-6 w-6 text-slate-400">
-          <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.69-8 6v2h16v-2c0-3.31-3.58-6-8-6Z" />
-        </svg>
+        getLmsAvatarInitial(name)
       )}
     </span>
   );
