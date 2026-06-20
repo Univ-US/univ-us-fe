@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PolicyModal from "@/components/common/PolicyModal";
 import { checkLoginId, signup } from "@/lib/authApi";
 import { getApiErrorMessage } from "@/lib/apiError";
 
@@ -36,6 +37,8 @@ export default function SignupPage() {
     const [birth, setBirth] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
     const phoneRegex = /^010\d{8}$/;
     const birthRegex = /^\d{8}$/;
@@ -62,6 +65,7 @@ export default function SignupPage() {
         isRequiredProfileReady &&
         isPhoneReady &&
         isBirthReady &&
+        agreedToTerms &&
         !submitting &&
         !checkingLoginId;
 
@@ -140,6 +144,11 @@ export default function SignupPage() {
 
         if (!birthRegex.test(birth)) {
             setError("생년월일은 20001010 형식의 숫자 8자리로 입력해주세요.");
+            return;
+        }
+
+        if (!agreedToTerms) {
+            setError("이용약관에 동의해주세요.");
             return;
         }
 
@@ -286,9 +295,29 @@ export default function SignupPage() {
                     <p className="mt-4 text-sm font-medium text-red-500">{error}</p>
                 )}
 
+                <div className="mt-5 flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                        id="terms-agreement"
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                        className="size-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <div>
+                        <button
+                            type="button"
+                            onClick={() => setIsTermsModalOpen(true)}
+                            className="font-semibold underline underline-offset-2 hover:text-primary"
+                        >
+                            이용약관
+                        </button>
+                        <label htmlFor="terms-agreement">에 동의합니다. (필수)</label>
+                    </div>
+                </div>
+
                 <Button
                     type="submit"
-                    className="mt-5 h-11 w-full text-base font-bold"
+                    className="mt-4 h-11 w-full text-base font-bold"
                     disabled={!canSubmit}
                 >
                     <UserPlus className="size-4" />
@@ -302,6 +331,10 @@ export default function SignupPage() {
                     </Link>
                 </div>
             </form>
+
+            {isTermsModalOpen && (
+                <PolicyModal type="terms" onClose={() => setIsTermsModalOpen(false)} />
+            )}
         </main>
     );
 }
