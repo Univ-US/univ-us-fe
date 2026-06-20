@@ -211,6 +211,43 @@ export interface ServiceAdminUserQuery {
         | "LOGIN_DESC";
 }
 
+export interface ServiceAdminBulkSignupMemberInput {
+    loginId: string;
+    password: string;
+    memberName: string;
+    phoneNumber: string;
+    gender: string;
+    birth: string;
+    role: "STU" | "PROF";
+    deptId: number | null;
+}
+
+export interface ServiceAdminBulkSignupRequest {
+    univId: number;
+    members: ServiceAdminBulkSignupMemberInput[];
+}
+
+export interface ServiceAdminBulkSignupValidationError {
+    rowNumber: number;
+    message: string;
+}
+
+export interface ServiceAdminBulkSignupPrecheck {
+    canRegister: boolean;
+    reason: string | null;
+    univName: string | null;
+    planName: string | null;
+    currentMemberCount: number;
+    maxMemberCount: number;
+    requestedMemberCount: number;
+    remainingMemberCount: number;
+    errors: ServiceAdminBulkSignupValidationError[];
+}
+
+export interface ServiceAdminBulkSignupResult {
+    createdCount: number;
+}
+
 export interface ServiceAdminUserActivitySummary {
     postCount: number;
     commentCount: number;
@@ -617,6 +654,26 @@ export async function changeServiceAdminUserStatus(
 export async function forceLogoutServiceAdminUser(memberId: number) {
     const response = await api.post<ServiceAdminForceLogoutResponse>(
         `/api/service-admin/members/users/${memberId}/force-logout`,
+    );
+    return response.data;
+}
+
+export async function precheckServiceAdminBulkSignup(
+    request: ServiceAdminBulkSignupRequest,
+) {
+    const response = await api.post<ServiceAdminBulkSignupPrecheck>(
+        "/api/service-admin/bulk-signups/precheck",
+        request,
+    );
+    return response.data;
+}
+
+export async function createServiceAdminBulkSignup(
+    request: ServiceAdminBulkSignupRequest,
+) {
+    const response = await api.post<ServiceAdminBulkSignupResult>(
+        "/api/service-admin/bulk-signups",
+        request,
     );
     return response.data;
 }
