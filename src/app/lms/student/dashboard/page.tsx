@@ -204,17 +204,9 @@ export default function StudentDashboardPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-base font-bold text-slate-800">수강 중인 강의</h2>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                    {data.semesterLabel}
-                  </span>
-                  <Link
-                    href="/lms/student/courses"
-                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    전체 보기
-                  </Link>
-                </div>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  {data.semesterLabel}
+                </span>
               </div>
               {data.courses.length === 0 ? (
                 <p className="py-10 text-center text-sm text-slate-400">수강 중인 강의가 없습니다.</p>
@@ -255,46 +247,16 @@ export default function StudentDashboardPage() {
                   })}
                 </ul>
               )}
-              {selectedCourse && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                  <Link
-                    href="/lms/student/attendance"
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    출석 내역
-                  </Link>
-                  <Link
-                    href="/lms/student/materials"
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    강의 자료
-                  </Link>
-                  <Link
-                    href="/lms/student/calendar"
-                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    캘린더
-                  </Link>
-                </div>
-              )}
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h2 className="text-base font-bold text-slate-800">과제 현황</h2>
-                <div className="flex items-center gap-2">
-                  {selectedCourse && (
-                    <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      총 {courseAssignments.length}건
-                    </span>
-                  )}
-                  <Link
-                    href="/lms/student/assignments/history"
-                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
-                  >
-                    전체 보기
-                  </Link>
-                </div>
+                {selectedCourse && (
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    총 {courseAssignments.length}건
+                  </span>
+                )}
               </div>
               {courseAssignments.length === 0 ? (
                 <p className="py-10 text-center text-sm text-slate-400">선택한 과목의 과제가 없습니다.</p>
@@ -321,7 +283,7 @@ export default function StudentDashboardPage() {
                             }
                             className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
                           >
-                            {assignment.status === "NSB" ? "제출" : "상세"}
+                            {assignment.status === "NSB" ? "제출" : "과제 내역"}
                           </Link>
                         </div>
                       </li>
