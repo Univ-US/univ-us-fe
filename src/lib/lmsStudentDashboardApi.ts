@@ -214,7 +214,11 @@ export const getStudentDashboard = async (
     (attendanceSemester?.courses ?? []).map((course) => [course.lecId, course.attendanceRate])
   );
 
-  const courses: DashboardCourse[] = (courseSemester?.courses ?? []).map((course) => ({
+  // 대시보드 '수강 중'은 현재 상태 스냅샷 → 드랍(DRP)·폐강(CNCL) 제외 (전체를 보여주는 수강 내역과 분리)
+  const activeCourses = (courseSemester?.courses ?? []).filter(
+    (course) => course.lecStdEnrStatus !== "DRP" && course.lecValStatus !== "CNCL",
+  );
+  const courses: DashboardCourse[] = activeCourses.map((course) => ({
     lecId: course.lecId,
     courseName: course.courseName,
     credit: course.lecCredit,
@@ -243,9 +247,9 @@ export const getStudentDashboard = async (
     termCode: selected.termCode,
     availableSemesters,
     stats: {
-      courseCount: courseSemester?.courseCount ?? courses.length,
-      totalCredits:
-        courseSemester?.totalCredits ?? courses.reduce((sum, course) => sum + course.credit, 0),
+      // 활성 강의 기준 (BE courseCount/totalCredits는 드랍·폐강 포함이라 미사용)
+      courseCount: courses.length,
+      totalCredits: courses.reduce((sum, course) => sum + course.credit, 0),
       avgAttendance,
     },
     courses,
