@@ -759,7 +759,6 @@ function NoticeDetail({
 
       <h3 className="mt-2 break-words text-xl font-bold text-slate-900">{notice.lecAnnTitle}</h3>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-4 text-xs text-slate-500">
-        <span>👤 {notice.author} 교수</span>
         <span>📅 {notice.lecAnnRegDate}</span>
       </div>
 
