@@ -38,6 +38,7 @@ export default function SignupPage() {
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
     const phoneRegex = /^010\d{8}$/;
@@ -66,6 +67,7 @@ export default function SignupPage() {
         isPhoneReady &&
         isBirthReady &&
         agreedToTerms &&
+        agreedToPrivacy &&
         !submitting &&
         !checkingLoginId;
 
@@ -149,6 +151,11 @@ export default function SignupPage() {
 
         if (!agreedToTerms) {
             setError("이용약관에 동의해주세요.");
+            return;
+        }
+
+        if (!agreedToPrivacy) {
+            setError("개인정보처리방침에 동의해주세요.");
             return;
         }
 
@@ -313,6 +320,22 @@ export default function SignupPage() {
                         </button>
                         <label htmlFor="terms-agreement">에 동의합니다. (필수)</label>
                     </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                        id="privacy-agreement"
+                        type="checkbox"
+                        checked={agreedToPrivacy}
+                        onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                        className="size-4 rounded border-slate-300 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="privacy-agreement">
+                        <Link href="/privacy" className="font-semibold underline underline-offset-2 hover:text-primary">
+                            개인정보처리방침
+                        </Link>
+                        에 동의합니다. (필수)
+                    </label>
                 </div>
 
                 <Button
