@@ -414,7 +414,7 @@ export default function LandingPage() {
                     <p className="text-xs leading-5 text-slate-500">© 2026 UnivUs. 대학 운영을 위한 통합 플랫폼.</p>
                     <div className="flex gap-5 text-xs font-bold text-slate-500">
                         <Link href="/signup" className="hover:text-primary">이용약관</Link>
-                        <span className="cursor-default text-slate-400">개인정보처리방침 준비 중</span>
+                        <Link href="/privacy" className="hover:text-primary">개인정보처리방침</Link>
                     </div>
                 </div>
             </footer>
