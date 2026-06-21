@@ -1,16 +1,20 @@
 "use client";
 
-// SLM-005 출석 내역 — 강의별 출석·지각·결석 현황 (지각·결석 수치 클릭 시 날짜 팝오버 = SLM-005-01)
-// - 학기 드롭다운('전체' 기본) → 학기별 카드(최신순) 테이블
-// - 지각·결석 수치(>0) 클릭 → 해당 날짜(YYYY-MM-DD) 팝오버 / 70% 미만 출석률 강조
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+// SLM-005 출석 내역 — 학기별 카드(전 학기 표시) + 각 학기 테이블이 자체 서버 페이지네이션.
+// /attendance/semesters 로 카드 헤더(요약), 각 카드가 /attendance/semesters/{semId} 로 과목 출결 페이지 서버 조회.
+// 지각·결석 수치(>0) 클릭 → 해당 날짜 팝오버(SLM-005-01). 년도/학기=요약 카드 목록 좁힘.
+// ⚠️ 대시보드는 별 엔드포인트(getStudentAttendance 전체) 사용.
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
-import { getStudentAttendance } from "@/lib/lmsStudentAttendanceApi";
+import {
+  getAttendanceSemesterSummaries,
+  getSemesterAttendancePaged,
+} from "@/lib/lmsStudentAttendanceApi";
 import type {
   AttendanceCourse,
   AttendanceRecord,
-  SemesterAttendance,
+  AttendanceSemesterSummary,
 } from "@/types/lmsStudentAttendance";
 
 const selectClass =
@@ -24,12 +28,12 @@ const rateColor = (rate: number) =>
 const ATTENDANCE_PAGE_SIZE = 5;
 
 export default function StudentAttendancePage() {
-  const [semesters, setSemesters] = useState<SemesterAttendance[]>([]);
+  const [summaries, setSummaries] = useState<AttendanceSemesterSummary[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [termOrder, setTermOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // 년도·학기 분리 필터 — 기본 둘 다 '전체'(§21)
+  // 년도·학기 분리 필터 — 기본 둘 다 '전체'
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   // 팝오버 키: `${lecId}-late` | `${lecId}-absent`
@@ -39,8 +43,8 @@ export default function StudentAttendancePage() {
     setLoading(true);
     setError(null);
     let alive = true;
-    getStudentAttendance()
-      .then((d) => alive && setSemesters(d))
+    getAttendanceSemesterSummaries()
+      .then((d) => alive && setSummaries(d))
       .catch((err) => alive && setError(describeApiError(err)))
       .finally(() => alive && setLoading(false));
     return () => {
@@ -61,26 +65,23 @@ export default function StudentAttendancePage() {
     setOpenPop(null);
   }, [yearFilter, termFilter]);
 
-  const keyOf = (s: SemesterAttendance) => `${s.semYear}-${s.semTerm}`;
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
-    [semesters]
+    () => [...new Set(summaries.map((s) => s.semYear))].sort((a, b) => b - a),
+    [summaries],
   );
-  // 데이터 유무와 무관하게 공통코드 학기 노출(CODE_ORDER 순) — 라벨은 termMap[t] ?? t
   const termOptions = termOrder;
   const visible = useMemo(
     () =>
-      semesters.filter(
+      summaries.filter(
         (s) =>
           (yearFilter === "all" || s.semYear === yearFilter) &&
-          (termFilter === "all" || s.semTerm === termFilter)
+          (termFilter === "all" || s.semTerm === termFilter),
       ),
-    [semesters, yearFilter, termFilter]
+    [summaries, yearFilter, termFilter],
   );
 
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
-      {/* 헤더 */}
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-slate-800">출석 내역</h1>
@@ -90,7 +91,7 @@ export default function StudentAttendancePage() {
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
             onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
-            disabled={loading || semesters.length === 0}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -103,7 +104,7 @@ export default function StudentAttendancePage() {
           <select
             value={termFilter === "all" ? "" : termFilter}
             onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || semesters.length === 0}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -138,7 +139,7 @@ export default function StudentAttendancePage() {
         <div className="space-y-6">
           {visible.map((sem) => (
             <SemesterAttendanceTable
-              key={keyOf(sem)}
+              key={sem.semId}
               sem={sem}
               openPop={openPop}
               setOpenPop={setOpenPop}
@@ -153,25 +154,43 @@ export default function StudentAttendancePage() {
   );
 }
 
-// 학기 출결 테이블 — 학기별 독립 클라이언트 페이지네이션, 페이지당 ATTENDANCE_PAGE_SIZE건
+// 학기 출결 테이블 — 헤더(요약) + 그 학기 과목 출결을 서버 페이지네이션(자체 페이저, 페이지당 ATTENDANCE_PAGE_SIZE건)
 function SemesterAttendanceTable({
   sem,
   openPop,
   setOpenPop,
 }: {
-  sem: SemesterAttendance;
+  sem: AttendanceSemesterSummary;
   openPop: string | null;
   setOpenPop: (v: string | null) => void;
 }) {
+  const [courses, setCourses] = useState<AttendanceCourse[]>([]);
   const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(sem.courses.length / ATTENDANCE_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = sem.courses.slice(
-    safePage * ATTENDANCE_PAGE_SIZE,
-    safePage * ATTENDANCE_PAGE_SIZE + ATTENDANCE_PAGE_SIZE
-  );
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  // 경쟁 요청 가드 (페이저 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    getSemesterAttendancePaged({ semId: sem.semId, page, size: ATTENDANCE_PAGE_SIZE })
+      .then((data) => {
+        if (reqId !== reqIdRef.current) return;
+        setCourses(data.content);
+        setTotalPages(data.totalPages);
+      })
+      .catch(() => {
+        /* 카드 단위 조회 실패 — 조용히 둠(상단 학기 목록은 정상) */
+      })
+      .finally(() => {
+        if (reqId === reqIdRef.current) setLoading(false);
+      });
+  }, [sem.semId, page]);
+
+  const totalPagesSafe = Math.max(1, totalPages);
   // 여러 페이지일 때만 마지막 페이지 높이를 맞춘다.
-  const padCount = totalPages > 1 ? ATTENDANCE_PAGE_SIZE - pageRows.length : 0;
+  const padCount = totalPagesSafe > 1 ? ATTENDANCE_PAGE_SIZE - courses.length : 0;
   // 페이지 이동 시 열린 팝오버 닫기
   const goPage = (p: number) => {
     setOpenPop(null);
@@ -205,57 +224,69 @@ function SemesterAttendanceTable({
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((c) => (
-            <tr key={c.lecId} className="border-b border-slate-50 last:border-0">
-              <td className="px-5 py-3.5">
-                <span className="block truncate font-semibold text-slate-800" title={c.courseName}>
-                  {c.courseName}
-                </span>
-              </td>
-              <td className="px-2 py-3.5 text-slate-600">{c.lecSection}반</td>
-              <td className="px-2 py-3.5 text-slate-600">{c.lecTotClasses}회</td>
-              <td className="px-2 py-3.5">
-                <Count dot="bg-emerald-500" value={c.present} />
-              </td>
-              <td className="px-2 py-3.5">
-                <ClickableCount
-                  dot="bg-amber-500"
-                  value={c.late}
-                  open={openPop === `${c.lecId}-late`}
-                  onToggle={() => setOpenPop(openPop === `${c.lecId}-late` ? null : `${c.lecId}-late`)}
-                  course={c}
-                  kind="late"
-                />
-              </td>
-              <td className="px-2 py-3.5">
-                <ClickableCount
-                  dot="bg-rose-500"
-                  value={c.absent}
-                  open={openPop === `${c.lecId}-absent`}
-                  onToggle={() =>
-                    setOpenPop(openPop === `${c.lecId}-absent` ? null : `${c.lecId}-absent`)
-                  }
-                  course={c}
-                  kind="absent"
-                />
-              </td>
-              <td className={`px-2 py-3.5 font-bold ${rateColor(c.attendanceRate)}`}>
-                {c.attendanceRate}%
+          {loading && courses.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-400">
+                불러오는 중…
               </td>
             </tr>
-          ))}
-          {Array.from({ length: padCount }).map((_, i) => (
-            <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-              <td colSpan={7} className="px-5 py-3.5">
-                <span className="block h-6" />
-              </td>
-            </tr>
-          ))}
+          ) : (
+            <>
+              {courses.map((c) => (
+                <tr key={c.lecId} className="border-b border-slate-50 last:border-0">
+                  <td className="px-5 py-3.5">
+                    <span className="block truncate font-semibold text-slate-800" title={c.courseName}>
+                      {c.courseName}
+                    </span>
+                  </td>
+                  <td className="px-2 py-3.5 text-slate-600">{c.lecSection}반</td>
+                  <td className="px-2 py-3.5 text-slate-600">{c.lecTotClasses}회</td>
+                  <td className="px-2 py-3.5">
+                    <Count dot="bg-emerald-500" value={c.present} />
+                  </td>
+                  <td className="px-2 py-3.5">
+                    <ClickableCount
+                      dot="bg-amber-500"
+                      value={c.late}
+                      open={openPop === `${c.lecId}-late`}
+                      onToggle={() =>
+                        setOpenPop(openPop === `${c.lecId}-late` ? null : `${c.lecId}-late`)
+                      }
+                      course={c}
+                      kind="late"
+                    />
+                  </td>
+                  <td className="px-2 py-3.5">
+                    <ClickableCount
+                      dot="bg-rose-500"
+                      value={c.absent}
+                      open={openPop === `${c.lecId}-absent`}
+                      onToggle={() =>
+                        setOpenPop(openPop === `${c.lecId}-absent` ? null : `${c.lecId}-absent`)
+                      }
+                      course={c}
+                      kind="absent"
+                    />
+                  </td>
+                  <td className={`px-2 py-3.5 font-bold ${rateColor(c.attendanceRate)}`}>
+                    {c.attendanceRate}%
+                  </td>
+                </tr>
+              ))}
+              {Array.from({ length: padCount }).map((_, i) => (
+                <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
+                  <td colSpan={7} className="px-5 py-3.5">
+                    <span className="block h-6" />
+                  </td>
+                </tr>
+              ))}
+            </>
+          )}
         </tbody>
       </table>
 
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
-      <AttendancePager page={safePage} totalPages={totalPages} onChange={goPage} />
+      <AttendancePager page={page} totalPages={totalPagesSafe} onChange={goPage} />
     </section>
   );
 }
@@ -350,7 +381,7 @@ function ClickableCount({
 
   return (
     <span className="relative inline-block">
-      {/* 클릭 가능 어포던스 = 테두리 칩 + ▾ 캐럿(클릭 불가한 '출석'은 평범한 텍스트라 한눈에 구분) */}
+      {/* 클릭 가능 어포던스 = 테두리 칩 + ▾ 캐럿 */}
       <button
         type="button"
         onClick={onToggle}
