@@ -1,18 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+// SLM-004 과제 내역 — 학기별 카드(전 학기 표시) + 각 학기 테이블이 자체 서버 페이지네이션.
+// /assignments/semesters?status= 로 카드 헤더(요약), 각 카드가 /assignments/semesters/{semId} 로 과제 페이지 서버 조회.
+// 상태(전체/NSB/SBM/GRD)=서버 필터(요약·페이지 모두). 년도/학기=요약 카드 목록 좁힘.
+// 배지(미제출 수)는 권위 카운트(store.loadSubmittableCount → /submittable/summary)에 위임 — 여기서 직접 계산 안 함.
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import StudentSubmissionPreviewDialog from "@/components/lms/StudentSubmissionPreviewDialog";
 import StudentFeedbackDialog from "@/components/lms/StudentFeedbackDialog";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getCommonCodeList, getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
-import { getStudentAssignments } from "@/lib/lmsStudentAssignmentsApi";
+import {
+  getAssignmentSemesterSummaries,
+  getSemesterAssignmentsPaged,
+} from "@/lib/lmsStudentAssignmentsApi";
 import type {
   StudentAssignment,
   StudentAssignmentStatus,
-  StudentAssignmentsResult,
-  SemesterAssignments,
+  AssignmentSemesterSummary,
 } from "@/types/lmsStudentAssignments";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
 
@@ -34,20 +40,21 @@ const selectClass =
 
 export default function StudentAssignmentsHistoryPage() {
   const router = useRouter();
-  const [data, setData] = useState<StudentAssignmentsResult | null>(null);
+  const [summaries, setSummaries] = useState<AssignmentSemesterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0); // 제출 수정 후 각 카드 재조회
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
   const [termFilter, setTermFilter] = useState<string | "all">("all");
+  const [unsubmittedCount, setUnsubmittedCount] = useState(0); // 헤더 "미제출 N건"(상태 무관 NSB 전체)
 
   const [fileTarget, setFileTarget] = useState<StudentAssignment | null>(null);
   const [feedbackTarget, setFeedbackTarget] = useState<StudentAssignment | null>(null);
-  const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
+  const loadSubmittableCount = useLmsStudentAssignmentStore((s) => s.loadSubmittableCount);
 
-  // 라벨은 BE 공통코드 API로 런타임 매핑(코드→라벨 하드코딩 제거). 실패 시 {} → 코드 원본 표시.
-  // 학기 순서/라벨은 SEM_TERM 한 번의 getCommonCodeList(서버 CODE_ORDER 정렬)에서 둘 다 도출.
+  // 라벨은 BE 공통코드 API로 런타임 매핑. 학기 순서/라벨은 SEM_TERM 한 번에서 둘 다 도출.
   const [termOrder, setTermOrder] = useState<string[]>([]);
   const [termMap, setTermMap] = useState<Record<string, string>>({});
   const [sbmStatusMap, setSbmStatusMap] = useState<Record<string, string>>({});
@@ -62,63 +69,56 @@ export default function StudentAssignmentsHistoryPage() {
     });
   }, []);
 
+  // 학기 요약 로드 (상태 필터 적용 — 매칭 과제 있는 학기만)
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getStudentAssignments();
-      setData(result);
-      setSubmittableCount(
-        result.semesters.reduce(
-          (n, s) =>
-            n + s.assignments.filter((a) => a.status === "NSB" && !a.overdue).length,
-          0,
-        ),
-      );
+      setSummaries(await getAssignmentSemesterSummaries(statusFilter));
     } catch (err) {
       setError(describeApiError(err));
     } finally {
       setLoading(false);
     }
-  }, [setSubmittableCount]);
+  }, [statusFilter]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  // 헤더 미제출 카운트 (상태 필터 무관 — NSB 전체 합)
+  const reloadUnsubmitted = useCallback(() => {
+    void getAssignmentSemesterSummaries("NSB")
+      .then((s) => setUnsubmittedCount(s.reduce((n, x) => n + x.assignmentCount, 0)))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    reloadUnsubmitted();
+  }, [reloadUnsubmitted]);
+
+  // 제출 수정/미제출 전환 후: 요약·미제출 수·각 카드·배지 갱신
+  const handleSaved = useCallback(async () => {
+    await load();
+    reloadUnsubmitted();
+    setReloadTick((t) => t + 1);
+    void loadSubmittableCount();
+  }, [load, reloadUnsubmitted, loadSubmittableCount]);
+
   const yearOptions = useMemo(
-    () => (data ? [...new Set(data.semesters.map((s) => s.semYear))].sort((a, b) => b - a) : []),
-    [data]
+    () => [...new Set(summaries.map((s) => s.semYear))].sort((a, b) => b - a),
+    [summaries],
   );
-  // 데이터 유무와 무관하게 SEM_TERM 전체 학기 노출(서버 CODE_ORDER 순서)
   const termOptions = termOrder;
 
-  const visibleSemesters = useMemo(() => {
-    if (!data) return [];
-    return data.semesters
-      .filter(
+  // 년도/학기로 표시할 학기 카드를 좁힘 (상태는 서버에서 이미 반영됨)
+  const visibleSemesters = useMemo(
+    () =>
+      summaries.filter(
         (sem) =>
           (yearFilter === "all" || sem.semYear === yearFilter) &&
-          (termFilter === "all" || sem.semTerm === termFilter)
-      )
-      .map((sem) => ({
-        ...sem,
-        assignments: sem.assignments.filter(
-          (a) => statusFilter === "all" || a.status === statusFilter
-        ),
-      }))
-      .filter((sem) => sem.assignments.length > 0);
-  }, [data, statusFilter, yearFilter, termFilter]);
-
-  const unsubmittedCount = useMemo(
-    () =>
-      data
-        ? data.semesters.reduce(
-            (n, s) => n + s.assignments.filter((a) => a.status === "NSB").length,
-            0
-          )
-        : 0,
-    [data]
+          (termFilter === "all" || sem.semTerm === termFilter),
+      ),
+    [summaries, yearFilter, termFilter],
   );
 
   return (
@@ -132,7 +132,7 @@ export default function StudentAssignmentsHistoryPage() {
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
             onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
-            disabled={loading || !data}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -145,7 +145,7 @@ export default function StudentAssignmentsHistoryPage() {
           <select
             value={termFilter === "all" ? "" : termFilter}
             onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || !data}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -162,7 +162,6 @@ export default function StudentAssignmentsHistoryPage() {
         <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_FILTER_KEYS.map((key) => {
             const active = statusFilter === key;
-            // "all"은 "전체" 정적, 나머지는 sbmStatusMap[code] ?? code(런타임 라벨)
             const label = key === "all" ? "전체" : sbmStatusMap[key] ?? key;
             return (
               <button
@@ -202,8 +201,10 @@ export default function StudentAssignmentsHistoryPage() {
         <div className="space-y-6">
           {visibleSemesters.map((sem) => (
             <SemesterAssignmentTable
-              key={`${sem.semYear}-${sem.semTerm}-${statusFilter}`}
+              key={`${sem.semId}-${statusFilter}`}
               sem={sem}
+              status={statusFilter}
+              reloadTick={reloadTick}
               sbmStatusMap={sbmStatusMap}
               onViewFile={setFileTarget}
               onViewFeedback={setFeedbackTarget}
@@ -220,7 +221,7 @@ export default function StudentAssignmentsHistoryPage() {
         open={!!fileTarget}
         assignment={fileTarget}
         onClose={() => setFileTarget(null)}
-        onSaved={() => load()}
+        onSaved={handleSaved}
       />
       <StudentFeedbackDialog
         open={!!feedbackTarget}
@@ -243,7 +244,7 @@ function RowAction({
   onSubmit: () => void;
 }) {
   if (assignment.status === "NSB") {
-    // 미제출 + 마감일 경과(overdue) → 제출 불가: 버튼 비활성('마감됨'). overdue는 BE가 서버 시각 기준으로 내려줌(클라 시계 비신뢰)
+    // 미제출 + 마감일 경과(overdue) → 제출 불가: 버튼 비활성('마감됨'). overdue는 BE가 서버 시각 기준으로 내려줌
     if (assignment.overdue) {
       return (
         <button
@@ -288,35 +289,57 @@ function RowAction({
   );
 }
 
-// 학기 과제 테이블 — 학기별 독립 클라이언트 페이지네이션, 페이지당 ASSIGNMENT_PAGE_SIZE건
+// 학기 과제 테이블 — 헤더(요약) + 그 학기 과제를 서버 페이지네이션(자체 페이저, 페이지당 ASSIGNMENT_PAGE_SIZE건)
 function SemesterAssignmentTable({
   sem,
+  status,
+  reloadTick,
   sbmStatusMap,
   onViewFile,
   onViewFeedback,
   onSubmit,
 }: {
-  sem: SemesterAssignments;
+  sem: AssignmentSemesterSummary;
+  status: StatusFilter;
+  reloadTick: number;
   sbmStatusMap: Record<string, string>;
   onViewFile: (a: StudentAssignment) => void;
   onViewFeedback: (a: StudentAssignment) => void;
   onSubmit: (a: StudentAssignment) => void;
 }) {
+  const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(sem.assignments.length / ASSIGNMENT_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = sem.assignments.slice(
-    safePage * ASSIGNMENT_PAGE_SIZE,
-    safePage * ASSIGNMENT_PAGE_SIZE + ASSIGNMENT_PAGE_SIZE
-  );
-  // 여러 페이지일 때만 마지막 페이지 높이를 맞춘다. 한 페이지짜리 필터는 빈 행 공백을 만들지 않는다.
-  const padCount = totalPages > 1 ? ASSIGNMENT_PAGE_SIZE - pageRows.length : 0;
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  // 경쟁 요청 가드 (페이저 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    getSemesterAssignmentsPaged({ semId: sem.semId, status, page, size: ASSIGNMENT_PAGE_SIZE })
+      .then((data) => {
+        if (reqId !== reqIdRef.current) return;
+        setAssignments(data.content);
+        setTotalPages(data.totalPages);
+      })
+      .catch(() => {
+        /* 카드 단위 조회 실패 — 조용히 둠(상단 학기 목록은 정상) */
+      })
+      .finally(() => {
+        if (reqId === reqIdRef.current) setLoading(false);
+      });
+  }, [sem.semId, status, page, reloadTick]);
+
+  const totalPagesSafe = Math.max(1, totalPages);
+  // 여러 페이지일 때만 마지막 페이지 높이를 맞춘다(빈 행). 한 페이지면 공백 없음.
+  const padCount = totalPagesSafe > 1 ? ASSIGNMENT_PAGE_SIZE - assignments.length : 0;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
         <h2 className="text-base font-bold text-slate-800">{sem.semesterLabel}</h2>
-        <span className="text-xs text-slate-400">{sem.assignments.length}건</span>
+        <span className="text-xs text-slate-400">{sem.assignmentCount}건</span>
       </div>
 
       <table className="w-full table-fixed text-sm">
@@ -331,70 +354,78 @@ function SemesterAssignmentTable({
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((a) => {
-            const contentText = a.lecAsnContent?.trim() ? htmlToPlainText(a.lecAsnContent) : "";
-            return (
-              <tr key={a.id} className="border-b border-slate-50 last:border-0">
-                <td className="px-5 py-3">
-                  <span className="block truncate text-slate-600" title={a.courseName}>
-                    {a.courseName}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-slate-400">
-                    {a.lecSection != null ? `${a.lecSection}반` : "-"}
-                  </span>
-                </td>
-                <td className="px-2 py-3">
-                  <span className="block truncate font-semibold text-slate-800" title={a.lecAsnTitle}>
-                    {a.lecAsnTitle}
-                  </span>
-                  {contentText && (
-                    <span className="mt-0.5 block truncate text-xs text-slate-400" title={contentText}>
-                      {contentText}
-                    </span>
-                  )}
-                </td>
-                <td className="px-2 py-3 font-mono text-xs text-slate-600">
-                  {a.lecAsnDueDate}
-                </td>
-                <td className="px-2 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_PILL[a.status]}`}
-                  >
-                    {sbmStatusMap[a.status] ?? a.status}
-                  </span>
-                </td>
-                <td className="px-2 py-3">
-                  {a.status === "GRD" && a.asnSbmEvlScore != null ? (
-                    <span className="font-semibold text-slate-900">
-                      {a.asnSbmEvlScore} <span className="text-slate-400">/ {a.maxScore}</span>
-                    </span>
-                  ) : (
-                    <span className="text-slate-300">-</span>
-                  )}
-                </td>
-                <td className="px-2 py-3 text-right">
-                  <RowAction
-                    assignment={a}
-                    onViewFile={() => onViewFile(a)}
-                    onViewFeedback={() => onViewFeedback(a)}
-                    onSubmit={() => onSubmit(a)}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-          {Array.from({ length: padCount }).map((_, i) => (
-            <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-              <td colSpan={6} className="px-5 py-3">
-                <span className="block h-8" />
+          {loading && assignments.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">
+                불러오는 중...
               </td>
             </tr>
-          ))}
+          ) : (
+            <>
+              {assignments.map((a) => {
+                const contentText = a.lecAsnContent?.trim() ? htmlToPlainText(a.lecAsnContent) : "";
+                return (
+                  <tr key={a.id} className="border-b border-slate-50 last:border-0">
+                    <td className="px-5 py-3">
+                      <span className="block truncate text-slate-600" title={a.courseName}>
+                        {a.courseName}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-400">
+                        {a.lecSection != null ? `${a.lecSection}반` : "-"}
+                      </span>
+                    </td>
+                    <td className="px-2 py-3">
+                      <span className="block truncate font-semibold text-slate-800" title={a.lecAsnTitle}>
+                        {a.lecAsnTitle}
+                      </span>
+                      {contentText && (
+                        <span className="mt-0.5 block truncate text-xs text-slate-400" title={contentText}>
+                          {contentText}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-3 font-mono text-xs text-slate-600">{a.lecAsnDueDate}</td>
+                    <td className="px-2 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_PILL[a.status]}`}
+                      >
+                        {sbmStatusMap[a.status] ?? a.status}
+                      </span>
+                    </td>
+                    <td className="px-2 py-3">
+                      {a.status === "GRD" && a.asnSbmEvlScore != null ? (
+                        <span className="font-semibold text-slate-900">
+                          {a.asnSbmEvlScore} <span className="text-slate-400">/ {a.maxScore}</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-3 text-right">
+                      <RowAction
+                        assignment={a}
+                        onViewFile={() => onViewFile(a)}
+                        onViewFeedback={() => onViewFeedback(a)}
+                        onSubmit={() => onSubmit(a)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+              {Array.from({ length: padCount }).map((_, i) => (
+                <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
+                  <td colSpan={6} className="px-5 py-3">
+                    <span className="block h-8" />
+                  </td>
+                </tr>
+              ))}
+            </>
+          )}
         </tbody>
       </table>
 
       {/* 학기 테이블 페이저 — 항상 노출, 1페이지면 ‹ › 비활성(에메랄드 학생 테마) */}
-      <AssignmentPager page={safePage} totalPages={totalPages} onChange={setPage} />
+      <AssignmentPager page={page} totalPages={totalPagesSafe} onChange={setPage} />
     </section>
   );
 }

@@ -1,16 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getStudentCourses } from "@/lib/lmsStudentCoursesApi";
+// SLM-003 수강 내역 — 학기별 카드(전 학기 표시) + 각 학기 테이블이 자체 서버 페이지네이션.
+// /courses/semesters 로 카드 헤더(요약) 렌더, 각 카드가 /courses/semesters/{semId} 로 과목 페이지를 서버 조회.
+// 년도/학기 필터 = 요약 카드 목록을 좁힘(필터). ⚠️ 대시보드는 별 엔드포인트(getStudentCourses 전체) 사용.
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { getSemesterSummaries, getSemesterCoursesPaged } from "@/lib/lmsStudentCoursesApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
-import type { CourseRow, SemesterCourses } from "@/types/lmsStudentCourses";
+import type { CourseRow, SemesterSummary } from "@/types/lmsStudentCourses";
 
 const COURSE_PAGE_SIZE = 5;
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
 export default function StudentCoursesPage() {
-  const [semesters, setSemesters] = useState<SemesterCourses[]>([]);
+  const [summaries, setSummaries] = useState<SemesterSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [yearFilter, setYearFilter] = useState<number | "all">("all");
@@ -24,8 +27,7 @@ export default function StudentCoursesPage() {
     setLoading(true);
     setError(false);
     try {
-      const data = await getStudentCourses();
-      setSemesters(data);
+      setSummaries(await getSemesterSummaries());
     } catch {
       setError(true);
     } finally {
@@ -51,20 +53,20 @@ export default function StudentCoursesPage() {
   }, []);
 
   const yearOptions = useMemo(
-    () => [...new Set(semesters.map((s) => s.semYear))].sort((a, b) => b - a),
-    [semesters],
+    () => [...new Set(summaries.map((s) => s.semYear))].sort((a, b) => b - a),
+    [summaries],
   );
-
   const termOptions = termOrder;
 
+  // 년도/학기로 표시할 학기 카드를 좁힘 (전체/전체면 전 학기 표시)
   const visible = useMemo(
     () =>
-      semesters.filter(
+      summaries.filter(
         (s) =>
           (yearFilter === "all" || s.semYear === yearFilter) &&
           (termFilter === "all" || s.semTerm === termFilter),
       ),
-    [semesters, yearFilter, termFilter],
+    [summaries, yearFilter, termFilter],
   );
 
   return (
@@ -78,7 +80,7 @@ export default function StudentCoursesPage() {
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
             onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
-            disabled={loading || semesters.length === 0}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -91,7 +93,7 @@ export default function StudentCoursesPage() {
           <select
             value={termFilter === "all" ? "" : termFilter}
             onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || semesters.length === 0}
+            disabled={loading || summaries.length === 0}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -122,12 +124,7 @@ export default function StudentCoursesPage() {
       ) : (
         <div className="space-y-6">
           {visible.map((sem) => (
-            <SemesterCard
-              key={`${sem.semYear}-${sem.semTerm}`}
-              sem={sem}
-              enrMap={enrMap}
-              valMap={valMap}
-            />
+            <SemesterCard key={sem.semId} sem={sem} enrMap={enrMap} valMap={valMap} />
           ))}
         </div>
       )}
@@ -149,23 +146,43 @@ const VAL_BADGE: Record<string, string> = {
   CNCL: "bg-rose-50 text-rose-600",
 };
 
+// 학기 카드 — 헤더(요약) + 그 학기 과목을 5건 단위 서버 페이지네이션(자체 페이저)
 function SemesterCard({
   sem,
   enrMap,
   valMap,
 }: {
-  sem: SemesterCourses;
+  sem: SemesterSummary;
   enrMap: Record<string, string>;
   valMap: Record<string, string>;
 }) {
+  const [courses, setCourses] = useState<CourseRow[]>([]);
   const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(sem.courses.length / COURSE_PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = sem.courses.slice(
-    safePage * COURSE_PAGE_SIZE,
-    safePage * COURSE_PAGE_SIZE + COURSE_PAGE_SIZE,
-  );
-  const padCount = COURSE_PAGE_SIZE - pageRows.length;
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  // 경쟁 요청 가드 (페이저 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
+
+  useEffect(() => {
+    const reqId = ++reqIdRef.current;
+    setLoading(true);
+    getSemesterCoursesPaged({ semId: sem.semId, page, size: COURSE_PAGE_SIZE })
+      .then((data) => {
+        if (reqId !== reqIdRef.current) return;
+        setCourses(data.content);
+        setTotalPages(data.totalPages);
+      })
+      .catch(() => {
+        /* 카드 단위 조회 실패 — 조용히 둠(상단 학기 목록은 정상) */
+      })
+      .finally(() => {
+        if (reqId === reqIdRef.current) setLoading(false);
+      });
+  }, [sem.semId, page]);
+
+  const multiPage = totalPages > 1;
+  // 다중 페이지일 때만 빈 행으로 높이 고정(페이지 이동 시 표 높이 안정)
+  const padCount = multiPage ? COURSE_PAGE_SIZE - courses.length : 0;
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -200,20 +217,30 @@ function SemesterCard({
           </tr>
         </thead>
         <tbody>
-          {pageRows.map((course) => (
-            <CourseTableRow key={course.lecId} course={course} enrMap={enrMap} valMap={valMap} />
-          ))}
-          {Array.from({ length: padCount }).map((_, i) => (
-            <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
-              <td colSpan={7} className="px-5 py-3">
-                <span className="block h-5" />
+          {loading && courses.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-400">
+                불러오는 중...
               </td>
             </tr>
-          ))}
+          ) : (
+            <>
+              {courses.map((course) => (
+                <CourseTableRow key={course.lecId} course={course} enrMap={enrMap} valMap={valMap} />
+              ))}
+              {Array.from({ length: padCount }).map((_, i) => (
+                <tr key={`pad-${i}`} aria-hidden className="border-b border-slate-50 last:border-0">
+                  <td colSpan={7} className="px-5 py-3">
+                    <span className="block h-5" />
+                  </td>
+                </tr>
+              ))}
+            </>
+          )}
         </tbody>
       </table>
 
-      <CoursePager page={safePage} totalPages={totalPages} onChange={setPage} />
+      {multiPage && <CoursePager page={page} totalPages={totalPages} onChange={setPage} />}
     </section>
   );
 }

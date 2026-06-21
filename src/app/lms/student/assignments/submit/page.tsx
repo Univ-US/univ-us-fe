@@ -1,6 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+// SLM-007 과제 제출 — 학생이 미제출(제출 가능) 과제를 골라 파일을 제출한다.
+// 서버 페이지네이션: 년도/학기 필터 + page/size로 서버 조회(클라 slice 없음, SLM-006 미러).
+// 딥링크(?assignmentId=)는 BE가 그 과제가 속한 페이지를 계산해 반환 → 해당 과제 자동 선택.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatFileSize,
   UPLOAD_ACCEPT,
@@ -10,11 +13,12 @@ import {
 } from "@/lib/lmsProfessorUploadApi";
 import {
   getSubmittableAssignments,
+  getSubmittableSummary,
   submitStudentAssignment,
 } from "@/lib/lmsStudentSubmitApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
-import type { SubmitItem } from "@/types/lmsStudentSubmit";
+import type { SubmitItem, SubmittableSummary, PageResponse } from "@/types/lmsStudentSubmit";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
 import { useLmsStudentAssignmentStore } from "@/store/lms/lmsStudentAssignmentStore";
@@ -28,12 +32,18 @@ const CHECKLIST = [
 const FILE_ACCEPT_HINT =
   "영상(MP4·AVI·MOV·WMV) · 음성(MP3·M4A·WAV) · 문서(PDF·HWP·DOC·PPT·XLS·TXT) · 이미지(JPG·PNG·GIF) · ZIP — 최대 5GB";
 const MEMO_MAX = 1000;
-const SUBMIT_LIST_PAGE_SIZE = 6;
+const PAGE_SIZE = 6;
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function StudentSubmitPage() {
+  // 요약(전역 미제출 수·연도 드롭다운 소스) — null=미로드
+  const [summary, setSummary] = useState<SubmittableSummary | null>(null);
+  // 현재 페이지(서버 응답)
   const [items, setItems] = useState<SubmitItem[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -52,8 +62,9 @@ export default function StudentSubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [queryReady, setQueryReady] = useState(false);
   const [preferredAssignmentId, setPreferredAssignmentId] = useState<number | null>(null);
-  const [listPage, setListPage] = useState(0);
   const setSubmittableCount = useLmsStudentAssignmentStore((s) => s.setSubmittableCount);
+  // 경쟁 요청 가드 (필터/페이지 빠른 전환 시 stale 응답 무시)
+  const reqIdRef = useRef(0);
 
   useEffect(() => {
     void getCommonCodeList("SEM_TERM").then((list) => {
@@ -70,44 +81,69 @@ export default function StudentSubmitPage() {
     setNotice(null);
   }, []);
 
-  const matchFilter = useCallback(
-    (item: SubmitItem, year: number | "all", term: string | "all") =>
-      (year === "all" || item.semYear === year) && (term === "all" || item.semTerm === term),
-    [],
-  );
+  const clearSelection = useCallback(() => {
+    setSelectedId(null);
+    setFile(null);
+    setMemo("");
+  }, []);
 
-  const load = useCallback(
-    async (preferredId?: number) => {
+  // 요약(배지/연도) 로드 — 사이드바 배지도 동기화
+  const loadSummary = useCallback(async () => {
+    try {
+      const s = await getSubmittableSummary();
+      setSummary(s);
+      setSubmittableCount(s.totalCount);
+    } catch {
+      // 요약 실패는 조용히 — 목록 로드가 별도 에러를 표기한다.
+    }
+  }, [setSubmittableCount]);
+
+  // 한 페이지 서버 조회. 성공 시에만 목록 교체(로딩 중 이전 페이지 유지). focus=딥링크 대상 선택
+  const fetchPage = useCallback(
+    async (opts: {
+      year: number | "all";
+      term: string | "all";
+      page: number;
+      focusAssignmentId?: number;
+    }): Promise<PageResponse<SubmitItem> | null> => {
+      const reqId = ++reqIdRef.current;
       setLoading(true);
       setLoadError(null);
       try {
-        const data = await getSubmittableAssignments();
-        setItems(data);
-        setSubmittableCount(data.length);
-        // 딥링크(과제 내역 '제출하러 가기') 우선 → 해당 과제 선택 (필터는 '전체'로 풀어 노출)
-        const preferred =
-          preferredId == null ? null : data.find((item) => item.id === preferredId) ?? null;
-        const target = preferred ?? data[0] ?? null;
-        if (target) {
-          setYearFilter("all");
-          setTermFilter("all");
-          const idx = data.findIndex((item) => item.id === target.id);
-          setListPage(idx >= 0 ? Math.floor(idx / SUBMIT_LIST_PAGE_SIZE) : 0);
-          selectItem(target);
-        } else {
-          setSelectedId(null);
-          setFile(null);
-          setMemo("");
-          setListPage(0);
-        }
+        const data = await getSubmittableAssignments({
+          year: opts.year === "all" ? undefined : opts.year,
+          term: opts.term === "all" ? undefined : opts.term,
+          page: opts.page,
+          size: PAGE_SIZE,
+          focusAssignmentId: opts.focusAssignmentId,
+        });
+        if (reqId !== reqIdRef.current) return null; // stale 응답 무시
+        setItems(data.content);
+        setPage(data.page);
+        setTotalElements(data.totalElements);
+        setTotalPages(data.totalPages);
+        // 선택: 딥링크 focus 우선, 없으면 페이지 첫 과제
+        const focus =
+          opts.focusAssignmentId != null
+            ? data.content.find((it) => it.id === opts.focusAssignmentId) ?? null
+            : null;
+        const target = focus ?? data.content[0] ?? null;
+        if (target) selectItem(target);
+        else clearSelection();
+        return data;
       } catch (err) {
-        setLoadError(describeApiError(err));
+        if (reqId === reqIdRef.current) setLoadError(describeApiError(err));
+        return null;
       } finally {
-        setLoading(false);
+        if (reqId === reqIdRef.current) setLoading(false);
       }
     },
-    [selectItem, setSubmittableCount],
+    [selectItem, clearSelection],
   );
+
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
 
   useEffect(() => {
     const assignmentId = new URLSearchParams(window.location.search).get("assignmentId");
@@ -116,70 +152,42 @@ export default function StudentSubmitPage() {
     setQueryReady(true);
   }, []);
 
+  // 최초 목록 로드 — 딥링크면 그 과제가 속한 페이지로(필터는 전체), 아니면 0페이지
   useEffect(() => {
     if (!queryReady) return;
-    void load(preferredAssignmentId ?? undefined);
-  }, [load, preferredAssignmentId, queryReady]);
+    void fetchPage({
+      year: "all",
+      term: "all",
+      page: 0,
+      focusAssignmentId: preferredAssignmentId ?? undefined,
+    });
+  }, [queryReady, preferredAssignmentId, fetchPage]);
 
-  const yearOptions = useMemo(
-    () => [...new Set(items.map((i) => i.semYear))].sort((a, b) => b - a),
-    [items],
-  );
+  const yearOptions = summary?.years ?? [];
   const termOptions = termOrder;
-
-  // 선택 년도/학기에 매칭되는 미제출 과제 (강의 무관 — 전 과목)
-  const visibleItems = useMemo(
-    () => items.filter((item) => matchFilter(item, yearFilter, termFilter)),
-    [items, yearFilter, termFilter, matchFilter],
-  );
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
 
-  const totalListPages = Math.max(1, Math.ceil(visibleItems.length / SUBMIT_LIST_PAGE_SIZE));
-  const safeListPage = Math.min(listPage, totalListPages - 1);
-  const listStartIndex = safeListPage * SUBMIT_LIST_PAGE_SIZE;
-  const pagedItems = visibleItems.slice(listStartIndex, listStartIndex + SUBMIT_LIST_PAGE_SIZE);
-  const listEndIndex = Math.min(listStartIndex + pagedItems.length, visibleItems.length);
-  const padListCount = totalListPages > 1 ? SUBMIT_LIST_PAGE_SIZE - pagedItems.length : 0;
+  // 년도/학기 변경 → page 0부터 서버 재조회 (첫 과제 자동 선택)
+  const handleYearChange = (year: number | "all") => {
+    setYearFilter(year);
+    void fetchPage({ year, term: termFilter, page: 0 });
+  };
+  const handleTermChange = (term: string | "all") => {
+    setTermFilter(term);
+    void fetchPage({ year: yearFilter, term, page: 0 });
+  };
+  const changePage = (p: number) => {
+    void fetchPage({ year: yearFilter, term: termFilter, page: p });
+  };
 
-  useEffect(() => {
-    if (listPage !== safeListPage) {
-      setListPage(safeListPage);
-    }
-  }, [listPage, safeListPage]);
-
-  const changeListPage = useCallback(
-    (page: number) => {
-      const nextPage = Math.max(0, Math.min(page, totalListPages - 1));
-      setListPage(nextPage);
-      const nextItem = visibleItems[nextPage * SUBMIT_LIST_PAGE_SIZE];
-      if (nextItem) {
-        selectItem(nextItem);
-      }
-    },
-    [visibleItems, selectItem, totalListPages],
-  );
-
-  // 년도/학기 변경 → 목록 좁힘 + 첫 과제 자동 선택 (각 축 독립)
-  const applyFilter = useCallback(
-    (year: number | "all", term: string | "all") => {
-      setYearFilter(year);
-      setTermFilter(term);
-      setListPage(0);
-      const first = items.find((item) => matchFilter(item, year, term)) ?? null;
-      if (first) {
-        selectItem(first);
-      } else {
-        setSelectedId(null);
-        setFile(null);
-        setMemo("");
-      }
-    },
-    [items, matchFilter, selectItem],
-  );
+  const listStartIndex = page * PAGE_SIZE;
+  const listEndIndex = listStartIndex + items.length;
+  const multiPage = totalPages > 1;
+  const padListCount = multiPage ? PAGE_SIZE - items.length : 0;
 
   const pickFiles = (list: FileList | null) => {
     const picked = list?.[0];
@@ -202,13 +210,19 @@ export default function StudentSubmitPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selected || !file) return;
+    // 파일은 선택 — 파일 또는 메모 중 하나는 있어야 제출
+    if (!selected || (!file && !memo.trim())) return;
     setSubmitting(true);
     setSubmitError(null);
     setNotice(null);
     try {
       await submitStudentAssignment(selected.id, { file, memo });
-      await load();
+      await loadSummary(); // 배지/전역 미제출 수 갱신
+      // 제출한 과제는 목록에서 사라짐 → 현재 페이지 재조회. 페이지가 비면 한 페이지 앞으로
+      let res = await fetchPage({ year: yearFilter, term: termFilter, page });
+      if (res && res.content.length === 0 && res.page > 0) {
+        res = await fetchPage({ year: yearFilter, term: termFilter, page: res.page - 1 });
+      }
       setNotice("과제가 제출되었습니다.");
     } catch (err) {
       setSubmitError(describeApiError(err));
@@ -217,19 +231,21 @@ export default function StudentSubmitPage() {
     }
   };
 
+  const filtersDisabled = summary === null || summary.totalCount === 0;
+
   return (
     <div className="mx-auto max-w-5xl px-8 py-8">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-slate-800">과제 제출</h1>
-          <p className="mt-1 text-sm text-slate-500">미제출 과제 {items.length}건</p>
+          <p className="mt-1 text-sm text-slate-500">미제출 과제 {summary?.totalCount ?? 0}건</p>
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <select
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => applyFilter(e.target.value === "" ? "all" : Number(e.target.value), termFilter)}
-            disabled={loading || items.length === 0}
+            onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
+            disabled={filtersDisabled}
             className={`${selectClass} w-28`}
           >
             <option value="">전체 연도</option>
@@ -241,8 +257,8 @@ export default function StudentSubmitPage() {
           </select>
           <select
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => applyFilter(yearFilter, e.target.value === "" ? "all" : e.target.value)}
-            disabled={loading || items.length === 0}
+            onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
+            disabled={filtersDisabled}
             className={`${selectClass} w-32`}
           >
             <option value="">전체 학기</option>
@@ -267,20 +283,20 @@ export default function StudentSubmitPage() {
           <p className="mt-1 text-xs text-rose-500">{loadError}</p>
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void fetchPage({ year: yearFilter, term: termFilter, page })}
             className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
           >
             다시 시도
           </button>
         </div>
-      ) : loading ? (
+      ) : summary === null || (loading && items.length === 0) ? (
         <p className="py-16 text-center text-sm text-slate-400">불러오는 중...</p>
-      ) : items.length === 0 ? (
+      ) : summary.totalCount === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
           <p className="text-sm font-semibold text-slate-700">제출 가능한 과제가 없습니다.</p>
           <p className="mt-1 text-xs text-slate-400">미제출 상태이면서 제출 가능한 과제만 표시됩니다.</p>
         </div>
-      ) : visibleItems.length === 0 ? (
+      ) : totalElements === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
           <p className="text-sm font-semibold text-slate-700">조건에 맞는 과제가 없습니다.</p>
           <p className="mt-1 text-xs text-slate-400">위 년도/학기 필터에 해당하는 미제출 과제가 없습니다.</p>
@@ -293,7 +309,7 @@ export default function StudentSubmitPage() {
               <span className="text-[11px] text-slate-400">과제 선택 후 제출</span>
             </div>
             <ul className="p-2">
-              {pagedItems.map((item) => {
+              {items.map((item) => {
                 const active = item.id === selectedId;
                 return (
                   <li key={item.id}>
@@ -343,28 +359,28 @@ export default function StudentSubmitPage() {
                 </li>
               ))}
             </ul>
-            {totalListPages > 1 && (
+            {multiPage && (
               <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
                 <span className="text-[11px] font-medium text-slate-400">
-                  {listStartIndex + 1}-{listEndIndex} / {visibleItems.length}
+                  {listStartIndex + 1}-{listEndIndex} / {totalElements}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => changeListPage(safeListPage - 1)}
-                    disabled={safeListPage === 0}
+                    onClick={() => changePage(page - 1)}
+                    disabled={page === 0}
                     aria-label="이전 페이지"
                     className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                   >
                     ‹
                   </button>
                   <span className="min-w-10 text-center text-xs font-semibold text-slate-600">
-                    {safeListPage + 1} / {totalListPages}
+                    {page + 1} / {totalPages}
                   </span>
                   <button
                     type="button"
-                    onClick={() => changeListPage(safeListPage + 1)}
-                    disabled={safeListPage >= totalListPages - 1}
+                    onClick={() => changePage(page + 1)}
+                    disabled={page >= totalPages - 1}
                     aria-label="다음 페이지"
                     className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                   >
@@ -415,7 +431,7 @@ export default function StudentSubmitPage() {
 
               <div className="mt-5">
                 <label className="text-sm font-semibold text-slate-700">
-                  제출 파일 <span className="text-rose-500">*</span>
+                  제출 파일 <span className="font-normal text-slate-400">선택</span>
                 </label>
                 <label
                   onDragOver={(e) => {
@@ -501,6 +517,12 @@ export default function StudentSubmitPage() {
                 </ul>
               </div>
 
+              {!file && !memo.trim() && (
+                <p className="mt-4 text-xs text-slate-400">
+                  제출 파일 또는 메모 중 하나는 입력해야 제출할 수 있습니다.
+                </p>
+              )}
+
               <div className="mt-5 flex justify-end gap-2">
                 <button
                   type="button"
@@ -513,7 +535,7 @@ export default function StudentSubmitPage() {
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={!file || submitting}
+                  disabled={(!file && !memo.trim()) || submitting}
                   className="rounded-lg bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {submitting ? "제출 중..." : "⤒ 최종 제출하기"}

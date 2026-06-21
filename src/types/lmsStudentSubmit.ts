@@ -34,6 +34,23 @@ export interface SubmitItem {
 }
 
 export interface SubmitAssignmentInput {
-  file: File;
+  file?: File | null; // 선택 — 파일 또는 메모 중 하나는 있어야 함
   memo?: string;
+}
+
+/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+/** 제출 가능 과제 요약 — 사이드바 배지(전역 미제출 수) + 연도 필터 드롭다운 소스 */
+export interface SubmittableSummary {
+  totalCount: number;
+  years: number[];
 }

@@ -33,6 +33,7 @@ import type { Notice, NoticeAttachment, NoticeLecture } from "@/types/lmsProfess
 import "@/components/lms/lms-content.css"; // 본문 HTML 렌더 스타일(.lms-content)
 
 const NOTICE_PREVIEW_MAX = 28; // 목록 카드 본문 미리보기 글자 수
+const NOTICE_PAGE_SIZE = 10; // 공지 목록 페이지당 건수 (서버 페이지네이션)
 
 // 교수 슬레이트 톤(§13) — 포커스 링 slate-500, 1차 버튼 slate-800
 const selectClass =
@@ -87,8 +88,12 @@ export default function ProfessorNoticePage() {
   const [termFilter, setTermFilter] = useState<string | "all">("all");
   const [selectedLecId, setSelectedLecId] = useState<number | null>(null);
 
-  // 선택 과목의 공지(최신순) + 선택된 공지
+  // 선택 과목의 공지(최신순, 1페이지) + 서버 페이지 상태 + 선택된 공지
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [page, setPage] = useState(0); // 0-based 서버 페이지
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false); // 첫 로드 완료 여부 — 재조회 시 목록 유지(로딩 텍스트 깜빡임 방지)
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -130,10 +135,13 @@ export default function ProfessorNoticePage() {
     };
   }, []);
 
-  // 선택 과목 공지 조회 (과목/재조회틱 변경 시)
+  // 선택 과목 공지 1페이지 조회 (과목/페이지/재조회틱 변경 시)
   useEffect(() => {
     if (selectedLecId == null) {
       setNotices([]);
+      setTotalElements(0);
+      setTotalPages(0);
+      setHasLoaded(false);
       return;
     }
     let alive = true;
@@ -141,12 +149,23 @@ export default function ProfessorNoticePage() {
     setError(false);
     (async () => {
       try {
-        const list = await getCourseNotices(selectedLecId);
-        if (alive) setNotices(list);
+        const data = await getCourseNotices({ lecId: selectedLecId, page, size: NOTICE_PAGE_SIZE });
+        if (!alive) return;
+        // 마지막 항목 삭제 등으로 빈 페이지가 되면 한 페이지 앞으로 (목록은 유지=깜빡임 방지, 재조회 이어짐)
+        if (data.content.length === 0 && data.page > 0) {
+          setPage(data.page - 1);
+          return;
+        }
+        setNotices(data.content);
+        setTotalElements(data.totalElements);
+        setTotalPages(data.totalPages);
+        setHasLoaded(true);
       } catch {
         if (alive) {
           setError(true);
           setNotices([]);
+          setTotalElements(0);
+          setTotalPages(0);
         }
       } finally {
         if (alive) setLoading(false);
@@ -155,7 +174,7 @@ export default function ProfessorNoticePage() {
     return () => {
       alive = false;
     };
-  }, [selectedLecId, reloadTick]);
+  }, [selectedLecId, page, reloadTick]);
 
   // 과목 변경/목록 변동 시 기본 선택(첫 항목). 현재 선택이 목록에 있으면 유지.
   useEffect(() => {
@@ -197,8 +216,11 @@ export default function ProfessorNoticePage() {
   const applyLectureFilter = (year: number | "all", term: string | "all") => {
     const lecId = matchLectures(year, term, lectures)[0]?.lecId ?? null;
     setSelectedLecId(lecId);
+    setPage(0);
     if (lecId == null) {
       setNotices([]);
+      setTotalElements(0);
+      setTotalPages(0);
       setLoading(false);
     }
   };
@@ -322,6 +344,7 @@ export default function ProfessorNoticePage() {
           setTermFilter("all");
         }
         setSelectedLecId(created.lecId);
+        setPage(0); // 새 공지는 최신순 첫 페이지에 위치
         setSelectedId(created.noticeId);
       }
       closeForm();
@@ -359,6 +382,7 @@ export default function ProfessorNoticePage() {
       setLectures(lecs);
       const first = matchLectures("all", "all", lecs)[0]?.lecId ?? null;
       setSelectedLecId(first);
+      setPage(0);
       if (first == null) setLoading(false);
     } catch {
       setError(true);
@@ -378,7 +402,7 @@ export default function ProfessorNoticePage() {
               title={selectedLecture?.courseName ?? undefined}
             >
               <span className="min-w-0 truncate">{selectedLecture?.courseName ?? "과목 선택"}</span>
-              <span className="shrink-0">· 공지 {notices.length}건</span>
+              <span className="shrink-0">· 공지 {totalElements}건</span>
             </p>
           </div>
 
@@ -412,7 +436,10 @@ export default function ProfessorNoticePage() {
             {/* 과목 드롭다운 — 년도/학기로 좁힌 담당 강의, 첫 과목 자동 선택 */}
             <select
               value={selectedLecId ?? ""}
-              onChange={(e) => setSelectedLecId(Number(e.target.value))}
+              onChange={(e) => {
+                setSelectedLecId(Number(e.target.value));
+                setPage(0);
+              }}
               disabled={filteredLectures.length === 0}
               className={`${selectClass} w-64`}
             >
@@ -464,7 +491,7 @@ export default function ProfessorNoticePage() {
               다시 시도
             </button>
           </div>
-        ) : loading ? (
+        ) : loading && !hasLoaded ? (
           <p className="py-16 text-center text-sm text-slate-400">불러오는 중…</p>
         ) : selectedLecId == null ? (
           <p className="py-16 text-center text-sm text-slate-400">담당 강의가 없습니다.</p>
@@ -474,7 +501,7 @@ export default function ProfessorNoticePage() {
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                 <h2 className="text-sm font-bold text-slate-800">공지 목록</h2>
-                <span className="text-[11px] text-slate-400">{notices.length}건</span>
+                <span className="text-[11px] text-slate-400">{totalElements}건</span>
               </div>
               {notices.length === 0 ? (
                 <p className="px-4 py-14 text-center text-sm text-slate-400">
@@ -523,6 +550,37 @@ export default function ProfessorNoticePage() {
                     );
                   })}
                 </ul>
+              )}
+              {/* 페이저 — 다중 페이지일 때만 (setPage 변경 시 서버 재조회) */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
+                  <span className="text-[11px] font-medium text-slate-400">
+                    {page * NOTICE_PAGE_SIZE + 1}-{page * NOTICE_PAGE_SIZE + notices.length} / {totalElements}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page === 0}
+                      aria-label="이전 페이지"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      ‹
+                    </button>
+                    <span className="min-w-10 text-center text-xs font-semibold text-slate-600">
+                      {page + 1} / {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                      disabled={page >= totalPages - 1}
+                      aria-label="다음 페이지"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
               )}
             </section>
 

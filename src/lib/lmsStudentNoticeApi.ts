@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import type { Notice, NoticeAttachment } from "@/types/lmsStudentNotice";
+import type { Lecture, Notice, NoticeAttachment, PageResponse } from "@/types/lmsStudentNotice";
 
 const normalizeNotice = (notice: Notice): Notice => ({
   ...notice,
@@ -7,9 +7,26 @@ const normalizeNotice = (notice: Notice): Notice => ({
   attachments: notice.attachments ?? [],
 });
 
-export const getStudentNotices = async (): Promise<Notice[]> => {
-  const res = await api.get<Notice[]>("/api/lms/student/notices");
-  return res.data.map(normalizeNotice);
+/** GET 수강 과목(강의) 드롭다운 — 년도/학기/과목 필터 소스 */
+export const getStudentNoticeLectures = async (): Promise<Lecture[]> => {
+  const res = await api.get<Lecture[]>("/api/lms/student/notices/lectures");
+  return res.data;
+};
+
+/** GET 선택 과목 공지 1페이지 (서버 페이지네이션). page 0-based */
+export const getStudentNotices = async (params: {
+  lecId: number;
+  page: number;
+  size: number;
+}): Promise<PageResponse<Notice>> => {
+  const res = await api.get<PageResponse<Notice>>("/api/lms/student/notices", {
+    params: {
+      lecId: String(params.lecId),
+      page: String(params.page),
+      size: String(params.size),
+    },
+  });
+  return { ...res.data, content: (res.data.content ?? []).map(normalizeNotice) };
 };
 
 export const downloadStudentNoticeAttachment = async (
