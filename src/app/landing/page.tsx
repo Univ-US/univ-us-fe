@@ -5,41 +5,49 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
     ArrowRight,
+    BellRing,
+    BookOpenCheck,
     Building2,
+    CalendarDays,
+    Check,
+    CircleCheckBig,
     CreditCard,
     GraduationCap,
-    Headphones,
     LayoutDashboard,
     LogIn,
+    Menu,
+    MessageSquareText,
     ShieldCheck,
     Sparkles,
     UsersRound,
+    X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSubscriptionPlans } from "@/lib/subscriptionApi";
 import { useAuthStore } from "@/store/authStore";
 import type { SubscriptionPlan } from "@/types/subscription";
 
-const features = [
+const capabilities = [
     {
-        title: "기관 맞춤 LMS",
-        description: "학교와 학원의 강의, 학생, 교수, 관리자 계정을 한 화면에서 운영합니다.",
-        icon: GraduationCap,
+        eyebrow: "LEARNING",
+        title: "수업의 모든 맥락을 한 곳에",
+        description: "강의, 과제, 출결, 자료를 학생과 교수 모두가 같은 흐름에서 확인합니다.",
+        icon: BookOpenCheck,
+        tone: "bg-cyan-50 text-cyan-700",
     },
     {
-        title: "구독 기반 운영",
-        description: "플랜별 사용량, 결제 내역, 구독 상태를 투명하게 확인할 수 있습니다.",
-        icon: CreditCard,
+        eyebrow: "OPERATIONS",
+        title: "운영은 더 단순하고 선명하게",
+        description: "구성원, 공지, 문의, 구독 상태를 역할에 맞는 화면에서 관리합니다.",
+        icon: LayoutDashboard,
+        tone: "bg-emerald-50 text-emerald-700",
     },
     {
-        title: "어드민 문의 채팅",
-        description: "학교 관리자가 문의를 시작하면 어드민이 실시간으로 답변합니다.",
-        icon: Headphones,
-    },
-    {
-        title: "회원 통합 조회",
-        description: "학생, 교수, 관리자를 역할과 상태 기준으로 빠르게 찾습니다.",
-        icon: UsersRound,
+        eyebrow: "CAMPUS LIFE",
+        title: "수업 밖의 캠퍼스 경험까지",
+        description: "일정, 시설 예약, 커뮤니티를 연결해 캠퍼스의 일상을 이어갑니다.",
+        icon: CalendarDays,
+        tone: "bg-teal-50 text-teal-700",
     },
 ];
 
@@ -54,8 +62,7 @@ const getDashboardPathByRole = (role: string | null) => {
     }
 };
 
-const formatPlanPrice = (price: number) =>
-    `${price.toLocaleString("ko-KR")}원`;
+const formatPlanPrice = (price: number) => `${price.toLocaleString("ko-KR")}원`;
 
 const formatPlanCaption = (plan: SubscriptionPlan) => {
     if (plan.description) {
@@ -69,16 +76,112 @@ const formatPlanCaption = (plan: SubscriptionPlan) => {
     return `최대 ${plan.maxMemberCount.toLocaleString("ko-KR")}명`;
 };
 
+function ProductPreview() {
+    return (
+        <div className="relative mx-auto w-full max-w-[650px]" aria-label="UnivUs 운영 화면 예시">
+            <div className="absolute -inset-8 -z-10 rounded-[2.5rem] bg-primary/10 blur-3xl" />
+            <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-[0_30px_80px_-28px_rgba(15,168,150,0.42)]">
+                <div className="flex h-9 items-center gap-1.5 rounded-t-[1.25rem] bg-slate-50 px-4">
+                    <span className="size-2 rounded-full bg-rose-300" />
+                    <span className="size-2 rounded-full bg-amber-300" />
+                    <span className="size-2 rounded-full bg-emerald-300" />
+                    <span className="ml-3 h-4 w-36 rounded bg-slate-200/80" />
+                </div>
+                <div className="grid min-h-[350px] grid-cols-[132px_1fr] overflow-hidden rounded-b-[1.25rem] border border-slate-100 bg-slate-50 sm:min-h-[410px] sm:grid-cols-[156px_1fr]">
+                    <aside className="hidden border-r border-slate-100 bg-white p-4 sm:block">
+                        <div className="flex items-center gap-2 text-sm font-black text-slate-900">
+                            <span className="flex size-6 items-center justify-center rounded-md bg-primary text-xs text-white">U</span>
+                            UnivUs
+                        </div>
+                        <div className="mt-7 space-y-2">
+                            {["대시보드", "구성원 관리", "강의 관리", "공지사항"].map((item, index) => (
+                                <div
+                                    key={item}
+                                    className={`rounded-lg px-3 py-2 text-[11px] font-bold ${index === 0 ? "bg-primary/10 text-primary" : "text-slate-400"}`}
+                                >
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-10 rounded-xl bg-slate-50 p-3">
+                            <div className="h-2 w-10 rounded bg-slate-200" />
+                            <div className="mt-2 h-2 w-full rounded bg-slate-100" />
+                            <div className="mt-1.5 h-2 w-4/5 rounded bg-slate-100" />
+                        </div>
+                    </aside>
+
+                    <div className="p-4 sm:p-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[11px] font-bold text-primary">GOOD MORNING, UNIVUS</p>
+                                <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900 sm:text-xl">오늘의 운영 현황</h3>
+                            </div>
+                            <div className="flex size-8 items-center justify-center rounded-full border border-slate-100 bg-white text-primary shadow-sm">
+                                <BellRing className="size-3.5" />
+                            </div>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                            {[
+                                ["구성원", "관리", UsersRound],
+                                ["강의", "운영", BookOpenCheck],
+                                ["문의", "확인", MessageSquareText],
+                            ].map(([label, value, Icon]) => {
+                                const CardIcon = Icon as typeof UsersRound;
+                                return (
+                                    <div key={label as string} className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+                                        <CardIcon className="size-4 text-primary" />
+                                        <p className="mt-4 text-[10px] font-semibold text-slate-400">{label as string}</p>
+                                        <p className="mt-0.5 text-sm font-black text-slate-800">{value as string}</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-black text-slate-800">최근 운영 항목</p>
+                                    <p className="mt-1 text-[10px] text-slate-400">흐름을 놓치지 않고 확인하세요.</p>
+                                </div>
+                                <span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black text-primary">LIVE</span>
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {["공지사항을 확인할 수 있습니다.", "구성원 정보를 관리할 수 있습니다.", "문의 내역을 확인할 수 있습니다."].map((item) => (
+                                    <div key={item} className="flex items-center gap-2.5">
+                                        <CircleCheckBig className="size-3.5 shrink-0 text-primary" />
+                                        <span className="text-[10px] font-medium text-slate-500">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="absolute -bottom-4 -left-3 hidden items-center gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-xl shadow-slate-200/60 sm:flex">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <ShieldCheck className="size-4" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-slate-400">ONE PLATFORM</p>
+                    <p className="text-xs font-black text-slate-800">역할에 맞는 운영 경험</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function LandingPage() {
     const router = useRouter();
     const logoutAction = useAuthStore((state) => state.logoutAction);
-
     const role = useAuthStore((state) => state.role);
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
     const dashboardPath = getDashboardPathByRole(role);
     const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
     const [plansLoading, setPlansLoading] = useState(true);
     const [plansError, setPlansError] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -124,237 +227,194 @@ export default function LandingPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#f8fbfb] text-slate-950">
-            <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-                <div className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-6">
-                    <Link href="/landing" className="flex items-center gap-2">
-                        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-white">
+        <main className="min-h-screen overflow-hidden bg-[#f8fbfb] text-slate-950">
+            <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+                <div className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-6">
+                    <Link href="/landing" className="flex items-center gap-2.5" aria-label="UnivUs 랜딩으로 이동">
+                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
                             <Sparkles className="size-4" />
-                        </div>
-                        <span className="text-lg font-extrabold tracking-tight">
-              Univ<span className="text-primary">Us</span>
-            </span>
+                        </span>
+                        <span className="text-lg font-black tracking-tight text-slate-950">Univ<span className="text-primary">Us</span></span>
                     </Link>
 
-                    <nav className="hidden items-center gap-8 text-sm font-semibold text-slate-600 md:flex">
-                        <a href="#service" className="hover:text-primary">
-                            서비스 소개
-                        </a>
-                        <a href="#pricing" className="hover:text-primary">
-                            요금제
-                        </a>
-                        <a href="#pricing" className="hover:text-primary">
-                            구독 신청
-                        </a>
-
-                        {!isLoggedIn && (
-                            <Link href="/signup" className="hover:text-primary">
-                                회원가입
-                            </Link>
-                        )}
-
-                        {dashboardPath && (
-                            <Link href={dashboardPath} className="hover:text-primary">
-                                대시보드
-                            </Link>
-                        )}
-
+                    <nav className="hidden items-center gap-7 text-sm font-bold text-slate-600 md:flex">
+                        <Link href="/service" className="transition-colors hover:text-primary">서비스 소개</Link>
+                        <a href="#experience" className="transition-colors hover:text-primary">주요 기능</a>
+                        <a href="#pricing" className="transition-colors hover:text-primary">요금제</a>
+                        {!isLoggedIn && <Link href="/signup" className="transition-colors hover:text-primary">회원가입</Link>}
+                        {dashboardPath && <Link href={dashboardPath} className="transition-colors hover:text-primary">대시보드</Link>}
                         {isLoggedIn ? (
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="font-semibold hover:text-primary"
-                            >
-                                로그아웃
-                            </button>
+                            <button type="button" onClick={handleLogout} className="transition-colors hover:text-primary">로그아웃</button>
                         ) : (
-                            <Link href="/login" className="hover:text-primary">
-                                로그인
-                            </Link>
+                            <Link href="/login" className="transition-colors hover:text-primary">로그인</Link>
                         )}
+                        <Button asChild size="sm" className="h-9 rounded-lg px-4 font-bold">
+                            <Link href={getSubscriptionPath()}>도입 문의 <ArrowRight className="size-3.5" /></Link>
+                        </Button>
                     </nav>
+
+                    <button
+                        type="button"
+                        onClick={() => setMobileMenuOpen((open) => !open)}
+                        className="flex size-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 md:hidden"
+                        aria-label="메뉴 열기"
+                        aria-expanded={mobileMenuOpen}
+                    >
+                        {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                    </button>
                 </div>
+                {mobileMenuOpen && (
+                    <div className="border-t border-slate-100 bg-white px-5 py-4 shadow-lg md:hidden">
+                        <nav className="mx-auto flex max-w-[1180px] flex-col gap-1 text-sm font-bold text-slate-700">
+                            <Link onClick={() => setMobileMenuOpen(false)} href="/service" className="rounded-lg px-3 py-3 hover:bg-primary/5 hover:text-primary">서비스 소개</Link>
+                            <a onClick={() => setMobileMenuOpen(false)} href="#experience" className="rounded-lg px-3 py-3 hover:bg-primary/5 hover:text-primary">주요 기능</a>
+                            <a onClick={() => setMobileMenuOpen(false)} href="#pricing" className="rounded-lg px-3 py-3 hover:bg-primary/5 hover:text-primary">요금제</a>
+                            <Link onClick={() => setMobileMenuOpen(false)} href={getSubscriptionPath()} className="rounded-lg bg-primary px-3 py-3 text-white">도입 문의</Link>
+                        </nav>
+                    </div>
+                )}
             </header>
 
-            <section className="mx-auto max-w-[1180px] px-6 pb-24 pt-28 text-center">
-                <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-extrabold text-primary">
-                    <Building2 className="size-3.5" />
-                    학교와 학원을 위한 SaaS LMS
-                </div>
-
-                <h1 className="text-6xl font-black tracking-tight text-slate-950">
-                    UnivUs
-                </h1>
-
-                <p className="mx-auto mt-5 max-w-[860px] text-4xl font-extrabold leading-tight tracking-tight text-slate-950">
-                    학교 운영과 온라인 학습을 하나로 연결합니다
-                </p>
-
-                <p className="mx-auto mt-6 max-w-[720px] text-base leading-8 text-slate-600">
-                    UnivUs는 기관 관리자가 학생과 교수 계정을 운영하고, 구독 상태와 결제 정보를 확인하며,
-                    어드민 문의까지 처리할 수 있는 교육 운영 플랫폼입니다.
-                </p>
-
-                <div className="mt-8 flex justify-center gap-3">
-                    <Button asChild size="lg" className="h-11 px-6 text-base font-bold shadow-lg shadow-primary/20">
-                        <Link href={getSubscriptionPath()}>
-                            구독 신청하기
-                            <ArrowRight className="size-4" />
-                        </Link>
-                    </Button>
-
-                    {dashboardPath ? (
-                        <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base font-bold">
-                            <Link href={dashboardPath}>
-                                <LayoutDashboard className="size-4" />
-                                대시보드로 이동
-                            </Link>
-                        </Button>
-                    ) : isLoggedIn ? (
-                        <Button variant="outline" size="lg" className="h-11 px-6 text-base font-bold" disabled>
-                            <LayoutDashboard className="size-4" />
-                            로그인됨
-                        </Button>
-                    ) : (
-                        <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base font-bold">
-                            <Link href="/login">
-                                <LogIn className="size-4" />
-                                로그인
-                            </Link>
-                        </Button>
-                    )}
+            <section className="relative">
+                <div className="absolute inset-x-0 top-0 h-[640px] bg-[radial-gradient(circle_at_15%_15%,rgba(15,168,150,0.14),transparent_27%),radial-gradient(circle_at_86%_19%,rgba(45,212,191,0.14),transparent_25%)]" />
+                <div className="relative mx-auto grid max-w-[1180px] gap-14 px-5 pb-24 pt-20 sm:px-6 lg:grid-cols-[0.93fr_1.07fr] lg:items-center lg:pb-32 lg:pt-28">
+                    <div className="max-w-[600px]">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3.5 py-2 text-xs font-extrabold text-primary shadow-sm">
+                            <span className="flex size-5 items-center justify-center rounded-full bg-primary/10"><Building2 className="size-3" /></span>
+                            대학 운영을 하나의 흐름으로
+                        </div>
+                        <h1 className="mt-7 text-4xl font-black leading-[1.12] tracking-[-0.055em] text-slate-950 sm:text-5xl lg:text-[4.15rem]">
+                            캠퍼스의 오늘을<br />
+                            <span className="text-primary">더 선명하게</span> 연결하다.
+                        </h1>
+                        <p className="mt-7 max-w-[540px] text-base leading-8 text-slate-600 sm:text-lg">
+                            UnivUs는 강의와 구성원 관리, 일정과 커뮤니티를 하나의 경험으로 연결하는 대학 운영 플랫폼입니다.
+                        </p>
+                        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                            <Button asChild size="lg" className="h-12 rounded-xl px-5 text-base font-extrabold shadow-xl shadow-primary/20">
+                                <Link href={getSubscriptionPath()}>우리 학교에 도입하기 <ArrowRight className="size-4" /></Link>
+                            </Button>
+                            <Button asChild variant="outline" size="lg" className="h-12 rounded-xl border-slate-200 bg-white px-5 text-base font-extrabold hover:bg-primary/5 hover:text-primary">
+                                <Link href="/service">서비스 둘러보기</Link>
+                            </Button>
+                        </div>
+                        <div className="mt-10 flex flex-wrap gap-x-5 gap-y-3 text-xs font-bold text-slate-500">
+                            {["역할별 맞춤 환경", "대학 운영 통합 관리", "명확한 정보 흐름"].map((item) => (
+                                <span key={item} className="flex items-center gap-1.5"><Check className="size-3.5 text-primary" />{item}</span>
+                            ))}
+                        </div>
+                    </div>
+                    <ProductPreview />
                 </div>
             </section>
 
-            <section id="service" className="mx-auto max-w-[1180px] px-6 py-20">
-                <div className="text-center">
-                    <h2 className="text-3xl font-black tracking-tight">
-                        학교에 필요한 운영 기능
-                    </h2>
-                    <p className="mx-auto mt-4 max-w-[620px] text-base leading-7 text-slate-500">
-                        기관 구매 담당자가 서비스 가치를 빠르게 판단할 수 있도록 핵심 기능 중심으로 구성했습니다.
-                    </p>
+            <section className="border-y border-primary/10 bg-primary/[0.035]">
+                <div className="mx-auto grid max-w-[1180px] gap-6 px-5 py-8 sm:grid-cols-3 sm:px-6">
+                    {[
+                        ["수업에서 운영까지", "분리된 도구 대신 하나의 플랫폼"],
+                        ["역할에 맞는 경험", "운영자, 교수자, 학습자의 각기 다른 흐름"],
+                        ["더 분명한 정보", "필요한 사람에게 필요한 내용을 빠르게"],
+                    ].map(([title, description]) => (
+                        <div key={title} className="border-primary/10 sm:border-l sm:pl-6 first:border-l-0 first:pl-0">
+                            <p className="text-sm font-black text-slate-900">{title}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section id="experience" className="mx-auto max-w-[1180px] px-5 py-24 sm:px-6 lg:py-32">
+                <div className="max-w-[680px]">
+                    <p className="text-xs font-black tracking-[0.18em] text-primary">ONE CONNECTED EXPERIENCE</p>
+                    <h2 className="mt-4 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">각각의 업무가 아니라,<br />하나로 이어지는 운영 경험.</h2>
+                    <p className="mt-5 max-w-[600px] text-base leading-8 text-slate-500">필요한 기능을 단순히 모으는 데서 그치지 않습니다. 캠퍼스 안에서 정보가 움직이는 방식을 더 자연스럽게 설계합니다.</p>
                 </div>
 
-                <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {features.map((feature) => {
-                        const Icon = feature.icon;
-
+                <div className="mt-12 grid gap-4 lg:grid-cols-3">
+                    {capabilities.map((capability, index) => {
+                        const Icon = capability.icon;
                         return (
-                            <article
-                                key={feature.title}
-                                className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                            >
-                                <div className="mb-5 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                    <Icon className="size-5" />
-                                </div>
-                                <h3 className="text-lg font-extrabold tracking-tight">
-                                    {feature.title}
-                                </h3>
-                                <p className="mt-3 text-sm leading-7 text-slate-500">
-                                    {feature.description}
-                                </p>
+                            <article key={capability.title} className={`group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 transition duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 ${index === 0 ? "lg:col-span-2" : ""}`}>
+                                <div className={`flex size-12 items-center justify-center rounded-2xl ${capability.tone}`}><Icon className="size-5" /></div>
+                                <p className="mt-10 text-[11px] font-black tracking-[0.15em] text-primary">{capability.eyebrow}</p>
+                                <h3 className="mt-3 text-2xl font-black tracking-[-0.035em] text-slate-900">{capability.title}</h3>
+                                <p className="mt-4 max-w-[430px] text-sm leading-7 text-slate-500">{capability.description}</p>
+                                {index === 0 && (
+                                    <div className="mt-8 grid max-w-[450px] grid-cols-3 gap-2">
+                                        {["강의", "과제", "출결"].map((item) => <div key={item} className="rounded-xl bg-slate-50 p-3 text-center text-xs font-black text-slate-600">{item}</div>)}
+                                    </div>
+                                )}
+                                <div className="absolute -right-8 -top-8 size-32 rounded-full bg-primary/[0.045] transition-transform duration-500 group-hover:scale-150" />
                             </article>
                         );
                     })}
                 </div>
             </section>
 
-            <section id="pricing" className="mx-auto max-w-[1180px] px-6 py-20">
+            <section id="pricing" className="mx-auto max-w-[1180px] px-5 py-24 sm:px-6 lg:py-32">
                 <div className="text-center">
-                    <h2 className="text-3xl font-black tracking-tight">구독 플랜</h2>
-                    <p className="mx-auto mt-4 max-w-[640px] text-base leading-7 text-slate-500">
-                        학교 규모에 맞는 예상 플랜을 선택하고 도입 상담으로 이어질 수 있습니다.
-                    </p>
+                    <p className="text-xs font-black tracking-[0.18em] text-primary">FLEXIBLE PLANS</p>
+                    <h2 className="mt-4 text-3xl font-black tracking-[-0.04em] text-slate-950 sm:text-4xl">학교의 규모에 맞게 시작하세요.</h2>
+                    <p className="mx-auto mt-5 max-w-[610px] text-base leading-8 text-slate-500">학교 환경에 맞는 플랜을 확인하고, 도입에 필요한 내용을 함께 논의할 수 있습니다.</p>
                 </div>
 
                 {plansLoading ? (
-                    <div className="mt-10 rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                        구독 플랜을 불러오는 중입니다.
-                    </div>
+                    <div className="mt-12 rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">구독 플랜을 불러오는 중입니다.</div>
                 ) : plansError ? (
-                    <div className="mt-10 rounded-xl border border-red-100 bg-red-50 p-8 text-center text-sm text-red-600">
-                        구독 플랜을 불러오지 못했습니다.
+                    <div className="mx-auto mt-12 max-w-[780px] rounded-3xl border border-primary/15 bg-white p-7 text-left shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-9">
+                        <div>
+                            <p className="text-sm font-black text-slate-900">우리 학교에 맞는 플랜을 함께 설계합니다.</p>
+                            <p className="mt-2 text-sm leading-6 text-slate-500">구성원 규모와 필요한 운영 범위를 기준으로 도입 플랜을 안내해드립니다.</p>
+                        </div>
+                        <Button asChild className="mt-5 h-11 shrink-0 rounded-xl font-extrabold sm:mt-0">
+                            <Link href={getSubscriptionPath()}>도입 문의하기 <ArrowRight className="size-4" /></Link>
+                        </Button>
                     </div>
                 ) : (
-                <div className="mt-10 grid gap-4 lg:grid-cols-3">
-                    {plans.map((plan, index) => {
-                        const featured =
-                            plan.planName.toUpperCase() === "PRO" ||
-                            (plans.length > 1 && index === 1);
-
-                        return (
-                        <article
-                            key={plan.planId}
-                            className={`rounded-xl border bg-white p-6 shadow-sm ${
-                                featured ? "border-primary shadow-primary/10" : "border-slate-200"
-                            }`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-extrabold">{plan.planName}</h3>
-                                {featured && (
-                                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary">
-                    추천
-                  </span>
-                                )}
-                            </div>
-
-                            <div className="mt-7">
-                <span className="text-3xl font-black tracking-tight">
-                  {formatPlanPrice(plan.price)}
-                </span>
-                                <span className="ml-1 text-lg font-extrabold">/ 월</span>
-                            </div>
-
-                            <p className="mt-5 text-sm text-slate-500">{formatPlanCaption(plan)}</p>
-
-                            <Button
-                                asChild
-                                variant={featured ? "default" : "outline"}
-                                className="mt-6 h-11 w-full text-base font-bold"
-                            >
-                                <Link href={getSubscriptionPath(plan.planId)}>
-                                    {dashboardPath ? "대시보드로 이동" : "구독 신청"}
-                                </Link>
-                            </Button>
-                        </article>
-                        );
-                    })}
-                </div>
+                    <div className="mt-12 grid gap-4 lg:grid-cols-3">
+                        {plans.map((plan, index) => {
+                            const featured = plan.planName.toUpperCase() === "PRO" || (plans.length > 1 && index === 1);
+                            return (
+                                <article key={plan.planId} className={`relative rounded-3xl border p-7 ${featured ? "border-primary bg-primary/[0.035] shadow-xl shadow-primary/10" : "border-slate-200 bg-white"}`}>
+                                    {featured && <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[11px] font-black text-white">추천 플랜</span>}
+                                    <h3 className="text-xl font-black text-slate-900">{plan.planName}</h3>
+                                    <div className="mt-7"><span className="text-3xl font-black tracking-[-0.04em] text-slate-950">{formatPlanPrice(plan.price)}</span><span className="ml-1 text-sm font-bold text-slate-400">/ 월</span></div>
+                                    <p className="mt-5 min-h-12 text-sm leading-6 text-slate-500">{formatPlanCaption(plan)}</p>
+                                    <div className="my-6 h-px bg-slate-100" />
+                                    <p className="flex items-center gap-2 text-sm font-bold text-slate-600"><Check className="size-4 text-primary" />도입 상담 및 구독 신청</p>
+                                    <Button asChild variant={featured ? "default" : "outline"} className="mt-7 h-11 w-full rounded-xl font-extrabold">
+                                        <Link href={getSubscriptionPath(plan.planId)}>{dashboardPath ? "대시보드로 이동" : "플랜 문의하기"}</Link>
+                                    </Button>
+                                </article>
+                            );
+                        })}
+                    </div>
                 )}
             </section>
 
-            <section className="mx-auto max-w-[1180px] px-6 py-20">
-                <div className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
-                            <ShieldCheck className="size-3.5" />
-                            기관 운영자용 콘솔
+            <section className="mx-auto max-w-[1180px] px-5 pb-24 sm:px-6 lg:pb-32">
+                <div className="relative overflow-hidden rounded-[2rem] bg-primary px-7 py-12 text-white sm:px-12 sm:py-14">
+                    <div className="absolute -right-16 -top-20 size-72 rounded-full border-[32px] border-white/10" />
+                    <div className="absolute -bottom-28 right-44 size-56 rounded-full bg-white/10 blur-2xl" />
+                    <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-[680px]">
+                            <p className="text-xs font-black tracking-[0.16em] text-white/70">LET&apos;S BUILD A BETTER CAMPUS</p>
+                            <h2 className="mt-4 text-3xl font-black leading-tight tracking-[-0.04em] sm:text-4xl">더 나은 대학 운영 경험을<br />UnivUs와 시작하세요.</h2>
                         </div>
-                        <h2 className="text-2xl font-black tracking-tight">
-                            로그인 후 운영 대시보드와 커뮤니티를 바로 사용할 수 있습니다.
-                        </h2>
+                        <Button asChild size="lg" variant="secondary" className="h-12 shrink-0 rounded-xl bg-white px-5 text-base font-extrabold text-primary hover:bg-white/90">
+                            <Link href={getSubscriptionPath()}>{dashboardPath ? "대시보드로 이동" : "도입 문의하기"} <ArrowRight className="size-4" /></Link>
+                        </Button>
                     </div>
-
-                    <Button asChild size="lg" className="h-11 px-6 text-base font-bold">
-                        <Link href={dashboardPath ?? "/login"}>
-                            <LayoutDashboard className="size-4" />
-                            {dashboardPath ? "대시보드로 이동" : "시작하기"}
-                        </Link>
-                    </Button>
                 </div>
             </section>
 
-            <footer className="mx-auto max-w-[1180px] border-t border-slate-200 px-6 py-10">
-                <div className="flex flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-                    <Link href="/landing" className="flex items-center gap-2 font-extrabold text-slate-900">
-                        <Sparkles className="size-4 text-primary" />
-                        UnivUs
-                    </Link>
-                    <p>© 2026 UnivUs. 학교와 학원을 위한 LMS 운영 플랫폼.</p>
-                    <div className="flex gap-5 font-semibold">
-                        <a href="#">이용약관</a>
-                        <a href="#">개인정보처리방침</a>
+            <footer className="border-t border-slate-200 bg-white">
+                <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-5 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
+                    <Link href="/landing" className="flex items-center gap-2 font-black text-slate-900"><Sparkles className="size-4 text-primary" />UnivUs</Link>
+                    <p className="text-xs leading-5 text-slate-500">© 2026 UnivUs. 대학 운영을 위한 통합 플랫폼.</p>
+                    <div className="flex gap-5 text-xs font-bold text-slate-500">
+                        <Link href="/signup" className="hover:text-primary">이용약관</Link>
+                        <span className="cursor-default text-slate-400">개인정보처리방침 준비 중</span>
                     </div>
                 </div>
             </footer>
