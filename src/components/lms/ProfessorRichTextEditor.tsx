@@ -4,9 +4,8 @@
 // - 제공 기능 5종 한정: 굵게 · 기울임 · 밑줄 · 글자 크기 · 글자 색상
 //   (StarterKit의 나머지 확장은 configure로 비활성 — 마크다운 단축키로도 헤딩/목록 안 생김)
 // - 인터페이스 textarea 호환(value/onChange = HTML 문자열) → 원복 시 textarea로 한 줄 교체
-// - Tiptap v3는 기본적으로 트랜잭션마다 리렌더하지 않음(shouldRerenderOnTransaction=false)
-//   → 툴바 활성 상태는 반드시 useEditorState 구독으로 읽는다(렌더 시 isActive 직독은 stale →
-//   "토글이 안 풀리는" 버그의 원인이었음)
+// - Tiptap v3는 트랜잭션마다 리렌더하지 않으므로(shouldRerenderOnTransaction=false)
+//   툴바 활성 상태는 useEditorState 구독으로 읽는다(렌더 시 isActive 직독은 stale).
 // - SSR/정적 export: useEditor({ immediatelyRender:false })로 프리렌더 안전
 // - 콘텐츠 스타일 = 공용 lms-content.css (학생 뷰와 표시 동일성)
 import { useEffect } from "react";
