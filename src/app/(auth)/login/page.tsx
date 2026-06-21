@@ -141,6 +141,15 @@ export default function LoginPage() {
                     <LogIn className="size-4" />
                     {submitting ? "로그인 중..." : "로그인"}
                 </Button>
+                <div className="mt-4 flex justify-center gap-3 text-xs text-slate-500">
+                    <Link href="/account-recovery" className="font-medium hover:text-primary">
+                        아이디 찾기
+                    </Link>
+                    <span aria-hidden="true">|</span>
+                    <Link href="/account-recovery" className="font-medium hover:text-primary">
+                        비밀번호 찾기
+                    </Link>
+                </div>
                 <div className="mt-5 text-center text-sm text-slate-500">
                     아직 계정이 없나요?{" "}
                     <Link href="/signup" className="font-bold text-primary">
