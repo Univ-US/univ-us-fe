@@ -41,3 +41,14 @@ export interface NoticeInput {
   files: File[]; // 신규 첨부
   removeAttachmentIds: number[]; // 수정 시 제거할 기존 첨부
 }
+
+/** 서버 페이지네이션 공통 응답 (BE PaginateUtilRestApiRes<T>) */
+export interface PageResponse<T> {
+  content: T[];
+  page: number; // 0-based
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}

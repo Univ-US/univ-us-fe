@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 // BE 공식 연동 — mock 제거. 전부 본인 담당 강의 한정(타 강의/공지 403, PROF 가드).
 //   · GET    /api/lms/professor/notices/lectures   — 공지 작성 대상(담당 강의 드롭다운)
-//   · GET    /api/lms/professor/notices?lecId=      — 선택 과목 공지(최신순, 페이지네이션 없음)
+//   · GET    /api/lms/professor/notices?lecId=&page=&size= — 선택 과목 공지 1페이지(최신순, 서버 페이지네이션)
 //   · POST   /api/lms/professor/notices             — 작성(multipart: lecId·title 필수, content·files 선택)
 //   · PUT    /api/lms/professor/notices/{noticeId}  — 수정(multipart: title·content·files[추가]·removeAttachmentIds[제거], 과목 변경 불가)
 //   · DELETE /api/lms/professor/notices/{noticeId}  — 삭제(첨부 → 본체 물리 삭제)
@@ -17,6 +17,7 @@ import type {
   Notice,
   NoticeLecture,
   NoticeInput,
+  PageResponse,
 } from "@/types/lmsProfessorNotice";
 
 // 타입은 src/types/lmsProfessorNotice.ts로 분리 — 기존 소비처가 이 lib에서 type import하던 호환 유지(re-export)
@@ -66,12 +67,20 @@ export const getNoticeLectures = async (): Promise<NoticeLecture[]> => {
   return res.data;
 };
 
-/** GET /notices?lecId= — 선택 과목 공지(등록일시 내림차순=최신순, BE 정렬) */
-export const getCourseNotices = async (lecId: number): Promise<Notice[]> => {
-  const res = await api.get<Notice[]>("/api/lms/professor/notices", {
-    params: { lecId: String(lecId) },
+/** GET /notices?lecId=&page=&size= — 선택 과목 공지 1페이지(등록일시 내림차순=최신순, 서버 페이지네이션) */
+export const getCourseNotices = async (params: {
+  lecId: number;
+  page: number;
+  size: number;
+}): Promise<PageResponse<Notice>> => {
+  const res = await api.get<PageResponse<Notice>>("/api/lms/professor/notices", {
+    params: {
+      lecId: String(params.lecId),
+      page: String(params.page),
+      size: String(params.size),
+    },
   });
-  return res.data.map(normalizeNotice);
+  return { ...res.data, content: (res.data.content ?? []).map(normalizeNotice) };
 };
 
 /** POST /notices — 작성 (multipart: lecId·title·content·files) */
