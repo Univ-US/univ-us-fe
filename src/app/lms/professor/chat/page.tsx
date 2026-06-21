@@ -1,12 +1,13 @@
 "use client";
 
 import { Client, type IStompSocket } from "@stomp/stompjs";
-import { MessageCircle, Plus, RefreshCw, Send, Wifi, WifiOff } from "lucide-react";
+import { MessageCircle, Plus, RefreshCw, Send, Trash2, Wifi, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import SockJS from "sockjs-client";
 
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
+  deleteProfessorChatRoom,
   formatChatDateLabel,
   formatChatListTime,
   formatChatMessageTime,
@@ -72,6 +73,8 @@ export default function ProfessorChatPage() {
   const [error, setError] = useState("");
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("disconnected");
   const [createOpen, setCreateOpen] = useState(false); // '채팅 만들기' 모달 열림
+  const [deleteOpen, setDeleteOpen] = useState(false); // 채팅방 삭제 확인 모달
+  const [deleting, setDeleting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const loadUnreadCount = useLmsProfessorChatStore((s) => s.loadUnreadCount);
@@ -220,6 +223,7 @@ export default function ProfessorChatPage() {
   }, [selectedRoomId]);
 
   useEscapeClose(createOpen, () => setCreateOpen(false)); // ESC = 모달 닫기
+  useEscapeClose(deleteOpen, () => !deleting && setDeleteOpen(false));
 
   // '채팅 만들기'에서 고른 (빈) 방을 목록에 추가하고 선택 → 우측 패널에서 첫 메시지 전송 (학생 페이지와 동일)
   const handleStartChat = useCallback((room: ProfessorChatRoom) => {
@@ -248,6 +252,25 @@ export default function ProfessorChatPage() {
     } finally {
       setSending(false);
       inputRef.current?.focus();
+    }
+  }
+
+  async function handleDeleteRoom() {
+    if (!selectedRoomId || deleting) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteProfessorChatRoom(selectedRoomId);
+      setRooms((prev) => prev.filter((room) => room.roomId !== selectedRoomId));
+      setSelectedRoomId(null);
+      setThread(null);
+      setDeleteOpen(false);
+      void loadUnreadCount();
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError(getApiErrorMessage(deleteError, "채팅방을 삭제하지 못했습니다."));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -389,6 +412,14 @@ export default function ProfessorChatPage() {
                     {realtimeStatus === "connected" ? <Wifi className="size-3" /> : <WifiOff className="size-3" />}
                     {realtimeStatus === "connected" ? "실시간" : "오프라인"}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOpen(true)}
+                    aria-label="채팅방 삭제"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/70 px-5 py-4">
@@ -474,6 +505,49 @@ export default function ProfessorChatPage() {
       {/* '채팅 만들기' 모달 — 담당 강의 수강생 중 아직 대화 안 한 학생에게 첫 메시지(년도/학기 + 과목 + 수강생 클릭 리스트) */}
       {createOpen && (
         <NewChatModal onClose={() => setCreateOpen(false)} onStart={handleStartChat} />
+      )}
+
+      {/* 채팅방 삭제 확인 모달 (소프트 삭제 — CHT_ROM_VAL_STATUS DEL) */}
+      {deleteOpen && selectedRoom && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="채팅방 삭제"
+          onClick={() => !deleting && setDeleteOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-rose-50">
+              <Trash2 className="size-5 text-rose-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">채팅방을 삭제할까요?</h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+              <b className="font-semibold text-slate-700">{selectedRoom.studentName}</b> 학생과의 채팅방과
+              대화 내용이 사라집니다. 삭제 후에도 &lsquo;채팅 만들기&rsquo;로 다시 대화를 시작할 수 있습니다.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteRoom()}
+                disabled={deleting}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? "삭제 중…" : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -92,3 +92,8 @@ export const getChatUnreadCount = async (): Promise<number> => {
   const res = await api.get<{ count: number }>("/api/lms/student/chats/unread-count");
   return res.data.count ?? 0;
 };
+
+// 채팅방 소프트 삭제 (CHAT_ROOM.CHT_ROM_VAL_STATUS → 'DEL'). 방은 교수·학생 공유라 양쪽에서 사라짐.
+export const deleteChatRoom = async (roomId: number): Promise<void> => {
+  await api.delete(`/api/lms/student/chats/${roomId}`);
+};
