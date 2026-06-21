@@ -4,6 +4,7 @@ export interface SubmitGuide {
   courseName: string;
   professor: string;
   professorLmsPrfId: number;
+  professorImageUrl?: string | null;
   lines: string[];
 }
 

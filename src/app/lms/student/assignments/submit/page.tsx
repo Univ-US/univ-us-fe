@@ -18,6 +18,7 @@ import {
 } from "@/lib/lmsStudentSubmitApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { getLmsAvatarColor, getLmsAvatarInitial } from "@/lib/lmsAvatar";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 import type { SubmitItem, SubmittableSummary, PageResponse } from "@/types/lmsStudentSubmit";
 import { describeApiError } from "@/lib/lmsApiError";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
@@ -407,7 +408,7 @@ export default function StudentSubmitPage() {
                 {/* 작성자 행 — 교수 + 과제 등록일시 (공지 상세 SLM-009 미러) */}
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span className="flex items-center gap-2">
-                    <AuthorAvatar seed={selected.guide.professorLmsPrfId} name={selected.guide.professor} />
+                    <AuthorAvatar src={selected.guide.professorImageUrl} seed={selected.guide.professorLmsPrfId} name={selected.guide.professor} />
                     <span className="font-medium text-slate-700">{selected.guide.professor} 교수</span>
                   </span>
                   <span>{selected.lecAsnRegDate}</span>
@@ -549,14 +550,28 @@ export default function StudentSubmitPage() {
   );
 }
 
-// 작성자 아바타 — 기본 프로필 규칙(lib/lmsAvatar): 사람 식별자(교수 lmsPrfId) 시드 색 + 이름 이니셜.
-// 같은 교수는 채팅·출결 등 어느 화면에서나 같은 색.
-function AuthorAvatar({ seed, name }: { seed: string | number | null | undefined; name: string }) {
+// 작성자 아바타 — 기본 프로필 규칙(lib/lmsAvatar): 업로드 이미지가 있으면 그 이미지,
+// 없으면 사람 식별자(교수 lmsPrfId) 시드 색 + 이름 이니셜. 같은 교수는 어느 화면에서나 같은 색.
+function AuthorAvatar({
+  src,
+  seed,
+  name,
+}: {
+  src?: string | null;
+  seed: string | number | null | undefined;
+  name: string;
+}) {
+  const img = resolveImageUrl(src);
   return (
     <span
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${getLmsAvatarColor(seed)}`}
+      className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white ${getLmsAvatarColor(seed)}`}
     >
-      {getLmsAvatarInitial(name)}
+      {img ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={img} alt={name} className="h-full w-full object-cover" />
+      ) : (
+        getLmsAvatarInitial(name)
+      )}
     </span>
   );
 }

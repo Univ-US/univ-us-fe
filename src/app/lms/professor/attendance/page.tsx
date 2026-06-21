@@ -27,6 +27,7 @@ import type {
 } from "@/types/lmsProfessorAttendance";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getLmsAvatarColor } from "@/lib/lmsAvatar";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 // (년도, 학기) 조합에 매칭되는 강의들. 둘 다 'all'이면 전체. — PLM-003 수강생 현황과 동일 패턴
@@ -304,7 +305,12 @@ export default function ProfessorAttendancePage() {
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-3">
                             <div className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(s.studentNo)} text-xs font-semibold text-white`}>
-                              {s.studentName.trim()[0] ?? "?"}
+                              {resolveImageUrl(s.imageUrl) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={resolveImageUrl(s.imageUrl)!} alt={s.studentName} className="h-full w-full object-cover" />
+                              ) : (
+                                (s.studentName.trim()[0] ?? "?")
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="truncate font-medium text-slate-900" title={s.studentName}>

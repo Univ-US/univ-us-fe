@@ -26,6 +26,7 @@ import type {
 } from "@/types/lmsProfessorChat";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
+import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 
 type RealtimeStatus = "connected" | "disconnected";
 
@@ -314,9 +315,14 @@ export default function ProfessorChatPage() {
                         }`}
                     >
                       <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${room.avatarColor}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-white ${room.avatarColor}`}
                       >
-                        {room.avatarInitial}
+                        {resolveImageUrl(room.studentImageUrl) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={resolveImageUrl(room.studentImageUrl)!} alt={room.studentName} className="h-full w-full object-cover" />
+                        ) : (
+                          room.avatarInitial
+                        )}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
@@ -357,9 +363,14 @@ export default function ProfessorChatPage() {
               <>
                 <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-3">
                   <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${selectedRoom.avatarColor}`}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-white ${selectedRoom.avatarColor}`}
                   >
-                    {selectedRoom.avatarInitial}
+                    {resolveImageUrl(selectedRoom.studentImageUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={resolveImageUrl(selectedRoom.studentImageUrl)!} alt={selectedRoom.studentName} className="h-full w-full object-cover" />
+                    ) : (
+                      selectedRoom.avatarInitial
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-slate-800">{selectedRoom.studentName}</p>
@@ -694,9 +705,14 @@ function NewChatModal({
                           }`}
                         >
                           <span
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${s.avatarColor}`}
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold text-white ${s.avatarColor}`}
                           >
-                            {s.avatarInitial}
+                            {resolveImageUrl(s.studentImageUrl) ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={resolveImageUrl(s.studentImageUrl)!} alt={s.studentName} className="h-full w-full object-cover" />
+                            ) : (
+                              s.avatarInitial
+                            )}
                           </span>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-slate-800">
