@@ -96,6 +96,62 @@ export const checkLoginId = async (loginId: string) => {
     return res.data;
 };
 
+export interface AccountRecoveryIdentityRequest {
+    memberName: string;
+    phoneNumber: string;
+    birth: string;
+}
+
+export interface PasswordRecoveryIdentityRequest extends AccountRecoveryIdentityRequest {
+    loginId: string;
+}
+
+export interface RecoveryAccount {
+    loginId: string;
+    univName: string | null;
+}
+
+export interface IdRecoveryVerifyResponse {
+    accounts: RecoveryAccount[];
+}
+
+export interface PasswordRecoveryVerifyResponse {
+    resetToken: string;
+}
+
+export interface VerificationChallengeResponse {
+    recipientNumber: string;
+    messageText: string;
+    expiresInSeconds: number;
+}
+
+export const sendIdRecoveryCode = async (payload: AccountRecoveryIdentityRequest) => {
+    const response = await api.post<VerificationChallengeResponse>("/api/auth/recovery/id/send-code", payload);
+    return response.data;
+};
+
+export const verifyIdRecoveryCode = async (payload: AccountRecoveryIdentityRequest) => {
+    const response = await api.post<IdRecoveryVerifyResponse>("/api/auth/recovery/id/verify", payload);
+    return response.data;
+};
+
+export const sendPasswordRecoveryCode = async (payload: PasswordRecoveryIdentityRequest) => {
+    const response = await api.post<VerificationChallengeResponse>("/api/auth/recovery/password/send-code", payload);
+    return response.data;
+};
+
+export const verifyPasswordRecoveryCode = async (payload: PasswordRecoveryIdentityRequest) => {
+    const response = await api.post<PasswordRecoveryVerifyResponse>(
+        "/api/auth/recovery/password/verify",
+        payload,
+    );
+    return response.data;
+};
+
+export const resetRecoveredPassword = async (resetToken: string, password: string) => {
+    await api.post("/api/auth/recovery/password/reset", { resetToken, password });
+};
+
 export interface SupportRequest {
     univId: number;
     memberName: string;
