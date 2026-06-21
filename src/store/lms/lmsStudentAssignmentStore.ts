@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { getSubmittableAssignments } from "@/lib/lmsStudentSubmitApi";
+import { getSubmittableSummary } from "@/lib/lmsStudentSubmitApi";
 
 interface LmsStudentAssignmentState {
   submittableCount: number | null;
@@ -18,8 +18,8 @@ export const useLmsStudentAssignmentStore = create<LmsStudentAssignmentState>((s
     if (get().loading) return;
     set({ loading: true });
     try {
-      const items = await getSubmittableAssignments();
-      set({ submittableCount: items.length });
+      const summary = await getSubmittableSummary();
+      set({ submittableCount: summary.totalCount });
     } catch {
       set({ submittableCount: null });
     } finally {
