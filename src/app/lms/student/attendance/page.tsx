@@ -20,9 +20,9 @@ import type {
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
-// 출석률 색상 — ≥85 양호 / 70~84 주의 / <70 경고(강조)
+// 출석률 색상 — ≥95 정상 / 80~94 경고 / <80 위험(강조)
 const rateColor = (rate: number) =>
-  rate >= 85 ? "text-emerald-600" : rate >= 70 ? "text-orange-600" : "text-rose-600";
+  rate >= 95 ? "text-emerald-600" : rate >= 80 ? "text-orange-600" : "text-rose-600";
 
 // 학기 테이블 페이지네이션 — 한 페이지당 과목 수.
 const ATTENDANCE_PAGE_SIZE = 5;

@@ -28,7 +28,6 @@ export interface SubmitItem {
   dDay: string | null;
   note?: string | null;
   badge?: string | null;
-  dotColor: string;
   guide: SubmitGuide;
   draft?: SubmitDraft;
 }

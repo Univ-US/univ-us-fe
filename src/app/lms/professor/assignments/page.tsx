@@ -33,9 +33,9 @@ import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
 const selectClass =
-  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 const inputClass =
-  "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
 const labelClass = "text-sm font-semibold text-slate-700";
 
 // 서버 페이지네이션 size — 선택 과목 과제 목록(타 화면과 통일 10건)
@@ -451,7 +451,7 @@ export default function ProfessorAssignmentsPage() {
               type="button"
               onClick={openCreate}
               disabled={!!error || selectedLecId == null}
-              className="h-9 shrink-0 rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="h-9 shrink-0 rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               + 과제 등록
             </button>
@@ -555,7 +555,7 @@ export default function ProfessorAssignmentsPage() {
                 <label className={labelClass}>첨부 파일 (선택)</label>
                 {/* 네이티브 input은 숨김 — 브라우저 기본 "선택된 파일 없음" 문구 제거, 선택 파일은 아래 칩으로 표시 */}
                 <div className="mt-2">
-                  <label className="inline-flex cursor-pointer items-center rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
                     파일 선택
                     <input
                       type="file"
@@ -600,7 +600,7 @@ export default function ProfessorAssignmentsPage() {
                     })}
                     {form.files.map((f, i) => (
                       <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate text-emerald-700" title={f.name}>{f.name}</span>
+                        <span className="min-w-0 flex-1 truncate text-slate-700" title={f.name}>{f.name}</span>
                         <button
                           type="button"
                           className="shrink-0 text-xs text-slate-400 hover:text-rose-500"
@@ -629,7 +629,7 @@ export default function ProfessorAssignmentsPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={!requiredOk || saving || (!!editing && !dirty)}
-                  className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {saving ? "저장 중…" : editing ? "수정 완료" : "과제 등록"}
                 </button>
@@ -729,7 +729,7 @@ export default function ProfessorAssignmentsPage() {
                       <button
                         type="button"
                         onClick={() => openEdit(a)}
-                        className="text-xs font-semibold text-slate-500 hover:text-emerald-700"
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                       >
                         수정
                       </button>
@@ -754,7 +754,7 @@ export default function ProfessorAssignmentsPage() {
   );
 }
 
-// 페이지네이션 (PLM-005와 동일 구조, PLM-006 emerald 톤). 0건/1페이지여도 상시 표시.
+// 페이지네이션 — 0건/1페이지여도 상시 표시.
 function Pager({
   page,
   totalPages,
@@ -792,7 +792,7 @@ function PageBtn({
       onClick={onClick}
       disabled={disabled}
       className={`flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-sm transition-colors disabled:cursor-not-allowed disabled:text-slate-300 ${
-        active ? "bg-emerald-700 font-semibold text-white" : "text-slate-600 hover:bg-slate-100"
+        active ? "bg-slate-800 font-semibold text-white" : "text-slate-600 hover:bg-slate-100"
       }`}
     >
       {label}

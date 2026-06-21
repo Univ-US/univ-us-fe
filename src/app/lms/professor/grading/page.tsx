@@ -407,8 +407,8 @@ export default function ProfessorGradingPage() {
                 </tr>
               ) : (
                 visibleSubs.map((s) => {
-                  // 제출 판정은 submissionId 기준(BE 지시). file 의존 금지 — 채점완료인데 file=null이면
-                  // 미제출로 오판하던 버그. 채점여부는 graded/score로 판단(status는 채점해도 'SBM' 유지).
+                  // 제출 판정 = submissionId 기준(file 의존 아님). 채점여부 = graded/score 기준
+                  // (status는 채점해도 'SBM' 유지).
                   const submitted = s.submissionId != null && s.lecAsnSbmStatus !== "NSB";
                   const isEditing = editingIds.has(s.memberId);
                   const editable = !s.graded || isEditing; // 미채점=항상 편집 / 채점완료=수정 클릭 시만

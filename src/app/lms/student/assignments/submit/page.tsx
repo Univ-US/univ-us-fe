@@ -320,7 +320,7 @@ export default function StudentSubmitPage() {
                         active ? "bg-emerald-50" : "hover:bg-slate-50"
                       }`}
                     >
-                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.dotColor}`} />
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.status === "EXTENDED" ? "bg-orange-500" : "bg-emerald-500"}`} />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
                           <span className="truncate text-sm font-semibold text-slate-800">
