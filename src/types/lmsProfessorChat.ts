@@ -8,6 +8,7 @@ export interface ProfessorChatRoom {
   professorLmsPrfId: number;
   studentName: string;
   studentNo: string | null;
+  studentImageUrl?: string | null;
   courseName: string;
   lecSection: number | null;
   lastMessage: string;
