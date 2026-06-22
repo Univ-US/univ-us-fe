@@ -5,4 +5,7 @@ FROM httpd:2.4
 RUN rm -rf /usr/local/apache2/htdocs/*
 COPY out/ /usr/local/apache2/htdocs/
 
+# 없는 경로 → Next 정적 export가 만든 커스텀 404 페이지(404.html) 서빙
+RUN echo 'ErrorDocument 404 /404.html' >> /usr/local/apache2/conf/httpd.conf
+
 EXPOSE 80
