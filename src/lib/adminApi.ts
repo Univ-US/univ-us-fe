@@ -269,6 +269,7 @@ export interface ApiLectureAssign {
     lecSection: number;
     lecCredit: number | null;
     lecTotClasses: number | null;
+    lecCapacity: number | null; // 정원 (null=무제한)
     lecValStatus: string; // OPEN/PROG/CLSD/CNCL
     dayCodes: string | null; // "TUE,THU"
     startTime: string | null; // "10:30"
@@ -353,6 +354,7 @@ export const createLectureAssign = async (data: {
     professorMemberId: number;
     lecCredit?: number | null;
     lecTotClasses?: number | null;
+    lecCapacity?: number | null;
     times?: { dayCode: string; startTime: string; endTime: string }[];
 }) => {
     const res = await api.post<ApiLectureAssign>("/api/admin/lectures/assigns", data);
@@ -368,6 +370,7 @@ export const updateLectureAssign = async (
         professorMemberId: number;
         lecCredit?: number | null;
         lecTotClasses?: number | null;
+        lecCapacity?: number | null;
         times?: { dayCode: string; startTime: string; endTime: string }[];
     }
 ) => {
@@ -378,6 +381,26 @@ export const updateLectureAssign = async (
 // 학기 목록 조회
 export const getAdminSemesters = async () => {
     const res = await api.get<ApiSemester[]>("/api/admin/lectures/semesters");
+    return res.data;
+};
+
+// 학기 수강신청 일괄 열기 (마감된 강좌를 다시 OPEN으로, 같은 대학 강좌만)
+export const openSemesterEnrollment = async (semId: number, univId?: number) => {
+    const res = await api.patch<{ updated: number }>(
+        `/api/admin/lectures/assigns/semesters/${semId}/open`,
+        null,
+        { params: { univId } }
+    );
+    return res.data;
+};
+
+// 학기 수강신청 일괄 마감 (OPEN 강좌를 PROG로, 같은 대학 강좌만)
+export const closeSemesterEnrollment = async (semId: number, univId?: number) => {
+    const res = await api.patch<{ updated: number }>(
+        `/api/admin/lectures/assigns/semesters/${semId}/close`,
+        null,
+        { params: { univId } }
+    );
     return res.data;
 };
 
