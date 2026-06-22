@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
     BookOpen,
     Briefcase,
+    ClipboardList,
     Cloud,
     FileText,
     GraduationCap,
@@ -47,6 +48,7 @@ const BASE_SHORTCUTS = [
     { label: "동아리", icon: Users, bg: "bg-amber-500" },
     { label: "커뮤니티", icon: MessageSquare, bg: "bg-primary", href: "/community" },
     { label: "LMS", icon: LayoutDashboard, bg: "bg-indigo-500", href: "#" },
+    { label: "수강신청", icon: ClipboardList, bg: "bg-emerald-600", href: "#" },
 ];
 
 const EXTRA_SHORTCUTS = [
@@ -377,6 +379,7 @@ export default function CampusHomePage() {
                                 const resolvedHref =
                                     s.label === "학교홈" ? (schoolInfo?.homepage ?? undefined)
                                     : s.label === "LMS" ? lmsHref
+                                    : s.label === "수강신청" ? (role === ROLE.STU || role === ROLE.ALU ? "/home/enroll" : undefined)
                                     : s.label === "시설 이용" ? "/community/reservation/"
                                     : s.label === "학교 SNS" ? (schoolInfo?.snsUrl ?? undefined)
                                     : s.label === "YouTube" ? (schoolInfo?.youtubeUrl ?? undefined)
@@ -387,6 +390,10 @@ export default function CampusHomePage() {
                                     // LMS는 역할 없으면(교수·학생·졸업생 외) 가드와 동일 문구로 안내 — 무반응 방지
                                     if (s.label === "LMS" && !resolvedHref) {
                                         window.alert("LMS 접근 권한이 없습니다.");
+                                        return;
+                                    }
+                                    if (s.label === "수강신청" && !resolvedHref) {
+                                        window.alert("수강신청은 학생만 이용할 수 있습니다.");
                                         return;
                                     }
                                     if (!resolvedHref) return;

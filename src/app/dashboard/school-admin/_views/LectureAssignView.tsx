@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Info, Pencil, Plus } from "lucide-react";
+import { Check, Info, Lock, Pencil, Plus, Unlock } from "lucide-react";
 import { isAxiosError } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -21,6 +21,8 @@ import {
     getAdminProfessors,
     getAdminSemesters,
     getLectureAssigns,
+    openSemesterEnrollment,
+    closeSemesterEnrollment,
     DAY_LABEL,
     LEC_STATUS_LABEL,
     SEM_TERM_LABEL,
@@ -73,6 +75,7 @@ export default function LectureAssignView() {
     const [yearFilter, setYearFilter] = useState<number>(0); // 0 = 전체 년도
     const [termFilter, setTermFilter] = useState<string>(""); // "" = 전체 학기
     const [page, setPage] = useState(1); // 1-based, 10건/페이지
+    const [periodProcessing, setPeriodProcessing] = useState(false); // 수강신청 열기/마감 처리 중
 
     // 드롭다운 소스
     const [departments, setDepartments] = useState<ApiDepartment[]>([]);
@@ -87,6 +90,7 @@ export default function LectureAssignView() {
     const [formYear, setFormYear] = useState(0); // 배정 년도 (0 = 미선택)
     const [formTerm, setFormTerm] = useState(""); // 배정 학기 ("" = 미선택)
     const [credit, setCredit] = useState(""); // "" = 선택 안 함
+    const [capacity, setCapacity] = useState(""); // "" = 무제한
     const [days, setDays] = useState<string[]>([]);
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
@@ -123,6 +127,66 @@ export default function LectureAssignView() {
         (a) => (!yearFilter || a.semYear === yearFilter) && (!termFilter || a.semTerm === termFilter)
     );
 
+    // 년도+학기를 모두 특정해야 학기 단위 수강신청 열기/마감 대상 SEM_ID가 정해짐 ("전체" 선택 중엔 비활성)
+    const periodSemester = semesters.find((s) => s.semYear === yearFilter && s.semTerm === termFilter);
+    const periodLabel = periodSemester ? `${periodSemester.semYear}년 ${SEM_TERM_LABEL[periodSemester.semTerm] ?? periodSemester.semTerm}` : null;
+
+    // 학기별 수강신청 열림 여부 한눈에 보기 — "전체" 필터로는 안 보이던 걸 칩으로 항상 노출 (최신순)
+    const semesterOpenStatus = [...semesters]
+        .sort(
+            (a, b) =>
+                b.semYear - a.semYear || TERM_ORDER.indexOf(a.semTerm) - TERM_ORDER.indexOf(b.semTerm)
+        )
+        .map((s) => ({
+            semester: s,
+            isOpen: assigns.some((a) => a.semId === s.semId && a.lecValStatus === "OPEN"),
+        }));
+
+    const handleOpenPeriod = async () => {
+        if (!periodSemester || periodProcessing) return;
+
+        // 다른 학기가 이미 열려있으면 동시에 두 학기를 열 수 없게 차단 (학기당 1개만 오픈)
+        const otherOpen = semesterOpenStatus.filter(
+            ({ semester, isOpen }) => isOpen && semester.semId !== periodSemester.semId
+        );
+        if (otherOpen.length > 0) {
+            const otherLabels = otherOpen
+                .map(
+                    ({ semester }) =>
+                        `${semester.semYear}년 ${SEM_TERM_LABEL[semester.semTerm] ?? semester.semTerm}`
+                )
+                .join(", ");
+            alert(`이미 '${otherLabels}' 수강신청이 열려있어 '${periodLabel}'은 열 수 없습니다. 먼저 마감해주세요.`);
+            return;
+        }
+        if (!confirm(`'${periodLabel}' 마감된 강좌를 다시 수강신청 가능 상태로 여시겠습니까?`)) return;
+        setPeriodProcessing(true);
+        try {
+            const { updated } = await openSemesterEnrollment(periodSemester.semId);
+            alert(`${updated}개 강좌의 수강신청을 열었습니다.`);
+            fetchAssigns();
+        } catch {
+            alert("수강신청 열기에 실패했습니다.");
+        } finally {
+            setPeriodProcessing(false);
+        }
+    };
+
+    const handleClosePeriod = async () => {
+        if (!periodSemester || periodProcessing) return;
+        if (!confirm(`'${periodLabel}' 수강신청을 마감하시겠습니까? 신청중인 강좌가 모두 진행중 상태로 바뀝니다.`)) return;
+        setPeriodProcessing(true);
+        try {
+            const { updated } = await closeSemesterEnrollment(periodSemester.semId);
+            alert(`${updated}개 강좌의 수강신청을 마감했습니다.`);
+            fetchAssigns();
+        } catch {
+            alert("수강신청 마감에 실패했습니다.");
+        } finally {
+            setPeriodProcessing(false);
+        }
+    };
+
     const PAGE_SIZE = 10;
     const totalPages = Math.max(1, Math.ceil(filteredAssigns.length / PAGE_SIZE)); // 0건이어도 최소 1페이지
     const pageAssigns = filteredAssigns.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -148,6 +212,7 @@ export default function LectureAssignView() {
         setFormYear(a.semYear);
         setFormTerm(a.semTerm);
         setCredit(a.lecCredit != null ? String(a.lecCredit) : "");
+        setCapacity(a.lecCapacity != null ? String(a.lecCapacity) : "");
         setDays(a.dayCodes ? a.dayCodes.split(",") : []);
         setStartTime(a.startTime ?? "");
         setEndTime(a.endTime ?? "");
@@ -162,6 +227,7 @@ export default function LectureAssignView() {
         setFormYear(0);
         setFormTerm("");
         setCredit("");
+        setCapacity("");
         setDays([]);
         setStartTime("");
         setEndTime("");
@@ -193,6 +259,7 @@ export default function LectureAssignView() {
     const timeComplete = days.length > 0 && !!startTime && !!endTime;
     const timeIncomplete = timeTouched && !timeComplete;
     const timeOrderInvalid = timeComplete && startTime >= endTime;
+    const capacityInvalid = capacity !== "" && Number(capacity) <= 0;
 
     // 수정 모드 dirty 가드: 프리필 원본 대비 변경이 없으면 '수정 완료' 비활성 (요일은 순서 무관 비교)
     const canonicalDays = (codes: string[]) => DAY_CODES.filter((c) => codes.includes(c)).join(",");
@@ -204,6 +271,7 @@ export default function LectureAssignView() {
           formYear !== editTarget.semYear ||
           formTerm !== editTarget.semTerm ||
           credit !== (editTarget.lecCredit != null ? String(editTarget.lecCredit) : "") ||
+          capacity !== (editTarget.lecCapacity != null ? String(editTarget.lecCapacity) : "") ||
           canonicalDays(days) !== canonicalDays((editTarget.dayCodes ?? "").split(",").filter(Boolean)) ||
           startTime !== (editTarget.startTime ?? "") ||
           endTime !== (editTarget.endTime ?? "");
@@ -215,6 +283,7 @@ export default function LectureAssignView() {
         !!semId &&
         !timeIncomplete &&
         !timeOrderInvalid &&
+        !capacityInvalid &&
         isDirty &&
         !submitting;
 
@@ -251,6 +320,7 @@ export default function LectureAssignView() {
                 semId,
                 professorMemberId,
                 lecCredit: credit ? Number(credit) : null,
+                lecCapacity: capacity ? Number(capacity) : null,
                 lecTotClasses: totalClasses, // 학기 기간 × 선택 요일 자동 계산값 (요일 미선택 시 null)
                 times: timeComplete
                     ? days.map((dayCode) => ({ dayCode, startTime, endTime }))
@@ -313,6 +383,22 @@ export default function LectureAssignView() {
                         ))}
                     </select>
                     <button
+                        onClick={() => void handleOpenPeriod()}
+                        disabled={!periodSemester || periodProcessing}
+                        title={periodSemester ? `${periodLabel} 수강신청 열기` : "년도·학기를 모두 선택하세요"}
+                        className="flex items-center gap-2 rounded-lg border border-emerald-700 px-4 py-2 text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                    >
+                        <Unlock className="size-4" /> 수강신청 열기
+                    </button>
+                    <button
+                        onClick={() => void handleClosePeriod()}
+                        disabled={!periodSemester || periodProcessing}
+                        title={periodSemester ? `${periodLabel} 수강신청 마감` : "년도·학기를 모두 선택하세요"}
+                        className="flex items-center gap-2 rounded-lg border border-rose-600 px-4 py-2 text-sm font-black text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                    >
+                        <Lock className="size-4" /> 수강신청 마감
+                    </button>
+                    <button
                         onClick={() => {
                             resetForm();
                             setShowModal(true);
@@ -323,6 +409,32 @@ export default function LectureAssignView() {
                     </button>
                 </div>
             </div>
+
+            {/* 학기별 수강신청 열림 여부 — 클릭하면 해당 학기로 필터 이동 */}
+            {semesterOpenStatus.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-900/10 bg-white p-4 shadow-sm">
+                    <span className="mr-1 shrink-0 text-xs font-extrabold text-slate-400">수강신청 상태</span>
+                    {semesterOpenStatus.map(({ semester, isOpen }) => (
+                        <button
+                            key={semester.semId}
+                            type="button"
+                            onClick={() => {
+                                setYearFilter(semester.semYear);
+                                setTermFilter(semester.semTerm);
+                            }}
+                            title="이 학기로 필터 이동"
+                            className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+                                isOpen
+                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                    : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                            }`}
+                        >
+                            {semester.semYear}년 {SEM_TERM_LABEL[semester.semTerm] ?? semester.semTerm} ·{" "}
+                            {isOpen ? "열림" : "닫힘"}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             <>
                     {/* 배정 강의 목록 */}
@@ -336,6 +448,7 @@ export default function LectureAssignView() {
                                     <th className="px-5 py-3">년도</th>
                                     <th className="px-5 py-3">학기</th>
                                     <th className="px-5 py-3">학점</th>
+                                    <th className="px-5 py-3">정원</th>
                                     <th className="px-5 py-3">요일·시간</th>
                                     <th className="px-5 py-3">상태</th>
                                     <th className="px-5 py-3">수정</th>
@@ -344,13 +457,13 @@ export default function LectureAssignView() {
                             <tbody className="divide-y divide-slate-100">
                                 {tableLoading ? (
                                     <tr>
-                                        <td colSpan={9} className="px-5 py-10 text-center text-slate-400">
+                                        <td colSpan={10} className="px-5 py-10 text-center text-slate-400">
                                             불러오는 중...
                                         </td>
                                     </tr>
                                 ) : filteredAssigns.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="px-5 py-10 text-center text-slate-400">
+                                        <td colSpan={10} className="px-5 py-10 text-center text-slate-400">
                                             {assigns.length === 0
                                                 ? "배정된 강의가 없습니다."
                                                 : "선택한 년도·학기에 배정된 강의가 없습니다."}
@@ -370,6 +483,7 @@ export default function LectureAssignView() {
                                             <td className="px-5 py-3.5">{a.semYear}</td>
                                             <td className="px-5 py-3.5">{SEM_TERM_LABEL[a.semTerm] ?? a.semTerm}</td>
                                             <td className="px-5 py-3.5">{a.lecCredit != null ? `${a.lecCredit}학점` : "—"}</td>
+                                            <td className="px-5 py-3.5">{a.lecCapacity != null ? `${a.lecCapacity}명` : "무제한"}</td>
                                             <td className="whitespace-nowrap px-5 py-3.5">
                                                 {a.dayCodes && a.startTime && a.endTime ? (
                                                     <>
@@ -561,6 +675,22 @@ export default function LectureAssignView() {
                                 ))}
                             </select>
                             <p className="mt-1 text-xs text-slate-400">1–9학점 (선택)</p>
+                        </div>
+                        <div>
+                            <label className="text-sm font-black">정원</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={capacity}
+                                onChange={(e) => setCapacity(e.target.value)}
+                                placeholder="미입력 시 무제한"
+                                className={inputClass}
+                            />
+                            {capacityInvalid ? (
+                                <p className="mt-1 text-xs text-rose-500">정원은 1 이상이어야 합니다.</p>
+                            ) : (
+                                <p className="mt-1 text-xs text-slate-400">수강신청 정원 (선택, 미입력 시 무제한)</p>
+                            )}
                         </div>
                     </div>
 
