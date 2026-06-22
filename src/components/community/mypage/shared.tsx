@@ -24,7 +24,7 @@ export function BoardBadge({ board }: { board: string }) {
   const styles: Record<string, string> = {
     자유: 'bg-primary/10 text-primary',
     익명: 'bg-slate-100 text-slate-500',
-    공지: 'bg-blue-50 text-blue-600',
+    공지: 'bg-primary/5 text-primary',
   };
   return (
     <span
@@ -48,7 +48,7 @@ export function StatusBadge({ status }: { status: string }) {
   const displayStatus = labelMap[status] || status;
 
   const styles: Record<string, string> = {
-    판매중: 'bg-emerald-100 text-emerald-700',
+    판매중: 'bg-primary/10 text-primary',
     예약중: 'bg-amber-100 text-amber-700',
     거래완료: 'bg-slate-100 text-slate-500',
   };

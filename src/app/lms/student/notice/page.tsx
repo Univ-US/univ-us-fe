@@ -18,7 +18,7 @@ import type { Lecture, Notice, NoticeAttachment } from "@/types/lmsStudentNotice
 import "@/components/lms/lms-content.css";
 
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 const semLabelOf = (
   year: number,
@@ -188,7 +188,7 @@ export default function StudentNoticePage() {
         <div
           className={`fixed right-6 top-6 z-50 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg ${
             toast.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              ? "border-primary/20 bg-primary/5 text-primary"
               : "border-rose-200 bg-rose-50 text-rose-700"
           }`}
           role="status"
@@ -269,7 +269,7 @@ export default function StudentNoticePage() {
           <button
             type="button"
             onClick={loadLectures}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -284,7 +284,7 @@ export default function StudentNoticePage() {
           <button
             type="button"
             onClick={() => loadNotices(selectedLecId, page)}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -310,7 +310,7 @@ export default function StudentNoticePage() {
                       type="button"
                       onClick={() => setSelectedId(notice.noticeId)}
                       className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
-                        active ? "bg-emerald-50" : "hover:bg-slate-50"
+                        active ? "bg-primary/5" : "hover:bg-slate-50"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -414,7 +414,7 @@ function PageBtn({
       disabled={disabled}
       className={`min-w-8 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
         active
-          ? "bg-emerald-700 text-white"
+          ? "bg-primary text-white"
           : "border border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50"
       } disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:border-transparent disabled:hover:bg-transparent`}
     >

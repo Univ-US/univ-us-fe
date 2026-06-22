@@ -150,7 +150,7 @@ function getApiErrorMessage(error: unknown, fallbackMessage: string) {
 
 function StatusBadge({ status }: { status: Product['productStatus'] }) {
   const styles: Record<string, string> = {
-    SALE: 'bg-emerald-100 text-emerald-700',
+    SALE: 'bg-primary/10 text-primary',
     RESERVE: 'bg-amber-100 text-amber-700',
     DONE: 'bg-slate-100 text-slate-500',
   };
@@ -681,7 +681,7 @@ export default function CommunityMarketDetail({
                       type="button"
                       onClick={() => void handleCompleteFreeSharing()}
                       disabled={freeCompleteLoading}
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-600 hover:shadow-md active:translate-y-0 disabled:opacity-40"
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 disabled:opacity-40"
                     >
                       <PackageOpen className="size-4" />
                       {freeCompleteLoading ? '처리중' : '나눔완료'}
@@ -730,7 +730,7 @@ export default function CommunityMarketDetail({
                       <button
                         disabled={paymentLoading}
                         onClick={handlePayment}
-                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-600 hover:shadow-md active:translate-y-0 disabled:opacity-40"
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md active:translate-y-0 disabled:opacity-40"
                       >
                         <CreditCard className="size-4" />
                         {paymentLoading ? '결제 처리중' : `${formatPrice(product.price)} 결제하기`}

@@ -47,7 +47,7 @@ const BOARD_META: Record<BoardType, {
     icon: <MessageSquare className='size-5 text-primary' />,
     categories: ['전체', '일상', '정보', '질문', '잡답', '모임'],
     rules: ['서로 존중하는 말투를 사용해 주세요.', '광고·도배·욕설은 삭제될 수 있습니다.', '개인정보가 담긴 글은 피해 주세요.'],
-    headerBg: 'bg-gradient-to-br from-teal-50 via-white to-emerald-50 border-teal-100',
+    headerBg: 'bg-gradient-to-br from-primary/5 via-white to-primary/5 border-primary/10',
     iconBg: 'bg-primary/10',
     badgeBg: 'bg-primary/10 text-primary',
     accentText: 'text-primary',
@@ -64,13 +64,13 @@ const BOARD_META: Record<BoardType, {
   },
   notice: {
     label: '공지사항', desc: '학교·운영진이 작성하는 중요 공지를 확인하세요.',
-    icon: <Megaphone className='size-5 text-blue-500' />,
+    icon: <Megaphone className='size-5 text-primary' />,
     categories: ['전체', '학사', '시설', '생활', '장학'],
     rules: ['공지사항은 운영진만 작성할 수 있습니다.', '중요 공지를 놓치지 않도록 확인해 주세요.', '문의는 학교 홈페이지를 이용해 주세요.'],
-    headerBg: 'bg-gradient-to-br from-blue-50 via-white to-indigo-50 border-blue-100',
-    iconBg: 'bg-blue-50',
-    badgeBg: 'bg-blue-100 text-blue-600',
-    accentText: 'text-blue-500',
+    headerBg: 'bg-gradient-to-br from-primary/5 via-white to-primary/5 border-primary/10',
+    iconBg: 'bg-primary/5',
+    badgeBg: 'bg-primary/10 text-primary',
+    accentText: 'text-primary',
   },
 };
 
@@ -112,7 +112,7 @@ function PostRow({ post, isAnon, isNotice, onOpen }: {
         {isAdminNotice ? (
           <span className='whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-white transition-transform duration-200 group-hover/row:scale-105'>공지</span>
         ) : post.tag ? (
-          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold transition-transform duration-200 group-hover/row:scale-105', post.tag === '중요' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600')}>{post.tag}</span>
+          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold transition-transform duration-200 group-hover/row:scale-105', post.tag === '중요' ? 'bg-red-100 text-red-600' : 'bg-primary/10 text-primary')}>{post.tag}</span>
         ) : (
           <span className='whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500 transition-transform duration-200 group-hover/row:scale-105'>{post.category}</span>
         )}

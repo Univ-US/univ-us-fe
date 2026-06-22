@@ -44,9 +44,9 @@ const RESULT_LABEL: Record<ServiceAdminOperationLogResult, string> = {
 };
 
 const RESULT_STYLE: Record<ServiceAdminOperationLogResult, string> = {
-    SUCCESS: "bg-emerald-100 text-emerald-700",
+    SUCCESS: "bg-primary/10 text-primary",
     FAILURE: "bg-rose-100 text-rose-700",
-    SCHEDULED: "bg-blue-100 text-blue-700",
+    SCHEDULED: "bg-primary/10 text-primary",
 };
 
 const ACTION_LABEL: Record<ServiceAdminOperationLogAction, string> = {
@@ -62,12 +62,12 @@ const ACTION_LABEL: Record<ServiceAdminOperationLogAction, string> = {
 };
 
 const ACTION_STYLE: Record<ServiceAdminOperationLogAction, string> = {
-    LOGIN_SUCCESS: "bg-emerald-100 text-emerald-700",
+    LOGIN_SUCCESS: "bg-primary/10 text-primary",
     LOGOUT: "bg-slate-100 text-slate-600",
     LOGIN_FAILED: "bg-rose-100 text-rose-700",
-    PAYMENT_PAID: "bg-emerald-100 text-emerald-700",
+    PAYMENT_PAID: "bg-primary/10 text-primary",
     PAYMENT_FAILED: "bg-rose-100 text-rose-700",
-    PAYMENT_READY: "bg-blue-100 text-blue-700",
+    PAYMENT_READY: "bg-primary/10 text-primary",
     PAYMENT_CANCELED: "bg-amber-100 text-amber-700",
     PAYMENT_REFUNDED: "bg-violet-100 text-violet-700",
     PAYMENT: "bg-slate-100 text-slate-600",
@@ -329,7 +329,7 @@ export default function OperationsLogsView() {
                         label: "성공",
                         value: data?.successCount ?? 0,
                         icon: CheckCircle2,
-                        color: "text-emerald-700",
+                        color: "text-primary",
                     },
                     {
                         label: "실패",
@@ -341,12 +341,12 @@ export default function OperationsLogsView() {
                         label: "예정",
                         value: data?.scheduledCount ?? 0,
                         icon: CreditCard,
-                        color: "text-blue-700",
+                        color: "text-primary",
                     },
                 ].map(({ label, value, icon: Icon, color }) => (
                     <section
                         key={label}
-                        className="flex h-16 min-w-[170px] flex-1 items-center justify-between rounded-xl border border-emerald-900/10 bg-white px-5 shadow-sm"
+                        className="flex h-16 min-w-[170px] flex-1 items-center justify-between rounded-xl border border-primary/10 bg-white px-5 shadow-sm"
                     >
                         <div>
                             <p className="text-xs font-extrabold text-slate-400">{label}</p>
@@ -359,7 +359,7 @@ export default function OperationsLogsView() {
                 ))}
             </div>
 
-            <section className="rounded-xl border border-emerald-900/10 bg-white p-4 shadow-sm">
+            <section className="rounded-xl border border-primary/10 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="relative min-w-[320px] flex-1">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -367,7 +367,7 @@ export default function OperationsLogsView() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="회원명, 로그인ID, 학교명, 주문번호, 결제ID 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500 focus:bg-white"
+                            className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary focus:bg-white"
                         />
                     </label>
 
@@ -424,7 +424,7 @@ export default function OperationsLogsView() {
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-xl border border-primary/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
                         <colgroup>
@@ -462,7 +462,7 @@ export default function OperationsLogsView() {
                                         <button
                                             type="button"
                                             onClick={() => void loadLogs()}
-                                            className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white"
+                                            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-white"
                                         >
                                             다시 시도
                                         </button>
@@ -480,7 +480,7 @@ export default function OperationsLogsView() {
                                 <tr
                                     key={log.id}
                                     onClick={() => openDetail(log)}
-                                    className="cursor-pointer hover:bg-emerald-50/50"
+                                    className="cursor-pointer hover:bg-primary/50"
                                 >
                                     <td className="whitespace-nowrap px-5 py-4 font-bold text-slate-700">
                                         {formatDateTime(log.occurredAt)}
@@ -492,7 +492,7 @@ export default function OperationsLogsView() {
                                             className={
                                                 log.category === "ACCESS"
                                                     ? "bg-slate-100 text-slate-700"
-                                                    : "bg-indigo-100 text-indigo-700"
+                                                    : "bg-primary/10 text-primary"
                                             }
                                         />
                                     </td>
@@ -569,7 +569,7 @@ export default function OperationsLogsView() {
                                     onClick={() => setPage(item)}
                                     className={`size-9 rounded-lg text-sm font-black ${
                                         item === page
-                                            ? "bg-emerald-700 text-white"
+                                            ? "bg-primary text-white"
                                             : "border border-slate-200 text-slate-600"
                                     }`}
                                     aria-label={`${item + 1}페이지`}
@@ -653,7 +653,7 @@ export default function OperationsLogsView() {
                     >
                         <div className="flex items-start justify-between border-b border-slate-100 px-7 py-6">
                             <div>
-                                <p className="text-xs font-extrabold text-emerald-700">
+                                <p className="text-xs font-extrabold text-primary">
                                     운영 로그 상세
                                 </p>
                                 <h2 className="mt-2 text-2xl font-black">
@@ -680,9 +680,9 @@ export default function OperationsLogsView() {
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
-                            <section className="rounded-2xl bg-[#f4faf7] p-5">
+                            <section className="rounded-2xl bg-[var(--accent)] p-5">
                                 <div className="flex items-center justify-between gap-3">
-                                    <p className="text-xs font-extrabold text-emerald-800">
+                                    <p className="text-xs font-extrabold text-primary">
                                         기본 정보
                                     </p>
                                     <div className="flex flex-wrap justify-end gap-2">
@@ -691,7 +691,7 @@ export default function OperationsLogsView() {
                                             className={
                                                 selectedLog.category === "ACCESS"
                                                     ? "bg-slate-100 text-slate-700"
-                                                    : "bg-indigo-100 text-indigo-700"
+                                                    : "bg-primary/10 text-primary"
                                             }
                                         />
                                         <Badge
@@ -780,7 +780,7 @@ export default function OperationsLogsView() {
                             <button
                                 type="button"
                                 onClick={closeDetail}
-                                className="flex h-11 w-full items-center justify-center rounded-lg bg-slate-100 text-sm font-black text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-800"
+                                className="flex h-11 w-full items-center justify-center rounded-lg bg-slate-100 text-sm font-black text-slate-700 transition hover:bg-primary/10 hover:text-primary"
                             >
                                 닫기
                             </button>

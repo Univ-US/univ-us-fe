@@ -100,7 +100,7 @@ export default function ProfessorCalendar({ year, month, events, theme, loading,
             key={w}
             className={cn(
               "py-2",
-              i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-500"
+              i === 0 ? "text-red-500" : i === 6 ? "text-primary" : "text-slate-500"
             )}
           >
             {w}
@@ -131,7 +131,7 @@ export default function ProfessorCalendar({ year, month, events, theme, loading,
                       : dow === 0
                         ? "text-red-500"
                         : dow === 6
-                          ? "text-blue-500"
+                          ? "text-primary"
                           : "text-slate-600"
                 )}
               >

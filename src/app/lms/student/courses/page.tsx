@@ -10,7 +10,7 @@ import type { CourseRow, SemesterSummary } from "@/types/lmsStudentCourses";
 
 const COURSE_PAGE_SIZE = 5;
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 export default function StudentCoursesPage() {
   const [summaries, setSummaries] = useState<SemesterSummary[]>([]);
@@ -112,7 +112,7 @@ export default function StudentCoursesPage() {
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -134,14 +134,14 @@ export default function StudentCoursesPage() {
 
 // 수강 상태(ENR_STS) / 강의 상태(LEC_VAL_STATUS) 배지 색 — 드랍·실패·폐강은 rose로 강조
 const ENR_BADGE: Record<string, string> = {
-  ENR: "bg-emerald-50 text-emerald-700",
+  ENR: "bg-primary/5 text-primary",
   CMP: "bg-slate-100 text-slate-600",
   DRP: "bg-rose-50 text-rose-600",
   FAL: "bg-rose-50 text-rose-600",
 };
 const VAL_BADGE: Record<string, string> = {
   OPEN: "bg-sky-50 text-sky-700",
-  PROG: "bg-emerald-50 text-emerald-700",
+  PROG: "bg-primary/5 text-primary",
   CLSD: "bg-slate-100 text-slate-500",
   CNCL: "bg-rose-50 text-rose-600",
 };
@@ -190,7 +190,7 @@ function SemesterCard({
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="truncate text-base font-bold text-slate-800">{sem.semesterLabel}</h2>
           {sem.inProgress ? (
-            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            <span className="shrink-0 rounded-full bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary">
               진행중
             </span>
           ) : (
@@ -332,7 +332,7 @@ function PageBtn({
       disabled={disabled}
       onClick={onClick}
       className={`flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
+        active ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"
       }`}
     >
       {children}

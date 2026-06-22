@@ -64,7 +64,7 @@ const CATEGORY_STYLE: Record<InquiryCategory, string> = {
 
 const STATUS_STYLE: Record<InquiryStatus, string> = {
     WAITING: "bg-amber-100 text-amber-700",
-    IN_PROGRESS: "bg-emerald-100 text-emerald-700",
+    IN_PROGRESS: "bg-primary/10 text-primary",
     CLOSED: "bg-slate-100 text-slate-500",
 };
 
@@ -440,7 +440,7 @@ export default function ChatView() {
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-500">
-                        {realtimeStatus === "connected" ? <Wifi className="size-4 text-emerald-600" /> : <WifiOff className="size-4 text-slate-400" />}
+                        {realtimeStatus === "connected" ? <Wifi className="size-4 text-primary" /> : <WifiOff className="size-4 text-slate-400" />}
                         {realtimeStatus === "connected" ? "실시간 연결" : "연결 대기"}
                     </span>
                     <button type="button" onClick={() => void loadRooms()} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:bg-slate-50">
@@ -450,7 +450,7 @@ export default function ChatView() {
                     <button type="button" onClick={() => {
                         setSelectedRoomId(null);
                         setNewOpen((value) => !value);
-                    }} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#064b35] px-3 text-xs font-black text-white hover:bg-emerald-800">
+                    }} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[var(--primary)] px-3 text-xs font-black text-white hover:bg-primary/90">
                         <Plus className="size-4" />
                         새 문의
                     </button>
@@ -466,10 +466,10 @@ export default function ChatView() {
             <div className="grid shrink-0 gap-3 sm:grid-cols-3">
                 {[
                     { label: "답변 대기", value: summary.waiting, icon: Clock3, color: "text-amber-600" },
-                    { label: "진행 중", value: summary.inProgress, icon: MessageSquareText, color: "text-emerald-700" },
+                    { label: "진행 중", value: summary.inProgress, icon: MessageSquareText, color: "text-primary" },
                     { label: "종료", value: summary.closed, icon: CheckCircle2, color: "text-slate-500" },
                 ].map(({ label, value, icon: Icon, color }) => (
-                    <section key={label} className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+                    <section key={label} className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-extrabold text-slate-500">{label}</p>
                             <Icon className={`size-5 ${color}`} />
@@ -479,7 +479,7 @@ export default function ChatView() {
                 ))}
             </div>
 
-            <section className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 {newOpen && (
                     <div className="flex min-h-0 w-full min-w-0 flex-col">
                         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
@@ -497,14 +497,14 @@ export default function ChatView() {
                         <form onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50/60 p-5">
                             <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                                 <div className="grid shrink-0 gap-3 lg:grid-cols-[160px_minmax(0,1fr)]">
-                                    <select value={newCategory} onChange={(event) => setNewCategory(event.target.value as InquiryCategory)} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500">
+                                    <select value={newCategory} onChange={(event) => setNewCategory(event.target.value as InquiryCategory)} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary">
                                         {CATEGORY_OPTIONS.map((category) => (
                                             <option key={category} value={category}>{CATEGORY_LABEL[category]}</option>
                                         ))}
                                     </select>
-                                    <input value={newTitle} onChange={(event) => setNewTitle(event.target.value.slice(0, 50))} maxLength={50} placeholder="문의 제목" className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-emerald-500" />
+                                    <input value={newTitle} onChange={(event) => setNewTitle(event.target.value.slice(0, 50))} maxLength={50} placeholder="문의 제목" className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-primary" />
                                 </div>
-                                <textarea value={newMessage} onChange={(event) => setNewMessage(event.target.value.slice(0, 1000))} placeholder="문의 내용을 입력하세요." className="mt-3 min-h-0 flex-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500" />
+                                <textarea value={newMessage} onChange={(event) => setNewMessage(event.target.value.slice(0, 1000))} placeholder="문의 내용을 입력하세요." className="mt-3 min-h-0 flex-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
                                 {renderFiles(newFiles, "new")}
                                 <div className="mt-4 flex shrink-0 justify-between gap-2">
                                     <input ref={newFileInputRef} type="file" multiple accept={FILE_ACCEPT} className="hidden" onChange={(event) => {
@@ -519,7 +519,7 @@ export default function ChatView() {
                                         <button type="button" onClick={() => setNewOpen(false)} className="inline-flex h-10 items-center rounded-lg border border-slate-200 px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
                                             취소
                                         </button>
-                                        <button type="submit" disabled={submitting || !newTitle.trim() || (!newMessage.trim() && newFiles.length === 0)} className="inline-flex h-10 items-center rounded-lg bg-[#064b35] px-4 text-xs font-black text-white hover:bg-emerald-800 disabled:bg-slate-300">
+                                        <button type="submit" disabled={submitting || !newTitle.trim() || (!newMessage.trim() && newFiles.length === 0)} className="inline-flex h-10 items-center rounded-lg bg-[var(--primary)] px-4 text-xs font-black text-white hover:bg-primary/90 disabled:bg-slate-300">
                                             등록
                                         </button>
                                     </div>
@@ -537,16 +537,16 @@ export default function ChatView() {
                         </div>
                         <label className="relative block">
                             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="학교명, 제목, 메시지 검색" className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500" />
+                            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="학교명, 제목, 메시지 검색" className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary" />
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            <select value={status} onChange={(event) => setStatus(event.target.value as "ALL" | InquiryStatus)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500">
+                            <select value={status} onChange={(event) => setStatus(event.target.value as "ALL" | InquiryStatus)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
                                 <option value="ALL">전체 상태</option>
                                 <option value="WAITING">답변 대기</option>
                                 <option value="IN_PROGRESS">진행 중</option>
                                 <option value="CLOSED">종료</option>
                             </select>
-                            <select value={category} onChange={(event) => setCategory(event.target.value as "ALL" | InquiryCategory)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-emerald-500">
+                            <select value={category} onChange={(event) => setCategory(event.target.value as "ALL" | InquiryCategory)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
                                 <option value="ALL">전체 분류</option>
                                 {CATEGORY_OPTIONS.map((value) => (
                                     <option key={value} value={value}>{CATEGORY_LABEL[value]}</option>
@@ -563,7 +563,7 @@ export default function ChatView() {
                                 <p className="mt-2 text-sm font-bold">조건에 맞는 문의가 없습니다.</p>
                             </div>
                         ) : filteredRooms.map((room) => (
-                            <button key={room.roomId} type="button" onClick={() => setSelectedRoomId(room.roomId)} className={`group w-full rounded-xl border px-3.5 py-3.5 text-left shadow-sm transition ${room.roomId === selectedRoomId ? "border-emerald-200 bg-emerald-50 shadow-emerald-900/5" : "border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40"}`}>
+                            <button key={room.roomId} type="button" onClick={() => setSelectedRoomId(room.roomId)} className={`group w-full rounded-xl border px-3.5 py-3.5 text-left shadow-sm transition ${room.roomId === selectedRoomId ? "border-primary/20 bg-primary/5 shadow-primary/5" : "border-slate-200 bg-white hover:border-primary/20 hover:bg-primary/40"}`}>
                                 <div className="flex items-center justify-between gap-2">
                                     <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-black ${CATEGORY_STYLE[room.category]}`}>{CATEGORY_LABEL[room.category]}</span>
                                     <span className="text-[11px] font-semibold text-slate-400">{formatTime(room.lastAt)}</span>
@@ -617,7 +617,7 @@ export default function ChatView() {
                                         <div key={item.messageId} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                                             <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
                                                 <p className="mb-1 px-1 text-[11px] font-extrabold text-slate-400">{mine ? memberName ?? item.senderName : item.senderName}</p>
-                                                <div className={`rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${mine ? "rounded-br-md bg-[#064b35] text-white" : "rounded-bl-md border border-slate-200 bg-white text-slate-800"}`}>
+                                                <div className={`rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${mine ? "rounded-br-md bg-[var(--primary)] text-white" : "rounded-bl-md border border-slate-200 bg-white text-slate-800"}`}>
                                                     {item.content && <p className="whitespace-pre-wrap">{item.content}</p>}
                                                     {item.attachments.length > 0 && (
                                                         <div className="mt-2 space-y-1">
@@ -649,7 +649,7 @@ export default function ChatView() {
                                             addFiles(event.target.files, "reply");
                                             event.target.value = "";
                                         }} />
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-emerald-700" aria-label="파일 첨부">
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-primary" aria-label="파일 첨부">
                                             <Paperclip className="size-5" />
                                         </button>
                                         <textarea value={message} onChange={(event) => setMessage(event.target.value.slice(0, 1000))} rows={2} placeholder="메시지를 입력하세요. Enter 전송, Shift+Enter 줄바꿈" onKeyDown={(event) => {
@@ -657,8 +657,8 @@ export default function ChatView() {
                                                 event.preventDefault();
                                                 event.currentTarget.form?.requestSubmit();
                                             }
-                                        }} className="min-h-11 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500" />
-                                        <button type="submit" disabled={submitting || (!message.trim() && files.length === 0)} className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#064b35] text-white hover:bg-emerald-800 disabled:bg-slate-300" aria-label="메시지 전송">
+                                        }} className="min-h-11 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
+                                        <button type="submit" disabled={submitting || (!message.trim() && files.length === 0)} className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--primary)] text-white hover:bg-primary/90 disabled:bg-slate-300" aria-label="메시지 전송">
                                             <Send className="size-5" />
                                         </button>
                                     </div>

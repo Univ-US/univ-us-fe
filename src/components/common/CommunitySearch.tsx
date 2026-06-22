@@ -99,7 +99,7 @@ function ProductResultCard({
 }) {
   const router = useRouter();
   const statusStyle: Record<string, string> = {
-    SALE: 'bg-emerald-100 text-emerald-700',
+    SALE: 'bg-primary/10 text-primary',
     RESERVE: 'bg-amber-100 text-amber-700',
     DONE: 'bg-slate-100 text-slate-500',
   };
@@ -289,7 +289,7 @@ export default function CommunitySearch() {
             )}
             <button
               onClick={handleSearch}
-              className='rounded-xl bg-primary px-5 py-2 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-teal-600'
+              className='rounded-xl bg-primary px-5 py-2 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-primary/90'
             >
               검색
             </button>

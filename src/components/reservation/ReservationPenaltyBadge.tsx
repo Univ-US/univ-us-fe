@@ -30,7 +30,7 @@ export default function ReservationPenaltyBadge({
           ? 'border-red-200 bg-red-50 text-red-600'
           : hasPenalty
             ? 'border-amber-200 bg-amber-50 text-amber-700'
-            : 'border-emerald-100 bg-emerald-50 text-emerald-700',
+            : 'border-primary/10 bg-primary/5 text-primary',
       )}
     >
       <ShieldAlert className='size-3.5' />

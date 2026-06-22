@@ -30,13 +30,13 @@ const STATUS_FILTER_KEYS: StatusFilter[] = ["all", "NSB", "SBM", "GRD"];
 const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
   NSB: "bg-rose-50 text-rose-600",
   SBM: "bg-amber-50 text-amber-700",
-  GRD: "bg-emerald-50 text-emerald-700",
+  GRD: "bg-primary/5 text-primary",
 };
 
 const ASSIGNMENT_PAGE_SIZE = 10;
 
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 export default function StudentAssignmentsHistoryPage() {
   const router = useRouter();
@@ -170,7 +170,7 @@ export default function StudentAssignmentsHistoryPage() {
                 onClick={() => setStatusFilter(key)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
                   active
-                    ? "bg-emerald-700 text-white"
+                    ? "bg-primary text-white"
                     : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 }`}
               >
@@ -188,7 +188,7 @@ export default function StudentAssignmentsHistoryPage() {
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -261,7 +261,7 @@ function RowAction({
       <button
         type="button"
         onClick={onSubmit}
-        className="inline-flex h-8 items-center justify-center rounded-lg bg-emerald-700 px-3 text-xs font-semibold text-white hover:bg-emerald-800"
+        className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-white hover:bg-primary/90"
       >
         제출하러 가기 →
       </button>
@@ -473,7 +473,7 @@ function PageBtn({
       disabled={disabled}
       onClick={onClick}
       className={`flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
+        active ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"
       }`}
     >
       {children}

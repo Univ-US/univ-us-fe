@@ -38,17 +38,17 @@ const DEFAULT_CONFIG: HomeWidgetConfig = {
 
 const BASE_SHORTCUTS = [
     { label: "도서관", icon: BookOpen, bg: "bg-primary" },
-    { label: "증명서발급", icon: FileText, bg: "bg-teal-600", href: "https://www.certpia.com" },
+    { label: "증명서발급", icon: FileText, bg: "bg-primary", href: "https://www.certpia.com" },
     { label: "학교홈", icon: GraduationCap, bg: "bg-slate-700" },
-    { label: "시설 이용", icon: Monitor, bg: "bg-teal-500" },
+    { label: "시설 이용", icon: Monitor, bg: "bg-primary" },
     { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
     { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
-    { label: "학교 SNS", icon: Hash, bg: "bg-teal-500" },
+    { label: "학교 SNS", icon: Hash, bg: "bg-primary" },
     { label: "YouTube", icon: Play, bg: "bg-red-600" },
     { label: "동아리", icon: Users, bg: "bg-amber-500" },
     { label: "커뮤니티", icon: MessageSquare, bg: "bg-primary", href: "/community" },
-    { label: "LMS", icon: LayoutDashboard, bg: "bg-indigo-500", href: "#" },
-    { label: "수강신청", icon: ClipboardList, bg: "bg-emerald-600", href: "#" },
+    { label: "LMS", icon: LayoutDashboard, bg: "bg-primary", href: "#" },
+    { label: "수강신청", icon: ClipboardList, bg: "bg-primary", href: "#" },
 ];
 
 const EXTRA_SHORTCUTS = [
@@ -76,7 +76,7 @@ const TIMETABLE_COLORS = [
     "bg-amber-100 text-amber-700",
     "bg-violet-100 text-violet-700",
     "bg-rose-100 text-rose-700",
-    "bg-emerald-100 text-emerald-700",
+    "bg-primary/10 text-primary",
     "bg-sky-100 text-sky-700",
 ];
 
@@ -318,7 +318,7 @@ export default function CampusHomePage() {
 
             {/* 히어로 배너 */}
             <div className="bg-slate-50 px-5 pt-5">
-                <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-teal-50 to-blue-50 px-5 py-7 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
+                <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-primary/5 to-primary/5 px-5 py-7 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
                     <div>
                         <p className="mb-1.5 text-xs font-bold text-primary/80">{univName ?? 'Univ·us'} 통합 포털</p>
                         <h1 className="text-xl sm:text-2xl font-extrabold leading-tight">
@@ -563,19 +563,19 @@ export default function CampusHomePage() {
                     {isInitialized && isLoggedIn && role === "ADM" && (
                         <Link
                             href="/dashboard/school-admin"
-                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-teal-700 px-5 py-3.5 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/90 px-5 py-3.5 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
                         >
                             <div className="absolute -right-5 -top-5 size-28 rounded-full bg-white/5" />
                             <div className="absolute -right-3 -bottom-8 size-36 rounded-full bg-white/5" />
                             <div className="relative">
                                 <div className="flex items-center justify-between mb-2.5">
-                                    <span className="text-[10px] font-black tracking-widest text-emerald-300/60 uppercase">School Admin</span>
+                                    <span className="text-[10px] font-black tracking-widest text-primary-foreground/60 uppercase">School Admin</span>
                                     <div className="flex size-7 items-center justify-center rounded-lg bg-white/10">
                                         <LayoutDashboard className="w-3.5 h-3.5 text-white" />
                                     </div>
                                 </div>
                                 <p className="text-white font-black text-base leading-snug">관리자<br />대시보드</p>
-                                <p className="mt-2 flex items-center gap-1 text-emerald-300 text-xs font-bold">
+                                <p className="mt-2 flex items-center gap-1 text-primary/40 text-xs font-bold">
                                     이동하기
                                     <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
                                 </p>

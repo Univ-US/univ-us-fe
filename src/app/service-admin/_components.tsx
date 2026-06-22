@@ -20,8 +20,8 @@ const PAYMENT_LABEL: Record<PaymentStatus, string> = {
 };
 
 const BADGE_STYLE: Record<SubscriptionStatus | PaymentStatus, string> = {
-    ACTIVE: "bg-emerald-100 text-emerald-700",
-    PAID: "bg-emerald-100 text-emerald-700",
+    ACTIVE: "bg-primary/10 text-primary",
+    PAID: "bg-primary/10 text-primary",
     PAST_DUE: "bg-rose-100 text-rose-600",
     FAILED: "bg-rose-100 text-rose-600",
     PENDING: "bg-amber-100 text-amber-700",

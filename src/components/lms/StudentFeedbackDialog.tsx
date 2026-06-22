@@ -50,10 +50,10 @@ export default function StudentFeedbackDialog({
           ) : (
             <>
               {/* 점수 박스 */}
-              <div className="flex items-end justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 px-5 py-4">
+              <div className="flex items-end justify-between rounded-xl border border-primary/20 bg-primary/70 px-5 py-4">
                 <p className="leading-none">
-                  <span className="text-3xl font-bold text-emerald-700">{fb.asnSbmEvlScore}</span>
-                  <span className="ml-1 text-sm text-emerald-600/70">/ {fb.maxScore}</span>
+                  <span className="text-3xl font-bold text-primary">{fb.asnSbmEvlScore}</span>
+                  <span className="ml-1 text-sm text-primary/70">/ {fb.maxScore}</span>
                 </p>
                 <p className="text-right text-xs text-slate-500">
                   {fb.courseName}
@@ -78,7 +78,7 @@ export default function StudentFeedbackDialog({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-white hover:bg-primary/90"
           >
             닫기
           </button>

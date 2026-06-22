@@ -32,7 +32,7 @@ const STATUS_LABEL: Record<AdminPenaltyStatus, string> = {
 const STATUS_STYLE: Record<AdminPenaltyStatus, string> = {
     ACTIVE: "bg-rose-100 text-rose-600",
     PLEDGED: "bg-sky-100 text-sky-700",
-    ADMIN_RELEASED: "bg-emerald-100 text-emerald-700",
+    ADMIN_RELEASED: "bg-primary/10 text-primary",
 };
 
 const TYPE_LABEL: Record<AdminPenalty["penaltyType"], string> = {
@@ -205,13 +205,13 @@ export default function PenaltyManagementView() {
                 <button
                     onClick={() => void createPenalty()}
                     disabled={creating}
-                    className="h-11 shrink-0 rounded-lg bg-emerald-700 px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="h-11 shrink-0 rounded-lg bg-primary px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                     {creating ? "처리 중" : "페널티 수동 부과"}
                 </button>
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <p className="text-sm font-black text-slate-800">회원별 현재 차단 상태 조회</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
                     <input
@@ -221,7 +221,7 @@ export default function PenaltyManagementView() {
                         }
                         placeholder="회원 ID 입력"
                         inputMode="numeric"
-                        className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-primary"
                     />
                     <button
                         onClick={() => void lookupMemberStatus()}
@@ -237,13 +237,13 @@ export default function PenaltyManagementView() {
                 {lookupResult && (
                     <div
                         className={`mt-4 flex items-center gap-3 rounded-xl p-4 ${
-                            lookupResult.blocked ? "bg-rose-50" : "bg-emerald-50"
+                            lookupResult.blocked ? "bg-rose-50" : "bg-primary/5"
                         }`}
                     >
                         {lookupResult.blocked ? (
                             <ShieldAlert className="size-6 shrink-0 text-rose-600" />
                         ) : (
-                            <ShieldCheck className="size-6 shrink-0 text-emerald-700" />
+                            <ShieldCheck className="size-6 shrink-0 text-primary" />
                         )}
                         <div>
                             <p className="font-black text-slate-900">{lookupResult.memberName}</p>
@@ -257,7 +257,7 @@ export default function PenaltyManagementView() {
                 )}
             </section>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[1fr_180px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -265,7 +265,7 @@ export default function PenaltyManagementView() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="회원명, 로그인 ID 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
                     <select
@@ -274,7 +274,7 @@ export default function PenaltyManagementView() {
                             setStatus(event.target.value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 상태</option>
                         <option value="ACTIVE">진행중</option>
@@ -284,14 +284,14 @@ export default function PenaltyManagementView() {
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 {error ? (
                     <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                         <AlertTriangle className="size-7 text-rose-500" />
                         <p className="mt-3 font-black text-slate-900">{error}</p>
                         <button
                             onClick={() => void loadPenalties()}
-                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white"
+                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white"
                         >
                             <RefreshCw className="size-4" />
                             다시 시도
@@ -325,7 +325,7 @@ export default function PenaltyManagementView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={7} className="px-5 py-16 text-center">
-                                                <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                                <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                             </td>
                                         </tr>
                                     ) : (
@@ -361,7 +361,7 @@ export default function PenaltyManagementView() {
                                                             penalty.status !== "ACTIVE" ||
                                                             processingPenaltyId === penalty.penaltyId
                                                         }
-                                                        className="h-9 whitespace-nowrap rounded-lg border border-emerald-200 px-3 text-xs font-black text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                                                        className="h-9 whitespace-nowrap rounded-lg border border-primary/20 px-3 text-xs font-black text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                                                     >
                                                         {processingPenaltyId === penalty.penaltyId
                                                             ? "처리 중"
@@ -403,7 +403,7 @@ export default function PenaltyManagementView() {
                                             onClick={() => setPage(item)}
                                             className={`size-9 rounded-lg text-sm font-black ${
                                                 page === item
-                                                    ? "bg-emerald-700 text-white"
+                                                    ? "bg-primary text-white"
                                                     : "border border-slate-200 text-slate-600"
                                             }`}
                                             aria-current={page === item ? "page" : undefined}

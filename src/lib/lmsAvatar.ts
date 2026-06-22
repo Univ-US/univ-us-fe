@@ -3,12 +3,12 @@
 // 덕분에 한 사람이 여러 화면(채팅·출결·수강생현황·리포트·프로필)에서 같은 색으로 보임.
 
 const LMS_AVATAR_COLORS = [
-  "bg-emerald-600",
+  "bg-primary",
   "bg-sky-600",
-  "bg-indigo-600",
+  "bg-primary",
   "bg-rose-600",
   "bg-amber-600",
-  "bg-teal-600",
+  "bg-primary",
 ] as const;
 
 // 문자열/숫자 시드를 양의 정수 해시로 변환(djb2 계열, 결정적)

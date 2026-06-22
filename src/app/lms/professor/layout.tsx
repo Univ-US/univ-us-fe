@@ -290,7 +290,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                     {sidebarOpen && <span className="flex-1">{item.label}</span>}
                     {badge != null && badge > 0 && (
                       <span
-                        className={`rounded-full bg-emerald-500/90 px-1.5 text-[11px] font-semibold text-white ${
+                        className={`rounded-full bg-primary/90 px-1.5 text-[11px] font-semibold text-white ${
                           sidebarOpen ? "" : "absolute right-0.5 top-0.5"
                         }`}
                       >

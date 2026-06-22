@@ -104,7 +104,7 @@ function CollectionTable() {
 
 export default function PrivacyPage() {
     return (
-        <main className="min-h-screen bg-[#f8fbfb] text-slate-950">
+        <main className="min-h-screen bg-[var(--accent)] text-slate-950">
             <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
                 <div className="mx-auto flex h-[72px] max-w-[1080px] items-center justify-between px-5 sm:px-6">
                     <Link href="/landing" className="flex items-center gap-2.5" aria-label="UnivUs 랜딩으로 이동">

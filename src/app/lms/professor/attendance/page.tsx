@@ -416,7 +416,7 @@ const selectClass =
 type Tone = "slate" | "emerald" | "amber" | "red";
 const TAG_TONE: Record<Tone, string> = {
   slate: "bg-slate-100 text-slate-500",
-  emerald: "bg-emerald-100 text-emerald-700",
+  emerald: "bg-primary/10 text-primary",
   amber: "bg-amber-100 text-amber-700",
   red: "bg-red-100 text-red-600",
 };
@@ -519,7 +519,7 @@ function AttendanceDateCell({
 
 // 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
-  if (rate >= 95) return "bg-emerald-500";
+  if (rate >= 95) return "bg-primary";
   if (rate >= AT_RISK_THRESHOLD) return "bg-amber-400";
   return "bg-red-400";
 }

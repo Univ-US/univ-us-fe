@@ -266,7 +266,7 @@ export default function ServiceAdminBulkSignupModal({
                                     setIsSchoolListOpen(true);
                                 }}
                                 placeholder="활성 구독 학교 검색"
-                                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-sm font-semibold outline-none transition focus:border-emerald-500"
+                                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-sm font-semibold outline-none transition focus:border-primary"
                             />
                             <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
 
@@ -290,7 +290,7 @@ export default function ServiceAdminBulkSignupModal({
                                             key={school.univId}
                                             type="button"
                                             onClick={() => selectSchool(school)}
-                                            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-emerald-50"
+                                            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-primary/10"
                                         >
                                             <span className="font-bold text-slate-800">{school.univName}</span>
                                             <span className="shrink-0 text-xs font-semibold text-slate-500">
@@ -309,14 +309,14 @@ export default function ServiceAdminBulkSignupModal({
                             <button
                                 type="button"
                                 onClick={downloadBulkSignupTemplate}
-                                className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800"
+                                className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary"
                             >
                                 <Download className="size-4" /> 양식 다운로드
                             </button>
                         </div>
-                        <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50/40 px-4 text-center hover:bg-emerald-50">
-                            {parsing ? <LoaderCircle className="size-6 animate-spin text-emerald-700" /> : <Upload className="size-6 text-emerald-700" />}
-                            <span className="text-sm font-bold text-emerald-900">
+                        <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/40 px-4 text-center hover:bg-primary/10">
+                            {parsing ? <LoaderCircle className="size-6 animate-spin text-primary" /> : <Upload className="size-6 text-primary" />}
+                            <span className="text-sm font-bold text-primary">
                                 {parsing ? "파일을 확인하는 중입니다." : "엑셀 파일을 선택해 주세요."}
                             </span>
                             <span className="text-xs text-slate-500">.xlsx 파일만 업로드할 수 있습니다.</span>
@@ -360,7 +360,7 @@ export default function ServiceAdminBulkSignupModal({
 
                             <div className={`flex items-start gap-2 rounded-lg border px-4 py-3 text-sm font-bold ${
                                 canRegister
-                                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    ? "border-primary/20 bg-primary/5 text-primary"
                                     : "border-rose-200 bg-rose-50 text-rose-700"
                             }`}>
                                 {canRegister ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0" />}
@@ -403,7 +403,7 @@ export default function ServiceAdminBulkSignupModal({
                                                     <td className="px-3 py-2.5 text-slate-700">{row.deptName || "-"}</td>
                                                     <td className="px-3 py-2.5">
                                                         {errors.length === 0 ? (
-                                                            <span className="font-bold text-emerald-700">정상</span>
+                                                            <span className="font-bold text-primary">정상</span>
                                                         ) : (
                                                             <span className="font-semibold text-rose-600">{errors.join(" / ")}</span>
                                                         )}
@@ -450,7 +450,7 @@ export default function ServiceAdminBulkSignupModal({
                             type="button"
                             onClick={() => void handleSubmit()}
                             disabled={!canRegister || submitting}
-                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45"
+                            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-45"
                         >
                             {submitting && <LoaderCircle className="size-4 animate-spin" />}
                             {submitting ? "등록 중" : "등록"}

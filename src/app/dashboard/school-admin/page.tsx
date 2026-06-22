@@ -18,6 +18,8 @@ import {
     Megaphone,
     MessageCircle,
     MessageSquareText,
+    PanelLeftClose,
+    PanelLeftOpen,
     ScrollText,
     ShieldAlert,
     Settings,
@@ -74,6 +76,7 @@ function SchoolAdminDashboard() {
     const [pendingInquiries, setPendingInquiries] = useState<ApiSupport[]>([]);
     const [seenInquiryIds, setSeenInquiryIds] = useState<Set<number>>(new Set());
     const [notificationOpen, setNotificationOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
     const hasUnseenInquiry = pendingInquiries.some((i) => !seenInquiryIds.has(i.supportId));
 
@@ -150,79 +153,106 @@ function SchoolAdminDashboard() {
         return null;
     }
 
+    const sidebarOffsetClass = sidebarCollapsed ? "md:pl-[104px]" : "md:pl-[256px]";
+
     return (
         <RoleGuard allowedRoles={["ADM"]}>
-            <main className={view === "chat" ? "h-screen overflow-hidden bg-[#f4faf7] text-slate-950" : "min-h-screen bg-[#f4faf7] text-slate-950"}>
-                <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-2">
-                            <img src="/univusicon.png" alt="Univ us" className="w-7 h-7 rounded-lg" />
-                            <span className="text-lg font-black tracking-wide">
-                                <span className="text-white">Univ</span>
-                                <span className="text-white"> · </span><span className="text-teal-300">us</span>
+            <main className={view === "chat" ? "h-screen overflow-hidden bg-[#f7f8fb] text-slate-950" : "min-h-screen bg-[#f7f8fb] text-slate-950"}>
+                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
+                    <button
+                        type="button"
+                        onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                        className="absolute -right-4 top-1/2 z-40 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-lg shadow-primary/15 transition-all duration-200 hover:-translate-y-1/2 hover:scale-105 hover:bg-primary hover:text-white"
+                        aria-label={sidebarCollapsed ? "???? ???" : "???? ??"}
+                    >
+                        {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+                    </button>
+
+                    <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+                        <button
+                            type="button"
+                            onClick={() => router.push("/landing")}
+                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14] ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
+                        >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                                <img src="/univusicon.png" alt="UnivUs" className="size-6 rounded-lg object-contain" />
                             </span>
-                        </div>
-                        <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-bold text-emerald-100">
-                            관리자
-                        </span>
+                            <span className={`min-w-0 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
+                                <span className="block text-sm font-black leading-4 text-white">UnivUs</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Admin</span>
+                            </span>
+                        </button>
+                        {!sidebarCollapsed && (
+                            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
+                                관리자
+                            </span>
+                        )}
                     </div>
 
-                    <div className="mt-6 rounded-xl bg-white/12 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg font-black">
-                                {memberName?.slice(0, 1) ?? "관"}
+                    <div className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
+                        <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
+                                {memberName?.slice(0, 1) ?? "\uAD00"}
                             </div>
-                            <div>
-                                <p className="text-sm font-extrabold">{memberName ?? "관리자"}</p>
-                                <p className="mt-0.5 text-xs font-medium text-emerald-200">학교 관리자</p>
-                            </div>
+                            {!sidebarCollapsed && (
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-extrabold">{memberName ?? "관리자"}</p>
+                                    <p className="mt-0.5 text-xs font-medium text-slate-300">학교 관리자</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">운영</p>
-                    <nav className="mt-2 flex-1 space-y-0.5">
+                    {!sidebarCollapsed && <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">운영</p>}
+                    <nav className={`mt-2 flex-1 ${sidebarCollapsed ? "space-y-2" : "space-y-0.5"}`}>
                         {NAV_ITEMS.slice(0, 8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
-                                className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition-colors ${view === v ? "bg-white/18 text-white" : "text-emerald-50/80 hover:bg-white/10"}`}
+                                title={label}
+                                className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
-                                {label}
+                                <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
                             </button>
                         ))}
 
-                        <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">시스템</p>
+                        {!sidebarCollapsed && <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">시스템</p>}
                         {NAV_ITEMS.slice(8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
-                                className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition-colors ${view === v ? "bg-white/18 text-white" : "text-emerald-50/80 hover:bg-white/10"}`}
+                                title={label}
+                                className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
-                                {label}
+                                <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
                             </button>
                         ))}
                     </nav>
 
-                    <div className="space-y-1.5">
+                    <div className={`space-y-1.5 ${sidebarCollapsed ? "pb-1" : ""}`}>
                         <button
                             onClick={() => router.push("/home")}
-                            className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
+                            title="학생 홈으로 전환"
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
-                            <Home className="size-4" /> 학생 홈으로 전환
+                            <Home className="size-4" />
+                            <span className={sidebarCollapsed ? "sr-only" : "truncate"}>학생 홈으로 전환</span>
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
+                            title="로그아웃"
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
-                            <LogOut className="size-4" /> 로그아웃
+                            <LogOut className="size-4" />
+                            <span className={sidebarCollapsed ? "sr-only" : "truncate"}>로그아웃</span>
                         </button>
                     </div>
                 </aside>
 
-                <div className={view === "chat" ? "flex h-full min-h-0 flex-col lg:pl-[220px]" : "lg:pl-[220px]"}>
-                    <header className={view === "chat" ? "shrink-0 border-b border-emerald-900/10 bg-white/85 backdrop-blur" : "sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur"}>
+                <div className={view === "chat" ? `flex h-full min-h-0 flex-col ${sidebarOffsetClass}` : sidebarOffsetClass}>
+                    <header className={view === "chat" ? "shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur" : "sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur"}>
                         <div className="flex h-16 items-center justify-between px-6 lg:px-8">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" />
@@ -247,7 +277,7 @@ function SchoolAdminDashboard() {
                                 </button>
 
                                 {notificationOpen && (
-                                    <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-80 overflow-hidden rounded-xl border border-emerald-900/10 bg-white shadow-lg">
+                                    <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                                         <div className="border-b border-slate-100 px-4 py-3">
                                             <p className="text-sm font-black text-slate-900">알림</p>
                                         </div>
@@ -281,7 +311,7 @@ function SchoolAdminDashboard() {
                                                 setNotificationOpen(false);
                                                 setView("inquiries");
                                             }}
-                                            className="block w-full border-t border-slate-100 px-4 py-2.5 text-center text-xs font-bold text-emerald-700 hover:bg-emerald-50"
+                                            className="block w-full border-t border-slate-100 px-4 py-2.5 text-center text-xs font-bold text-primary hover:bg-primary/10"
                                         >
                                             문의사항 전체보기
                                         </button>
@@ -291,7 +321,7 @@ function SchoolAdminDashboard() {
                         </div>
                     </header>
 
-                    <section className={view === "chat" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 lg:px-8" : "px-6 py-8 lg:px-8"}>
+                    <section key={view} className={view === "chat" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 animate-in fade-in slide-in-from-bottom-2 duration-300 lg:px-8" : "px-6 py-8 animate-in fade-in slide-in-from-bottom-2 duration-300 lg:px-8"}>
                         {view === "dashboard" && <DashboardView onNavigate={(v) => setView(v as View)} />}
                         {view === "members" && <MembersView />}
                         {view === "notices" && <NoticesView />}

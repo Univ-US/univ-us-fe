@@ -102,9 +102,9 @@ export default function BulkSignupModal({
                                 <Download className="size-4" /> 엑셀 양식 다운로드
                             </button>
 
-                            <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50/50 px-4 py-8 text-center hover:bg-emerald-50">
-                                <Upload className="size-6 text-emerald-600" />
-                                <span className="text-sm font-bold text-emerald-800">
+                            <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary/30 bg-primary/50 px-4 py-8 text-center hover:bg-primary/10">
+                                <Upload className="size-6 text-primary" />
+                                <span className="text-sm font-bold text-primary">
                                     {parsing ? "파일을 읽는 중..." : "작성한 엑셀 파일을 선택하세요"}
                                 </span>
                                 <span className="text-xs text-slate-500">.xlsx 파일만 지원</span>
@@ -130,7 +130,7 @@ export default function BulkSignupModal({
                                 <span className="font-bold text-slate-700">{fileName}</span>
                                 <span className="text-slate-400">·</span>
                                 <span>총 {rows.length}행</span>
-                                <span className="font-bold text-emerald-700">정상 {validRows.length}행</span>
+                                <span className="font-bold text-primary">정상 {validRows.length}행</span>
                                 {invalidRows.length > 0 && (
                                     <span className="font-bold text-rose-500">오류 {invalidRows.length}행</span>
                                 )}
@@ -158,7 +158,7 @@ export default function BulkSignupModal({
                                                 <td className="px-3 py-2">{r.deptName || "—"}</td>
                                                 <td className="px-3 py-2">
                                                     {r.errors.length === 0 ? (
-                                                        <span className="font-bold text-emerald-600">정상</span>
+                                                        <span className="font-bold text-primary">정상</span>
                                                     ) : (
                                                         <span className="text-rose-500">{r.errors.join(" / ")}</span>
                                                     )}
@@ -189,7 +189,7 @@ export default function BulkSignupModal({
                         <button
                             onClick={handleSubmit}
                             disabled={submitting || validRows.length === 0}
-                            className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
                         >
                             {submitting ? "등록 중..." : `${validRows.length}명 등록하기`}
                         </button>

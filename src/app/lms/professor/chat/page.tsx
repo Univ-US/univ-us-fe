@@ -364,7 +364,7 @@ export default function ProfessorChatPage() {
                         <span className="mt-0.5 flex items-center justify-between gap-2">
                           <span className="truncate text-xs text-slate-400">{room.lastMessage}</span>
                           {room.unread > 0 && (
-                            <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white">
+                            <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
                               {room.unread}
                             </span>
                           )}
@@ -405,7 +405,7 @@ export default function ProfessorChatPage() {
                   </div>
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${realtimeStatus === "connected"
-                      ? "bg-emerald-50 text-emerald-700"
+                      ? "bg-primary/5 text-primary"
                       : "bg-slate-100 text-slate-400"
                       }`}
                   >

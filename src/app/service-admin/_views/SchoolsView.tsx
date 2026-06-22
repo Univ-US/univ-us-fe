@@ -147,7 +147,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                 </p>
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_170px_210px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -155,7 +155,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="학교 이름으로 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-primary"
                         />
                     </label>
 
@@ -165,7 +165,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                             setStatus(event.target.value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 구독 상태</option>
                         <option value="ACTIVE">구독 중</option>
@@ -182,7 +182,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                             setPlanId(value === "ALL" ? "ALL" : Number(value));
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 플랜</option>
                         {plans.map((plan) => (
@@ -199,7 +199,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                             setSort(event.target.value as SortOption);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="NAME_ASC">학교 이름순</option>
                         <option value="MEMBERS_ASC">회원 수 적은 순</option>
@@ -211,28 +211,28 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
                         검색 결과{" "}
-                        <span className="text-emerald-700">
+                        <span className="text-primary">
                             {(result?.totalElements ?? 0).toLocaleString()}
                         </span>
                         개 대학
                     </p>
                     <button
                         onClick={resetFilters}
-                        className="font-extrabold text-slate-500 hover:text-emerald-700"
+                        className="font-extrabold text-slate-500 hover:text-primary"
                     >
                         필터 초기화
                     </button>
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 {error ? (
                     <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                         <AlertTriangle className="size-7 text-rose-500" />
                         <p className="mt-3 font-black text-slate-900">{error}</p>
                         <button
                             onClick={() => void loadSchools()}
-                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white"
+                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white"
                         >
                             <RefreshCw className="size-4" />
                             다시 시도
@@ -259,7 +259,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={9} className="px-5 py-16 text-center">
-                                                <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                                <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                             </td>
                                         </tr>
                                     ) : (
@@ -267,7 +267,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                                             <tr
                                                 key={school.univId}
                                                 onClick={() => onSelectSchool(school.univId)}
-                                                className="cursor-pointer align-top font-semibold text-slate-700 transition hover:bg-emerald-50/60"
+                                                className="cursor-pointer align-top font-semibold text-slate-700 transition hover:bg-primary/60"
                                             >
                                                 <td className="px-5 py-4">
                                                     <p className="font-black text-slate-950">
@@ -386,7 +386,7 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                                             onClick={() => setPage(item)}
                                             className={`size-9 rounded-lg text-sm font-black ${
                                                 page === item
-                                                    ? "bg-emerald-700 text-white"
+                                                    ? "bg-primary text-white"
                                                     : "border border-slate-200 text-slate-600"
                                             }`}
                                             aria-label={`${item + 1}페이지`}

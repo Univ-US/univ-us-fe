@@ -15,8 +15,8 @@ export default function ResultModal({ type, title, message, onConfirm }: ResultM
       <div className='w-full max-w-[360px] rounded-2xl border border-border bg-white p-6 shadow-xl text-center'>
         <div className='flex flex-col items-center justify-center'>
           {isSuccess ? (
-            <div className='flex size-14 items-center justify-center rounded-full bg-emerald-100 mb-4'>
-              <CheckCircle2 className='size-7 text-emerald-500' />
+            <div className='flex size-14 items-center justify-center rounded-full bg-primary/10 mb-4'>
+              <CheckCircle2 className='size-7 text-primary' />
             </div>
           ) : (
             <div className='flex size-14 items-center justify-center rounded-full bg-red-100 mb-4'>
@@ -36,7 +36,7 @@ export default function ResultModal({ type, title, message, onConfirm }: ResultM
             type='button'
             onClick={onConfirm}
             className={`w-full h-11 rounded-xl text-[14px] font-bold text-white shadow-md transition-colors ${
-              isSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-800 hover:bg-slate-900'
+              isSuccess ? 'bg-primary hover:bg-primary/90' : 'bg-slate-800 hover:bg-slate-900'
             }`}
           >
             확인

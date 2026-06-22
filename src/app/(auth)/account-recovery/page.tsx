@@ -186,7 +186,7 @@ function IdRecoveryPanel() {
             </div>
 
             {error && <p className="mt-4 text-sm font-medium text-red-500">{error}</p>}
-            {message && <p className="mt-4 text-sm font-medium text-emerald-600">{message}</p>}
+            {message && <p className="mt-4 text-sm font-medium text-primary">{message}</p>}
 
             {accounts.length > 0 && (
                 <div className="mt-4 rounded-xl bg-slate-50 p-4">
@@ -354,7 +354,7 @@ function PasswordRecoveryPanel() {
             </div>
 
             {error && <p className="mt-4 text-sm font-medium text-red-500">{error}</p>}
-            {message && <p className="mt-4 text-sm font-medium text-emerald-600">{message}</p>}
+            {message && <p className="mt-4 text-sm font-medium text-primary">{message}</p>}
         </section>
     );
 }

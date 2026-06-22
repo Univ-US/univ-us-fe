@@ -13,6 +13,8 @@ import {
     ListChecks,
     LogOut,
     MessageSquareText,
+    PanelLeftClose,
+    PanelLeftOpen,
     School,
     Settings,
     UserRoundCog,
@@ -106,6 +108,7 @@ function ServiceAdminDashboardContent() {
     const [dashboardLoading, setDashboardLoading] = useState(true);
     const [dashboardError, setDashboardError] = useState("");
     const [isOperationsAlertOpen, setIsOperationsAlertOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const loadDashboard = useCallback(async () => {
         setDashboardLoading(true);
@@ -113,9 +116,7 @@ function ServiceAdminDashboardContent() {
 
         try {
             setDashboard(await getServiceAdminDashboard());
-        } catch (error) {
-            console.error("Failed to load service admin dashboard.", error);
-            setDashboardError("대시보드 정보를 불러오지 못했습니다.");
+        } catch {            setDashboardError("대시보드 정보를 불러오지 못했습니다.");
         } finally {
             setDashboardLoading(false);
         }
@@ -211,43 +212,62 @@ function ServiceAdminDashboardContent() {
         navigateToView(nextView);
     };
 
+    const sidebarOffsetClass = sidebarCollapsed ? "md:pl-[104px]" : "md:pl-[256px]";
+
     return (
         <RoleGuard allowedRoles={["SUA"]}>
-            <main className={view === "inquiries" ? "h-screen overflow-hidden bg-[#f4faf7] text-slate-950" : "min-h-screen bg-[#f4faf7] text-slate-950"}>
-                <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#064b35] px-3 py-5 text-white lg:flex">
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-2">
-                            <Image
-                                src="/univusicon.png"
-                                alt="Univ us"
-                                width={28}
-                                height={28}
-                                className="size-7 rounded-lg"
-                            />
-                            <span className="text-lg font-black tracking-wide">Univ · us</span>
-                        </div>
-                        <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] font-bold text-emerald-100">
-                            SUA
-                        </span>
+            <main className={view === "inquiries" ? "h-screen overflow-hidden bg-[#f7f8fb] text-slate-950" : "min-h-screen bg-[#f7f8fb] text-slate-950"}>
+                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
+                    <button
+                        type="button"
+                        onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                        className="absolute -right-4 top-1/2 z-40 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-lg shadow-primary/15 transition-all duration-200 hover:-translate-y-1/2 hover:scale-105 hover:bg-primary hover:text-white"
+                        aria-label={sidebarCollapsed ? "???? ???" : "???? ??"}
+                    >
+                        {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+                    </button>
+
+                    <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+                        <Link
+                            href="/landing"
+                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14] ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
+                        >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                                <Image src="/univusicon.png" alt="UnivUs" width={24} height={24} className="size-6 rounded-lg object-contain" />
+                            </span>
+                            <span className={`min-w-0 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
+                                <span className="block text-sm font-black leading-4 text-white">UnivUs</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Platform</span>
+                            </span>
+                        </Link>
+                        {!sidebarCollapsed && (
+                            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
+                                SUA
+                            </span>
+                        )}
                     </div>
 
-                    <div className="mt-6 rounded-xl bg-white/12 p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-lg font-black">
-                                {memberName?.slice(0, 1) ?? "서"}
+                    <div className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
+                        <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
+                                {memberName?.slice(0, 1) ?? "\uC11C"}
                             </div>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-extrabold">{memberName ?? "서비스 관리자"}</p>
-                                <p className="mt-0.5 text-xs font-medium text-emerald-200">플랫폼 최고 관리자</p>
-                            </div>
+                            {!sidebarCollapsed && (
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-extrabold">{memberName ?? "서비스 관리자"}</p>
+                                    <p className="mt-0.5 text-xs font-medium text-slate-300">플랫폼 최고 관리자</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
-                        플랫폼 운영
-                    </p>
-                    <nav className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
-                        <div className="space-y-0.5">
+                    {!sidebarCollapsed && (
+                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
+                            플랫폼 운영
+                        </p>
+                    )}
+                    <nav className={`mt-2 min-h-0 flex-1 overflow-y-auto ${sidebarCollapsed ? "space-y-2 pr-0" : "pr-1"}`}>
+                        <div className={sidebarCollapsed ? "space-y-2" : "space-y-0.5"}>
                         {PLATFORM_NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
                             const isActive =
                                 itemView === "schools"
@@ -260,26 +280,28 @@ function ServiceAdminDashboardContent() {
                                     key={label}
                                     onClick={() => itemView && navigateToView(itemView)}
                                     disabled={!isReady}
-                                    title={isReady ? label : `${label} 화면은 다음 구현 범위입니다.`}
-                                    className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition-colors ${
+                                    title={label}
+                                    className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
                                         isActive
-                                            ? "bg-white/18 text-white"
+                                            ? "bg-white text-primary shadow-sm"
                                             : isReady
-                                                ? "text-emerald-50/80 hover:bg-white/10"
-                                                : "cursor-not-allowed text-emerald-100/35"
+                                                ? "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                                                : "cursor-not-allowed text-slate-600"
                                     }`}
                                 >
                                     <Icon className="size-4 shrink-0" />
-                                    {label}
+                                    <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
                                 </button>
                             );
                         })}
                         </div>
 
-                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/60">
-                            상세 관리
-                        </p>
-                        <div className="mt-2 space-y-0.5">
+                        {!sidebarCollapsed && (
+                            <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
+                                상세 관리
+                            </p>
+                        )}
+                        <div className={sidebarCollapsed ? "mt-2 space-y-2" : "mt-2 space-y-0.5"}>
                             {DETAIL_NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
                                 const isReady = Boolean(itemView);
                                 return (
@@ -287,17 +309,17 @@ function ServiceAdminDashboardContent() {
                                         key={label}
                                         onClick={() => itemView && navigateToView(itemView)}
                                         disabled={!isReady}
-                                        title={isReady ? label : `${label} 화면은 다음 구현 범위입니다.`}
-                                        className={`flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition-colors ${
+                                        title={label}
+                                        className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
                                             itemView === view
-                                                ? "bg-white/18 text-white"
+                                                ? "bg-white text-primary shadow-sm"
                                                 : isReady
-                                                    ? "text-emerald-50/80 hover:bg-white/10"
-                                                    : "cursor-not-allowed text-emerald-100/35"
+                                                    ? "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                                                    : "cursor-not-allowed text-slate-600"
                                         }`}
                                     >
                                         <Icon className="size-4 shrink-0" />
-                                        {label}
+                                        <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
                                     </button>
                                 );
                             })}
@@ -307,23 +329,25 @@ function ServiceAdminDashboardContent() {
                     <div className="mt-4 space-y-1.5">
                         <Link
                             href="/landing"
-                            className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
+                            title="서비스 홈"
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <Home className="size-4" />
-                            서비스 홈
+                            <span className={sidebarCollapsed ? "sr-only" : "truncate"}>서비스 홈</span>
                         </Link>
                         <button
                             onClick={handleLogout}
-                            className="flex h-10 w-full items-center gap-3 rounded-lg bg-white/10 px-3 text-sm font-bold hover:bg-white/15"
+                            title="로그아웃"
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <LogOut className="size-4" />
-                            로그아웃
+                            <span className={sidebarCollapsed ? "sr-only" : "truncate"}>로그아웃</span>
                         </button>
                     </div>
                 </aside>
 
-                <div className={view === "inquiries" ? "flex h-full min-h-0 flex-col lg:pl-[220px]" : "lg:pl-[220px]"}>
-                    <header className={view === "inquiries" ? "shrink-0 border-b border-emerald-900/10 bg-white/85 backdrop-blur" : "sticky top-0 z-20 border-b border-emerald-900/10 bg-white/85 backdrop-blur"}>
+                <div className={view === "inquiries" ? `flex h-full min-h-0 flex-col ${sidebarOffsetClass}` : sidebarOffsetClass}>
+                    <header className={view === "inquiries" ? "shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur" : "sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur"}>
                         <div className="flex h-16 items-center justify-between px-6 lg:px-8">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" />
@@ -335,7 +359,7 @@ function ServiceAdminDashboardContent() {
                                 <button
                                     type="button"
                                     onClick={() => setIsOperationsAlertOpen((open) => !open)}
-                                    className="relative flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                                    className="relative flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:border-primary/30 hover:text-primary"
                                     aria-label="운영 알림"
                                     aria-expanded={isOperationsAlertOpen}
                                 >
@@ -386,7 +410,7 @@ function ServiceAdminDashboardContent() {
                                                             <span className="block text-sm font-black text-slate-800">{alert.title}</span>
                                                             <span className="mt-0.5 block truncate text-xs text-slate-500">{alert.description}</span>
                                                         </span>
-                                                        <span className="text-xs font-black text-emerald-700">보기</span>
+                                                        <span className="text-xs font-black text-primary">보기</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -397,7 +421,7 @@ function ServiceAdminDashboardContent() {
                         </div>
                     </header>
 
-                    <section className={view === "inquiries" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 lg:px-8" : "px-6 py-8 lg:px-8"}>
+                    <section key={view} className={view === "inquiries" ? "min-h-0 flex-1 overflow-hidden px-6 py-6 animate-in fade-in slide-in-from-bottom-2 duration-300 lg:px-8" : "px-6 py-8 animate-in fade-in slide-in-from-bottom-2 duration-300 lg:px-8"}>
                         {view === "dashboard" && (
                             <DashboardView
                                 dashboard={dashboard}

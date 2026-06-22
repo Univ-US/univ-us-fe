@@ -185,7 +185,7 @@ export default function StudentSubmissionPreviewDialog({
             }}
             className={`mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
               dragOver
-                ? "border-emerald-400 bg-emerald-50"
+                ? "border-primary/40 bg-primary/5"
                 : "border-orange-200 bg-orange-50/40 hover:bg-orange-50"
             }`}
           >
@@ -235,7 +235,7 @@ export default function StudentSubmissionPreviewDialog({
               onChange={(e) => setMemo(e.target.value.slice(0, MEMO_MAX))}
               rows={4}
               placeholder="제출 메모를 입력하세요 (선택)"
-              className="mt-2 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm leading-relaxed text-slate-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+              className="mt-2 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm leading-relaxed text-slate-700 outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -260,7 +260,7 @@ export default function StudentSubmissionPreviewDialog({
             className={`inline-flex h-10 items-center justify-center rounded-lg px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
               willRevertToNotSubmitted
                 ? "bg-rose-600 hover:bg-rose-700 disabled:hover:bg-rose-600"
-                : "bg-emerald-700 hover:bg-emerald-800 disabled:hover:bg-emerald-700"
+                : "bg-primary hover:bg-primary/90 disabled:hover:bg-primary/90"
             }`}
           >
             {saving ? "저장 중..." : willRevertToNotSubmitted ? "미제출로 변경" : "수정 완료"}

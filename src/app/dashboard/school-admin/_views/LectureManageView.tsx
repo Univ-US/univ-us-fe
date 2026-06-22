@@ -41,7 +41,7 @@ const PAGE_SIZE = 10; // 목록 페이지네이션 (전체 조회 후 클라이�
 
 // '삭제'도 실제 DELETE가 아닌 상태값 변경(VAL_STATUS='DEL') — 선택 시 배정 존재 가드를 경유
 const STATUS_OPTIONS = [
-    { value: "ACT", label: "사용", className: "bg-emerald-100 text-emerald-700" },
+    { value: "ACT", label: "사용", className: "bg-primary/10 text-primary" },
     { value: "HID", label: "숨김", className: "bg-amber-100 text-amber-700" },
     { value: "DEL", label: "삭제", className: "bg-rose-100 text-rose-600" },
 ];
@@ -212,7 +212,7 @@ export default function LectureManageView() {
                     <select
                         value={deptFilter}
                         onChange={(e) => setDeptFilter(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                         <option value={0}>전체 학과</option>
                         {depts.map((d) => (
@@ -227,19 +227,19 @@ export default function LectureManageView() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="코드 또는 강의명 검색"
-                            className="h-10 w-64 rounded-lg border border-border bg-white pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            className="h-10 w-64 rounded-lg border border-border bg-white pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                     </div>
                     <button
                         onClick={openCreate}
-                        className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800"
+                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
                     >
                         <Plus className="size-4" /> 강의 추가
                     </button>
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                         <tr>
@@ -279,7 +279,7 @@ export default function LectureManageView() {
                                             <button
                                                 onClick={() => setAssignTarget(l)}
                                                 title="배정 내역 보기"
-                                                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-primary"
                                             >
                                                 {l.assignCount}건
                                             </button>
@@ -291,7 +291,7 @@ export default function LectureManageView() {
                                         <select
                                             value={l.valStatus}
                                             onChange={(e) => handleStatusChange(l, e.target.value)}
-                                            className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                                            className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary ${
                                                 STATUS_OPTIONS.find((o) => o.value === l.valStatus)?.className ??
                                                 "bg-slate-100 text-slate-500"
                                             }`}
@@ -334,7 +334,7 @@ export default function LectureManageView() {
                                 onClick={() => setPage(n)}
                                 className={`h-8 w-8 rounded-lg text-xs font-bold ${
                                     n === page
-                                        ? "bg-emerald-700 text-white"
+                                        ? "bg-primary text-white"
                                         : "text-slate-500 hover:bg-slate-50"
                                 }`}
                             >
@@ -396,7 +396,7 @@ export default function LectureManageView() {
                                 <select
                                     value={form.deptId}
                                     onChange={(e) => setForm((prev) => ({ ...prev, deptId: Number(e.target.value) }))}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 >
                                     <option value={0}>학과 선택</option>
                                     {depts.map((d) => (
@@ -421,7 +421,7 @@ export default function LectureManageView() {
                                     }
                                     placeholder="예) DTST"
                                     maxLength={CODE_MAX}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                                 <p className={`mt-1 text-xs ${form.lecCode.length >= CODE_MAX ? "text-rose-500" : "text-slate-400"}`}>
                                     영문·숫자·하이픈(-) 입력 가능 (소문자는 대문자로 자동 변환) · 최대 {CODE_MAX}자 ({form.lecCode.length}/{CODE_MAX})
@@ -436,7 +436,7 @@ export default function LectureManageView() {
                                     onChange={(e) => setForm((prev) => ({ ...prev, lecCodName: e.target.value }))}
                                     placeholder="예) 자료구조"
                                     maxLength={NAME_MAX}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                                 <p className={`mt-1 text-xs ${form.lecCodName.length >= NAME_MAX ? "text-rose-500" : "text-slate-400"}`}>
                                     최대 {NAME_MAX}자 ({form.lecCodName.length}/{NAME_MAX})
@@ -453,7 +453,7 @@ export default function LectureManageView() {
                             <button
                                 onClick={submit}
                                 disabled={submitting || !form.lecCode.trim() || !form.lecCodName.trim() || !form.deptId}
-                                className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
                             >
                                 {submitting ? "저장 중..." : editTarget ? "수정 완료" : "등록"}
                             </button>

@@ -186,7 +186,7 @@ export default function ProfessorProfilePage() {
             <p className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>
           )}
           {notice && (
-            <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{notice}</p>
+            <p className="mb-4 rounded-lg bg-primary/5 px-4 py-2 text-sm text-primary">{notice}</p>
           )}
 
           {/* 프로필 이미지 */}

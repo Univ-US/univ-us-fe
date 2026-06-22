@@ -14,7 +14,7 @@ import type { Lecture, Material } from "@/types/lmsStudentMaterials";
 // 강의 자료 테이블 페이지네이션 — 선택 과목 자료를 10건 단위로 서버 조회한다.
 const MATERIALS_PAGE_SIZE = 10;
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 const semLabelOf = (year: number, termCode: string, termMap: Record<string, string>) =>
   `${year}년 ${termMap[termCode] ?? termCode}`;
@@ -218,7 +218,7 @@ export default function StudentMaterialsPage() {
           <button
             type="button"
             onClick={loadLectures}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -233,7 +233,7 @@ export default function StudentMaterialsPage() {
           <button
             type="button"
             onClick={() => loadMaterials(selectedLecId, page)}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -349,7 +349,7 @@ function MaterialsTable({
                   <button
                     type="button"
                     onClick={() => onView(m)}
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-3 text-xs font-medium text-primary hover:bg-primary/15"
                   >
                     강의 보기
                   </button>
@@ -416,7 +416,7 @@ function PageBtn({
       disabled={disabled}
       onClick={onClick}
       className={`flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active ? "bg-emerald-700 text-white" : "text-slate-600 hover:bg-slate-100"
+        active ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"
       }`}
     >
       {children}

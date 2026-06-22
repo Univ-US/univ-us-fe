@@ -236,12 +236,12 @@ export default function RoomReservationSection({
             disabled={reservationLoading}
             onClick={onReserveRoom}
             className='flex items-center gap-2 rounded-xl px-6 py-3 text-[13px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50'
-            style={{ background: '#0FA896' }}
+            style={{ background: 'var(--primary)' }}
             onMouseEnter={(event) =>
               (event.currentTarget.style.background = 'var(--brand-hover)')
             }
             onMouseLeave={(event) =>
-              (event.currentTarget.style.background = '#0FA896')
+              (event.currentTarget.style.background = 'var(--primary)')
             }
           >
             <CalendarCheck className='size-4' />

@@ -76,8 +76,8 @@ export default function DashboardView({
         return (
             <div className="space-y-5">
                 <DashboardHeader />
-                <section className="flex min-h-72 items-center justify-center rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
-                    <RefreshCw className="size-6 animate-spin text-emerald-700" />
+                <section className="flex min-h-72 items-center justify-center rounded-2xl border border-primary/10 bg-white shadow-sm">
+                    <RefreshCw className="size-6 animate-spin text-primary" />
                     <span className="ml-3 text-sm font-bold text-slate-500">
                         대시보드 정보를 불러오는 중입니다.
                     </span>
@@ -97,7 +97,7 @@ export default function DashboardView({
                     </p>
                     <button
                         onClick={onRetry}
-                        className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white hover:bg-emerald-800"
+                        className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white hover:bg-primary/90"
                     >
                         <RefreshCw className="size-4" />
                         다시 시도
@@ -143,26 +143,26 @@ export default function DashboardView({
         <div className="space-y-5">
             <DashboardHeader />
 
-            <section className="overflow-hidden rounded-2xl bg-[#064b35] p-6 text-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl bg-[var(--primary)] p-6 text-white shadow-sm">
                 <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
                     <div>
                         <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">
                             {monthLabel} 운영 현황
                         </span>
-                        <p className="mt-5 text-sm font-bold text-emerald-100">
+                        <p className="mt-5 text-sm font-bold text-primary-foreground">
                             이번 달 결제 완료 매출
                         </p>
                         <p className="mt-2 text-4xl font-black">
                             {formatCurrency(summary.currentMonthRevenue)}
                         </p>
-                        <p className="mt-2 text-sm font-semibold text-emerald-200">
+                        <p className="mt-2 text-sm font-semibold text-primary-foreground/80">
                             정상 구독 {summary.activeSchoolCount.toLocaleString("ko-KR")}곳 ·
                             결제 확인 필요 {summary.failedPaymentSchoolCount.toLocaleString("ko-KR")}곳
                         </p>
                     </div>
                     <button
                         onClick={onOpenSchools}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-black text-emerald-900 transition hover:bg-emerald-50"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-white px-4 text-sm font-black text-primary transition hover:bg-primary/10"
                     >
                         학교 관리 바로가기
                         <ArrowRight className="size-4" />
@@ -174,11 +174,11 @@ export default function DashboardView({
                 {summaryCards.map(({ label, value, note, icon: Icon }) => (
                     <section
                         key={label}
-                        className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm"
+                        className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm"
                     >
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-extrabold text-slate-500">{label}</p>
-                            <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
                                 <Icon className="size-4" />
                             </span>
                         </div>
@@ -189,7 +189,7 @@ export default function DashboardView({
             </div>
 
             <div className="grid gap-5 xl:grid-cols-2">
-                <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                     <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                         <div>
                             <h2 className="font-black">구독 기관 현황</h2>
@@ -197,7 +197,7 @@ export default function DashboardView({
                                 구독 이력 또는 회원이 있는 학교만 표시합니다.
                             </p>
                         </div>
-                        <button onClick={onOpenSchools} className="text-xs font-extrabold text-emerald-700">
+                        <button onClick={onOpenSchools} className="text-xs font-extrabold text-primary">
                             전체 보기
                         </button>
                     </div>
@@ -253,7 +253,7 @@ export default function DashboardView({
                     </div>
                 </section>
 
-                <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                     <div className="border-b border-slate-100 px-5 py-4">
                         <h2 className="font-black">최근 이용자</h2>
                         <p className="mt-1 text-xs text-slate-400">
@@ -317,20 +317,20 @@ export default function DashboardView({
                 className={`rounded-2xl border px-5 py-4 ${
                     issueCount > 0
                         ? "border-amber-200 bg-amber-50"
-                        : "border-emerald-200 bg-emerald-50"
+                        : "border-primary/20 bg-primary/5"
                 }`}
             >
                 <div className="flex items-start gap-3">
                     <AlertTriangle
                         className={`mt-0.5 size-5 ${
-                            issueCount > 0 ? "text-amber-600" : "text-emerald-600"
+                            issueCount > 0 ? "text-amber-600" : "text-primary"
                         }`}
                     />
                     <div>
-                        <p className={issueCount > 0 ? "font-black text-amber-900" : "font-black text-emerald-900"}>
+                        <p className={issueCount > 0 ? "font-black text-amber-900" : "font-black text-primary"}>
                             운영 확인 필요
                         </p>
-                        <p className={issueCount > 0 ? "mt-1 text-sm font-semibold text-amber-800" : "mt-1 text-sm font-semibold text-emerald-800"}>
+                        <p className={issueCount > 0 ? "mt-1 text-sm font-semibold text-amber-800" : "mt-1 text-sm font-semibold text-primary"}>
                             {issueCount > 0
                                 ? `결제 실패 학교 ${summary.failedPaymentSchoolCount.toLocaleString("ko-KR")}곳, 승인 대기 학교 ${summary.pendingSchoolCount.toLocaleString("ko-KR")}곳, 미처리 문의 ${summary.unresolvedInquiryCount.toLocaleString("ko-KR")}건이 있습니다.`
                                 : "현재 확인이 필요한 운영 이슈가 없습니다."}

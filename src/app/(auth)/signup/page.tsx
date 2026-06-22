@@ -227,7 +227,7 @@ export default function SignupPage() {
                         </div>
 
                         {loginIdChecked && loginIdAvailable === true && (
-                            <p className="mt-2 text-xs font-medium text-emerald-600">
+                            <p className="mt-2 text-xs font-medium text-primary">
                                 사용 가능한 ID입니다.
                             </p>
                         )}

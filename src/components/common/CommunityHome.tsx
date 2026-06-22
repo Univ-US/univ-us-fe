@@ -25,13 +25,13 @@ function formatViews(n: number) {
 
 function HomeBanner() {
   const tiles = [
-    { emoji: '💬', style: 'left-[138px] top-1.5 size-[70px] -rotate-6 z-30 bg-gradient-to-br from-primary to-teal-700' },
-    { emoji: '❤️', style: 'left-[60px] top-10 size-14 rotate-[10deg] z-20 bg-gradient-to-br from-teal-400 to-primary' },
+    { emoji: '💬', style: 'left-[138px] top-1.5 size-[70px] -rotate-6 z-30 bg-gradient-to-br from-primary to-primary/90' },
+    { emoji: '❤️', style: 'left-[60px] top-10 size-14 rotate-[10deg] z-20 bg-gradient-to-br from-primary/80 to-primary' },
     { emoji: '⭐', style: 'left-[196px] top-[86px] size-[52px] rotate-12 z-20 bg-gradient-to-br from-green-400 to-green-600' },
-    { emoji: '😊', style: 'left-24 top-[110px] size-[46px] -rotate-[10deg] z-10 bg-gradient-to-br from-blue-400 to-blue-600' },
+    { emoji: '😊', style: 'left-24 top-[110px] size-[46px] -rotate-[10deg] z-10 bg-gradient-to-br from-primary/80 to-primary' },
   ];
   return (
-    <div className='mb-6 flex flex-col gap-6 overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-teal-50 to-blue-50 px-5 py-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md md:flex-row md:items-center md:justify-between md:px-8 md:py-7'>
+    <div className='mb-6 flex flex-col gap-6 overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-primary/5 to-primary/5 px-5 py-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md md:flex-row md:items-center md:justify-between md:px-8 md:py-7'>
       <div className='relative z-10 min-w-0'>
         <span className='inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11.5px] font-bold text-primary shadow-sm ring-1 ring-primary/10'>
           <span className='size-[6px] animate-pulse rounded-full bg-primary' />
@@ -144,7 +144,7 @@ function ProductRow({ product }: { product: Product }) {
   return (
     <Link href={`/community/market/${product.productId}`}
       className='group/product flex items-center gap-2.5 border-b border-border px-[16px] py-2 transition-all duration-200 last:border-0 hover:bg-slate-50'>
-      <div className='flex size-[34px] shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-primary to-teal-700 transition-transform duration-200 group-hover/product:scale-105'>
+      <div className='flex size-[34px] shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-primary to-primary/90 transition-transform duration-200 group-hover/product:scale-105'>
         <ShoppingBag className='size-3.5 text-white' />
       </div>
       <span className='min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700 transition-all duration-200 group-hover/product:translate-x-0.5 group-hover/product:text-slate-900'>{product.productName}</span>
@@ -217,7 +217,7 @@ export default function CommunityHome({ freePosts, secretPosts, noticePosts, lat
             <BoardCard title='익명게시판' href='/community/secret'
               icon={<VenetianMask className='size-[15px] text-slate-500' />} iconBg='bg-slate-100' accentClass='text-slate-500' posts={secretPosts} />
             <BoardCard title='공지사항' href='/community/notice'
-              icon={<Megaphone className='size-[15px] text-blue-500' />} iconBg='bg-blue-50' accentClass='text-blue-500' posts={noticePosts} />
+              icon={<Megaphone className='size-[15px] text-primary' />} iconBg='bg-primary/5' accentClass='text-primary' posts={noticePosts} />
 
             {/* 중고거래 */}
             <div className='group/card flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md'>

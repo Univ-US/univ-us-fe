@@ -186,7 +186,7 @@ export default function MembersView() {
                                 <button
                                     onClick={handleExport}
                                     disabled={exportColumns.size === 0}
-                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-black text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     <Download className="size-3.5" /> 엑셀로 내보내기
                                 </button>
@@ -197,7 +197,7 @@ export default function MembersView() {
                         onClick={() => setShowBulkModal(true)}
                         disabled={!subscriptionActive}
                         title={subscriptionActive ? undefined : "구독이 활성 상태일 때 이용할 수 있습니다."}
-                        className="flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         <Users className="size-4" /> 일괄 회원가입
                     </button>
@@ -211,9 +211,9 @@ export default function MembersView() {
             )}
 
             {bulkSuccessMessage && (
-                <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800">
+                <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-black text-primary">
                     <span>{bulkSuccessMessage}</span>
-                    <button onClick={() => setBulkSuccessMessage(null)} className="text-emerald-700 hover:text-emerald-900">✕</button>
+                    <button onClick={() => setBulkSuccessMessage(null)} className="text-primary hover:text-primary">✕</button>
                 </div>
             )}
 
@@ -221,7 +221,7 @@ export default function MembersView() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {[
                     { label: "전체 회원", value: stats.total, color: "text-slate-700" },
-                    { label: "활성", value: stats.active, color: "text-emerald-700" },
+                    { label: "활성", value: stats.active, color: "text-primary" },
                     { label: "정지", value: stats.suspended, color: "text-amber-600" },
                     { label: "탈퇴", value: stats.withdrawn, color: "text-rose-500" },
                 ].map((s) => (
@@ -240,7 +240,7 @@ export default function MembersView() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         placeholder="이름 또는 회원번호 검색"
-                        className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="h-10 w-full rounded-lg border border-border bg-white pl-9 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                 </div>
                 {[
@@ -251,7 +251,7 @@ export default function MembersView() {
                         key={label}
                         value={value}
                         onChange={(e) => { set(e.target.value); setPage(1); }}
-                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                         {options.map((o) => <option key={o}>{o}</option>)}
                     </select>
@@ -260,10 +260,10 @@ export default function MembersView() {
 
             {/* Bulk action bar */}
             {selected.size > 0 && (
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                    <span className="text-sm font-black text-emerald-800">{selected.size}명 선택됨</span>
+                <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                    <span className="text-sm font-black text-primary">{selected.size}명 선택됨</span>
                     <div className="ml-auto flex gap-2">
-                        <button onClick={() => handleBulkStatus("활성")} className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-black text-emerald-700 hover:bg-emerald-100">활성화</button>
+                        <button onClick={() => handleBulkStatus("활성")} className="rounded-lg border border-primary/30 bg-white px-3 py-1.5 text-xs font-black text-primary hover:bg-primary/15">활성화</button>
                         <button onClick={() => handleBulkStatus("정지")} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-black text-amber-700 hover:bg-amber-100">정지</button>
                         <button onClick={() => handleBulkStatus("탈퇴")} className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-100">탈퇴 처리</button>
                     </div>
@@ -271,7 +271,7 @@ export default function MembersView() {
             )}
 
             {/* Table */}
-            <div className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[640px] text-left text-sm">
                         <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
@@ -296,7 +296,7 @@ export default function MembersView() {
                             {paginated.map((m) => (
                                 <tr
                                     key={m.memberId}
-                                    className={`font-semibold text-slate-700 transition-colors ${selected.has(m.memberId) ? "bg-emerald-50" : "hover:bg-slate-50"}`}
+                                    className={`font-semibold text-slate-700 transition-colors ${selected.has(m.memberId) ? "bg-primary/5" : "hover:bg-slate-50"}`}
                                 >
                                     <td className="px-4 py-3">
                                         <input type="checkbox" checked={selected.has(m.memberId)} onChange={() => toggleSelect(m.memberId)} className="rounded" />
@@ -366,7 +366,7 @@ export default function MembersView() {
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`flex size-8 items-center justify-center rounded-lg border text-sm font-bold ${p === page ? "border-emerald-600 bg-emerald-600 text-white" : "border-border hover:bg-slate-50"}`}
+                                className={`flex size-8 items-center justify-center rounded-lg border text-sm font-bold ${p === page ? "border-primary bg-primary text-white" : "border-border hover:bg-slate-50"}`}
                             >
                                 {p}
                             </button>

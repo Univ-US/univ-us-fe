@@ -27,7 +27,7 @@ import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 type RealtimeStatus = "connected" | "disconnected";
 
 const NEW_CHAT_SELECT_CLASS =
-  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500";
+  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary";
 
 function sortRooms(rooms: ChatRoom[]) {
   return [...rooms].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
@@ -281,7 +281,7 @@ export default function StudentChatPage() {
             type="button"
             onClick={() => void loadRooms()}
             disabled={loading}
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-emerald-500 hover:text-emerald-700 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 hover:border-primary hover:text-primary disabled:opacity-50"
           >
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
             새로고침
@@ -289,7 +289,7 @@ export default function StudentChatPage() {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700"
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90"
           >
             <Plus className="size-4" />
             채팅 만들기
@@ -329,7 +329,7 @@ export default function StudentChatPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedRoomId(room.roomId)}
-                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${active ? "bg-emerald-50" : "hover:bg-slate-50"
+                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${active ? "bg-primary/5" : "hover:bg-slate-50"
                         }`}
                     >
                       <span
@@ -398,7 +398,7 @@ export default function StudentChatPage() {
                   </div>
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${realtimeStatus === "connected"
-                        ? "bg-emerald-50 text-emerald-700"
+                        ? "bg-primary/5 text-primary"
                         : "bg-slate-100 text-slate-400"
                       }`}
                   >
@@ -451,7 +451,7 @@ export default function StudentChatPage() {
                                 {message.read ? "읽음 " : ""}
                                 {formatChatMessageTime(message.chtRomMsgDate)}
                               </span>
-                              <div className="rounded-2xl rounded-tr-sm bg-emerald-600 px-3.5 py-2 text-sm text-white shadow-sm">
+                              <div className="rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2 text-sm text-white shadow-sm">
                                 <p className="whitespace-pre-wrap break-words">{message.chtRomMsgContent}</p>
                               </div>
                             </div>
@@ -471,7 +471,7 @@ export default function StudentChatPage() {
                     rows={1}
                     maxLength={1000}
                     placeholder="메시지를 입력하세요."
-                    className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-emerald-500 focus:bg-white"
+                    className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-primary focus:bg-white"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                         event.preventDefault();
@@ -484,7 +484,7 @@ export default function StudentChatPage() {
                     onMouseDown={(event) => event.preventDefault()}
                     disabled={!input.trim() || sending}
                     aria-label="메시지 보내기"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     <Send className="size-4" />
                   </button>
@@ -739,7 +739,7 @@ function NewChatModal({
                 <button
                   type="button"
                   onClick={() => onStart(selected)}
-                  className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90"
                 >
                   채팅 시작
                 </button>

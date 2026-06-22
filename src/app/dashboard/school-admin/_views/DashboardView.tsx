@@ -50,13 +50,13 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
 
             {/* School + seat usage */}
             <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
-                <section className="overflow-hidden rounded-2xl bg-[#064b35] p-6 text-white shadow-sm">
+                <section className="overflow-hidden rounded-2xl bg-[var(--primary)] p-6 text-white shadow-sm">
                     <div className="flex items-center justify-between">
                         <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">
                             {subscription ? SUBSCRIPTION_ACCESS_LABEL[subscription.accessStatus] : "상태 확인 불가"}
                         </span>
                         {subscription?.planName && (
-                            <span className="text-xs font-bold text-emerald-100">
+                            <span className="text-xs font-bold text-primary-foreground">
                                 {subscription.planName}
                                 {subscription.billingCycle ? ` · ${BILLING_CYCLE_LABEL[subscription.billingCycle] ?? subscription.billingCycle}` : ""}
                             </span>
@@ -67,20 +67,20 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
                             <p className="text-xl font-black">{university.univName}</p>
                         )}
                         {university?.address && (
-                            <p className="mt-2 text-sm text-emerald-300">{university.address}</p>
+                            <p className="mt-2 text-sm text-primary/40">{university.address}</p>
                         )}
                         {university?.schoolPhone && (
-                            <p className="mt-1 text-xs text-emerald-300">{university.schoolPhone}</p>
+                            <p className="mt-1 text-xs text-primary/40">{university.schoolPhone}</p>
                         )}
                     </div>
                 </section>
 
-                <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+                <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                     <h2 className="font-black">전체 회원</h2>
                     <p className="mt-3 text-4xl font-black">{members.length}<span className="text-base font-bold text-slate-400">명</span></p>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
                         {[
-                            { label: "활성", count: activeCount, color: "text-emerald-700" },
+                            { label: "활성", count: activeCount, color: "text-primary" },
                             { label: "정지", count: members.filter((m) => m.status === "SUSPENDED").length, color: "text-amber-600" },
                             { label: "탈퇴", count: members.filter((m) => m.status === "WITHDRAWN").length, color: "text-rose-500" },
                         ].map((s) => (
@@ -95,7 +95,7 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
 
             <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
                 {/* Recent members table */}
-                <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                     <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                         <h2 className="font-black">최근 가입 회원</h2>
                     </div>
@@ -138,7 +138,7 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
                 </section>
 
                 <div className="space-y-5">
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+                    <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                         <h2 className="font-black">바로 처리</h2>
                         <div className="mt-4 space-y-2">
                             {[
@@ -149,7 +149,7 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
                                 <button
                                     key={label}
                                     onClick={() => onNavigate(view)}
-                                    className="flex h-10 w-full items-center gap-3 rounded-lg bg-slate-50 px-4 text-left text-sm font-bold transition-colors hover:bg-emerald-50 hover:text-emerald-800"
+                                    className="flex h-10 w-full items-center gap-3 rounded-lg bg-slate-50 px-4 text-left text-sm font-bold transition-colors hover:bg-primary/10 hover:text-primary"
                                 >
                                     <Icon className="size-4 text-slate-400" />
                                     {label}
@@ -159,7 +159,7 @@ export default function DashboardView({ onNavigate }: { onNavigate: (view: strin
                         </div>
                     </section>
 
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+                    <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                         <h2 className="font-black">최근 활성 회원</h2>
                         <div className="mt-3 space-y-3">
                             {recentMembers.map((m) => (

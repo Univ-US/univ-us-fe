@@ -112,13 +112,13 @@ export default function NoticesView() {
                 </div>
                 <button
                     onClick={openCreate}
-                    className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800"
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
                 >
                     + 공지 작성
                 </button>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                         <tr>
@@ -133,7 +133,7 @@ export default function NoticesView() {
                         {notices.map((n) => (
                             <tr key={n.noticeId} className="font-semibold text-slate-700 hover:bg-slate-50">
                                 <td
-                                    className="px-5 py-4 font-black text-slate-950 cursor-pointer hover:text-emerald-700 transition-colors"
+                                    className="px-5 py-4 font-black text-slate-950 cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => setViewNotice(n)}
                                 >
                                     {n.title}
@@ -141,7 +141,7 @@ export default function NoticesView() {
                                 <td className="px-5 py-4">
                                     <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                                         n.target === "ALL" ? "bg-slate-100 text-slate-500" :
-                                        n.target === "STU" ? "bg-blue-100 text-blue-600" :
+                                        n.target === "STU" ? "bg-primary/10 text-primary" :
                                         "bg-violet-100 text-violet-600"
                                     }`}>
                                         {n.target === "ALL" ? "전체" : n.target === "STU" ? "학생" : "교수"}
@@ -222,7 +222,7 @@ export default function NoticesView() {
                                 <select
                                     value={form.target}
                                     onChange={(e) => setForm((prev) => ({ ...prev, target: e.target.value as "ALL" | "STU" | "PROF" }))}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 >
                                     <option value="ALL">전체</option>
                                     <option value="STU">학생</option>
@@ -237,7 +237,7 @@ export default function NoticesView() {
                                     value={form.title}
                                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                                     placeholder="예) 2026-1학기 기말고사 안내"
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
 
@@ -248,7 +248,7 @@ export default function NoticesView() {
                                     onChange={(e) => setForm({ ...form, content: e.target.value })}
                                     placeholder="공지 내용을 입력하세요."
                                     rows={5}
-                                    className="mt-2 w-full resize-none rounded-lg border border-border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="mt-2 w-full resize-none rounded-lg border border-border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                 />
                             </div>
                         </div>
@@ -263,7 +263,7 @@ export default function NoticesView() {
                             <button
                                 onClick={submit}
                                 disabled={submitting || !form.title.trim()}
-                                className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
                             >
                                 {submitting ? "저장 중..." : editTarget ? "수정 완료" : "▶ 공지 등록"}
                             </button>

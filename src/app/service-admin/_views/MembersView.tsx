@@ -68,7 +68,7 @@ const STATUS_LABEL: Record<MemberStatus, string> = {
 function StatusBadge({ status }: { status: MemberStatus }) {
     const style =
         status === "ACTIVE"
-            ? "bg-emerald-100 text-emerald-700"
+            ? "bg-primary/10 text-primary"
             : status === "SUSPENDED"
                 ? "bg-amber-100 text-amber-700"
                 : "bg-slate-100 text-slate-500";
@@ -226,7 +226,7 @@ function DetailPagination({
                             onClick={() => onPageChange(item)}
                             className={`size-9 rounded-lg text-sm font-black ${
                                 page.page === item
-                                    ? "bg-emerald-700 text-white"
+                                    ? "bg-primary text-white"
                                     : "border border-slate-200 text-slate-600"
                             }`}
                         >
@@ -566,7 +566,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                 </div>
                 <button
                     onClick={() => void loadMembers()}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 hover:border-primary/20 hover:text-primary"
                 >
                     <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
                     새로고침
@@ -585,7 +585,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                         label: "활성 관리자",
                         value: result?.activeCount ?? 0,
                         icon: UserRoundCheck,
-                        color: "text-emerald-700",
+                        color: "text-primary",
                     },
                     {
                         label: "정지 관리자",
@@ -602,7 +602,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                 ].map(({ label, value, icon: Icon, color }) => (
                     <section
                         key={label}
-                        className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm"
+                        className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm"
                     >
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-extrabold text-slate-500">{label}</p>
@@ -615,7 +615,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                 ))}
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[1fr_160px_180px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -623,7 +623,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="학교명, 관리자명, 로그인 ID 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
                     <select
@@ -632,7 +632,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                             setStatus(event.target.value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 상태</option>
                         <option value="ACTIVE">활성</option>
@@ -645,7 +645,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                             setSort(event.target.value as AdminSort);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="SCHOOL_ASC">학교명순</option>
                         <option value="NAME_ASC">관리자명순</option>
@@ -655,7 +655,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
 
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
-                        조회 결과 <span className="text-emerald-700">{(result?.totalElements ?? 0).toLocaleString()}</span>명
+                        조회 결과 <span className="text-primary">{(result?.totalElements ?? 0).toLocaleString()}</span>명
                     </p>
                     <button
                         onClick={() => {
@@ -664,7 +664,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                             setSort("SCHOOL_ASC");
                             setPage(0);
                         }}
-                        className="font-extrabold text-slate-500 hover:text-emerald-700"
+                        className="font-extrabold text-slate-500 hover:text-primary"
                     >
                         필터 초기화
                     </button>
@@ -678,7 +678,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                 </div>
             )}
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                             <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
                                 <colgroup>
@@ -707,7 +707,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={8} className="px-5 py-16 text-center">
-                                                <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                                <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                             </td>
                                         </tr>
                                     ) : (
@@ -715,9 +715,9 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                             <tr
                                                 key={member.memberId}
                                                 onClick={() => void openMemberDetail(member)}
-                                                className={`cursor-pointer font-semibold text-slate-700 transition hover:bg-emerald-50/60 ${
+                                                className={`cursor-pointer font-semibold text-slate-700 transition hover:bg-primary/60 ${
                                                     selectedMember?.memberId === member.memberId
-                                                        ? "bg-emerald-50"
+                                                        ? "bg-primary/5"
                                                         : ""
                                                 }`}
                                             >
@@ -728,7 +728,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                                             onOpenSchool(member.univId);
                                                         }}
                                                         title={member.univName}
-                                                        className="flex w-full min-w-0 items-center gap-2 font-black text-slate-950 hover:text-emerald-700"
+                                                        className="flex w-full min-w-0 items-center gap-2 font-black text-slate-950 hover:text-primary"
                                                     >
                                                         <Building2 className="size-4 shrink-0" />
                                                         <span className="truncate">{member.univName}</span>
@@ -765,7 +765,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                                         className={`h-9 w-[104px] whitespace-nowrap rounded-lg px-3 text-xs font-black ${
                                                             member.status === "ACTIVE"
                                                                 ? "border border-amber-200 text-amber-700 hover:bg-amber-50"
-                                                                : "border border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                                                : "border border-primary/20 text-primary hover:bg-primary/10"
                                                         } disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400`}
                                                     >
                                                         {changingMemberId === member.memberId
@@ -819,7 +819,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                             onClick={() => setPage(item)}
                                             className={`size-9 rounded-lg text-sm font-black ${
                                                 page === item
-                                                    ? "bg-emerald-700 text-white"
+                                                    ? "bg-primary text-white"
                                                     : "border border-slate-200 text-slate-600"
                                             }`}
                                             aria-label={`${item + 1}페이지`}
@@ -890,7 +890,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                     >
                         <div className="flex items-start justify-between border-b border-slate-100 px-7 py-6">
                             <div>
-                                <p className="text-xs font-extrabold text-emerald-700">
+                                <p className="text-xs font-extrabold text-primary">
                                     학교 관리자 상세
                                 </p>
                                 <h2 className="mt-2 text-2xl font-black">
@@ -915,14 +915,14 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
                             {detailLoading && (
-                                <div className="mb-5 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                                <div className="mb-5 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-bold text-primary">
                                     <RefreshCw className="size-4 animate-spin" />
                                     상세 정보를 불러오는 중입니다.
                                 </div>
                             )}
 
-                            <section className="rounded-2xl bg-[#f4faf7] p-5">
-                                <p className="text-xs font-extrabold text-emerald-800">
+                            <section className="rounded-2xl bg-[var(--accent)] p-5">
+                                <p className="text-xs font-extrabold text-primary">
                                     기본 정보
                                 </p>
                                 <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -977,7 +977,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                             selectedMember.status === "WITHDRAWN" ||
                                             changingMemberId === selectedMember.memberId
                                         }
-                                        className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-emerald-200 hover:text-emerald-700 disabled:bg-slate-50 disabled:text-slate-300"
+                                        className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-primary/20 hover:text-primary disabled:bg-slate-50 disabled:text-slate-300"
                                     >
                                         활성 처리
                                     </button>
@@ -988,7 +988,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                             selectedMember.status === "WITHDRAWN" ||
                                             changingMemberId === selectedMember.memberId
                                         }
-                                        className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-emerald-200 hover:text-emerald-700 disabled:bg-slate-50 disabled:text-slate-300"
+                                        className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-primary/20 hover:text-primary disabled:bg-slate-50 disabled:text-slate-300"
                                     >
                                         정지 처리
                                     </button>
@@ -1050,13 +1050,13 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                             }}
                                             className={`flex min-h-[78px] flex-col justify-between rounded-xl border bg-white px-3 py-3 text-left transition ${
                                                 activeActivitySection === key
-                                                    ? "border-emerald-300 bg-emerald-50"
-                                                    : "border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/50"
+                                                    ? "border-primary/30 bg-primary/5"
+                                                    : "border-slate-200 hover:border-primary/20 hover:bg-primary/50"
                                             }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
                                                 <p className="text-xs font-extrabold text-slate-400">{label}</p>
-                                                <Icon className="size-4 text-emerald-700" />
+                                                <Icon className="size-4 text-primary" />
                                             </div>
                                             <p className="text-lg font-black">{value.toLocaleString()}</p>
                                         </button>
@@ -1069,7 +1069,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                                     {ACTIVITY_SECTION_LABEL[activeActivitySection]}
                                 </h3>
                                 {(loginLogLoading || activityLoading) && (
-                                    <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                                    <div className="mb-3 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-bold text-primary">
                                         <RefreshCw className="size-4 animate-spin" />
                                         활동 내역을 불러오는 중입니다.
                                     </div>
@@ -1096,7 +1096,7 @@ export default function MembersView({ onOpenSchool }: MembersViewProps) {
                         <div className="border-t border-slate-100 px-7 py-5">
                             <button
                                 onClick={() => onOpenSchool(selectedMember.univId)}
-                                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 text-sm font-black text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-800"
+                                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 text-sm font-black text-slate-700 transition hover:bg-primary/10 hover:text-primary"
                             >
                                 <Building2 className="size-4" />
                                 해당 학교 상세 보기

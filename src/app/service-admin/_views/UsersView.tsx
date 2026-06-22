@@ -86,7 +86,7 @@ const ACTIVITY_SECTION_LABEL: Record<UserActivitySection, string> = {
 function StatusBadge({ status }: { status: MemberStatus }) {
     const style =
         status === "ACTIVE"
-            ? "bg-emerald-100 text-emerald-700"
+            ? "bg-primary/10 text-primary"
             : status === "SUSPENDED"
                 ? "bg-amber-100 text-amber-700"
                 : "bg-slate-100 text-slate-500";
@@ -248,7 +248,7 @@ function DetailPagination({
                             onClick={() => onPageChange(item)}
                             className={`size-9 rounded-lg text-sm font-black ${
                                 page.page === item
-                                    ? "bg-emerald-700 text-white"
+                                    ? "bg-primary text-white"
                                     : "border border-slate-200 text-slate-600"
                             }`}
                         >
@@ -621,14 +621,14 @@ export default function UsersView() {
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setIsBulkSignupOpen(true)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white hover:bg-emerald-800"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white hover:bg-primary/90"
                     >
                         <UserPlus className="size-4" />
                         일괄 회원가입
                     </button>
                 <button
                     onClick={() => void loadUsers()}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 hover:border-primary/20 hover:text-primary"
                 >
                     <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
                     새로고침
@@ -639,13 +639,13 @@ export default function UsersView() {
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {[
                     { label: "전체 이용자", value: stats.totalCount, icon: UsersRound, color: "text-slate-700" },
-                    { label: "활성", value: stats.activeCount, icon: UserRoundCheck, color: "text-emerald-700" },
+                    { label: "활성", value: stats.activeCount, icon: UserRoundCheck, color: "text-primary" },
                     { label: "정지", value: stats.suspendedCount, icon: UserRoundX, color: "text-amber-600" },
                     { label: "탈퇴", value: stats.withdrawnCount, icon: Ban, color: "text-slate-500" },
                 ].map(({ label, value, icon: Icon, color }) => (
                     <section
                         key={label}
-                        className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm"
+                        className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm"
                     >
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-extrabold text-slate-500">{label}</p>
@@ -658,7 +658,7 @@ export default function UsersView() {
                 ))}
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_180px_170px_210px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -666,7 +666,7 @@ export default function UsersView() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="이름, 아이디, 학교, 학과 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm font-semibold outline-none transition focus:border-primary"
                         />
                     </label>
 
@@ -676,7 +676,7 @@ export default function UsersView() {
                             setRole(event.target.value as "ALL" | ServiceAdminUserRole);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 역할</option>
                         <option value="GUEST">게스트</option>
@@ -691,7 +691,7 @@ export default function UsersView() {
                             setStatus(event.target.value as "ALL" | MemberStatus);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 상태</option>
                         <option value="ACTIVE">활성</option>
@@ -705,7 +705,7 @@ export default function UsersView() {
                             setSort(event.target.value as UserSort);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="JOINED_DESC">최근 가입순</option>
                         <option value="JOINED_ASC">오래된 가입순</option>
@@ -719,7 +719,7 @@ export default function UsersView() {
 
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
-                        검색 결과 <span className="text-emerald-700">{(result?.totalElements ?? 0).toLocaleString()}</span>명
+                        검색 결과 <span className="text-primary">{(result?.totalElements ?? 0).toLocaleString()}</span>명
                     </p>
                     <button
                         onClick={() => {
@@ -729,7 +729,7 @@ export default function UsersView() {
                             setSort("JOINED_DESC");
                             setPage(0);
                         }}
-                        className="font-extrabold text-slate-500 hover:text-emerald-700"
+                        className="font-extrabold text-slate-500 hover:text-primary"
                     >
                         필터 초기화
                     </button>
@@ -743,7 +743,7 @@ export default function UsersView() {
                 </div>
             )}
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
                         <colgroup>
@@ -770,7 +770,7 @@ export default function UsersView() {
                             {loading && (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-16 text-center">
-                                        <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                        <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                     </td>
                                 </tr>
                             )}
@@ -780,8 +780,8 @@ export default function UsersView() {
                                     onClick={() => void openDetail(user)}
                                     className={`cursor-pointer font-semibold text-slate-700 transition ${
                                         detail?.user.memberId === user.memberId
-                                            ? "bg-emerald-50"
-                                            : "hover:bg-emerald-50/60"
+                                            ? "bg-primary/5"
+                                            : "hover:bg-primary/60"
                                     }`}
                                 >
                                     <td className="px-5 py-4">
@@ -852,7 +852,7 @@ export default function UsersView() {
                                     onClick={() => setPage(item)}
                                     className={`size-9 rounded-lg text-sm font-black ${
                                         page === item
-                                            ? "bg-emerald-700 text-white"
+                                            ? "bg-primary text-white"
                                             : "border border-slate-200 text-slate-600"
                                     }`}
                                 >
@@ -915,7 +915,7 @@ export default function UsersView() {
                     >
                         <div className="flex items-start justify-between border-b border-slate-100 px-7 py-6">
                             <div className="min-w-0">
-                                <p className="text-xs font-extrabold text-emerald-700">이용자 상세</p>
+                                <p className="text-xs font-extrabold text-primary">이용자 상세</p>
                                 <h2 className="mt-2 truncate text-2xl font-black">{detail.user.memberName}</h2>
                                 <p className="mt-1 truncate text-sm font-semibold text-slate-400">
                                     {detail.user.loginId}
@@ -936,14 +936,14 @@ export default function UsersView() {
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
                             {detailLoading && (
-                                <div className="mb-5 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                                <div className="mb-5 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-bold text-primary">
                                     <RefreshCw className="size-4 animate-spin" />
                                     상세 정보를 불러오는 중입니다.
                                 </div>
                             )}
 
-                            <section className="rounded-2xl bg-[#f4faf7] p-5">
-                                <p className="text-xs font-extrabold text-emerald-800">기본 정보</p>
+                            <section className="rounded-2xl bg-[var(--accent)] p-5">
+                                <p className="text-xs font-extrabold text-primary">기본 정보</p>
                                 <dl className="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
                                     {[
                                         ["소속 학교", displayAssigned(detail.user.univName)],
@@ -991,7 +991,7 @@ export default function UsersView() {
                                                 detail.user.status === nextStatus ||
                                                 changingMemberId === detail.user.memberId
                                             }
-                                            className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-emerald-200 hover:text-emerald-700 disabled:bg-slate-50 disabled:text-slate-300"
+                                            className="h-10 rounded-lg border border-slate-200 text-sm font-black text-slate-700 hover:border-primary/20 hover:text-primary disabled:bg-slate-50 disabled:text-slate-300"
                                         >
                                             {STATUS_LABEL[nextStatus]} 처리
                                         </button>
@@ -1026,13 +1026,13 @@ export default function UsersView() {
                                             }}
                                             className={`flex min-h-[78px] flex-col justify-between rounded-xl border bg-white px-3 py-3 text-left transition ${
                                                 activeActivitySection === key
-                                                    ? "border-emerald-300 bg-emerald-50"
-                                                    : "border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/50"
+                                                    ? "border-primary/30 bg-primary/5"
+                                                    : "border-slate-200 hover:border-primary/20 hover:bg-primary/50"
                                             }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
                                                 <p className="text-xs font-extrabold text-slate-400">{label}</p>
-                                                <Icon className="size-4 text-emerald-700" />
+                                                <Icon className="size-4 text-primary" />
                                             </div>
                                             <p className="text-lg font-black">{value.toLocaleString()}</p>
                                         </button>
@@ -1045,7 +1045,7 @@ export default function UsersView() {
                                     {ACTIVITY_SECTION_LABEL[activeActivitySection]}
                                 </h3>
                                 {activityLoading && (
-                                    <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                                    <div className="mb-3 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-bold text-primary">
                                         <RefreshCw className="size-4 animate-spin" />
                                         활동 내역을 불러오는 중입니다.
                                     </div>

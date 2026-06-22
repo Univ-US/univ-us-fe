@@ -51,7 +51,7 @@ const formatDue = (v: string) => {
 const normalizeHtml = (html: string) => (html === "<p></p>" ? "" : html);
 
 const statusBadgeClass = (valStatus: string) => {
-  if (valStatus === "AVL") return "bg-emerald-50 text-emerald-700";
+  if (valStatus === "AVL") return "bg-primary/5 text-primary";
   if (valStatus === "CLS" || valStatus === "NOP") return "bg-slate-100 text-slate-500";
   return "bg-amber-50 text-amber-700"; // MOD/LAT 등
 };
@@ -702,7 +702,7 @@ export default function ProfessorAssignmentsPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           a.totalStudents > 0 && a.submittedCount >= a.totalStudents
-                            ? "bg-emerald-50 text-emerald-700"
+                            ? "bg-primary/5 text-primary"
                             : "bg-amber-50 text-amber-700"
                         }`}
                       >
@@ -715,7 +715,7 @@ export default function ProfessorAssignmentsPage() {
                           미채점 {a.ungradedCount}
                         </span>
                       ) : (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        <span className="rounded-full bg-primary/5 px-2 py-0.5 text-xs font-semibold text-primary">
                           채점완료
                         </span>
                       )}
