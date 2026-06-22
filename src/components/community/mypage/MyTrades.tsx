@@ -39,7 +39,7 @@ const S = {
   actionLink: 'flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-[12px] font-bold text-slate-500 transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary active:translate-y-0',
   actionButton: 'flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-[12px] font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-hover)] active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none',
   roleBadge: 'rounded-lg px-2.5 py-1 text-[12px] font-bold',
-  roleSell: 'bg-blue-50 text-blue-600',
+  roleSell: 'bg-primary/5 text-primary',
   roleBuy: 'bg-rose-50 text-rose-600',
   emptyState: 'flex flex-col items-center justify-center bg-slate-50/50 py-16 text-center',
   emptyIcon: 'mb-3 size-10 text-slate-300',

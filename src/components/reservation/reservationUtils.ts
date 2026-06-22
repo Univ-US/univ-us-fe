@@ -125,7 +125,7 @@ export function getReservationStatusClassName(status: string) {
     return 'bg-primary/10 text-primary';
   }
 
-  return 'bg-blue-50 text-blue-500';
+  return 'bg-primary/5 text-primary';
 }
 
 export function isCancelableReservation(status: string) {

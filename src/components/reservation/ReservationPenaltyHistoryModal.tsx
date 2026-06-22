@@ -145,7 +145,7 @@ export default function ReservationPenaltyHistoryModal({
                             'rounded-full px-2.5 py-1 text-[11px] font-extrabold',
                             active
                               ? 'bg-red-100 text-red-600'
-                              : 'bg-emerald-100 text-emerald-700',
+                              : 'bg-primary/10 text-primary',
                           )}
                         >
                           {active ? '활성' : item.status === 'PLEDGED' ? '서약 완료' : item.status}
@@ -160,7 +160,7 @@ export default function ReservationPenaltyHistoryModal({
                       {item.reason}
                     </p>
                     {item.resolvedAt && (
-                      <p className='mt-2 text-[12px] font-semibold text-emerald-700'>
+                      <p className='mt-2 text-[12px] font-semibold text-primary'>
                         서약 처리: {formatDateTime(item.resolvedAt)}
                       </p>
                     )}

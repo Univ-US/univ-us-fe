@@ -35,7 +35,7 @@ const FILE_ACCEPT_HINT =
 const MEMO_MAX = 1000;
 const PAGE_SIZE = 6;
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function StudentSubmitPage() {
   // 요약(전역 미제출 수·연도 드롭다운 소스) — null=미로드
@@ -273,7 +273,7 @@ export default function StudentSubmitPage() {
       </header>
 
       {notice && (
-        <p className="mb-4 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+        <p className="mb-4 rounded-lg bg-primary/5 px-4 py-2 text-sm text-primary">
           {notice}
         </p>
       )}
@@ -285,7 +285,7 @@ export default function StudentSubmitPage() {
           <button
             type="button"
             onClick={() => void fetchPage({ year: yearFilter, term: termFilter, page })}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -318,17 +318,17 @@ export default function StudentSubmitPage() {
                       type="button"
                       onClick={() => selectItem(item)}
                       className={`flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                        active ? "bg-emerald-50" : "hover:bg-slate-50"
+                        active ? "bg-primary/5" : "hover:bg-slate-50"
                       }`}
                     >
-                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.status === "EXTENDED" ? "bg-orange-500" : "bg-emerald-500"}`} />
+                      <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.status === "EXTENDED" ? "bg-orange-500" : "bg-primary"}`} />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
                           <span className="truncate text-sm font-semibold text-slate-800">
                             {item.lecAsnTitle}
                           </span>
                           {item.badge && (
-                            <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
                               {item.badge}
                             </span>
                           )}
@@ -345,7 +345,7 @@ export default function StudentSubmitPage() {
                       </span>
                       <span
                         className={`shrink-0 text-xs font-semibold ${
-                          item.status === "EXTENDED" ? "text-emerald-600" : "text-rose-600"
+                          item.status === "EXTENDED" ? "text-primary" : "text-rose-600"
                         }`}
                       >
                         {item.dDay}
@@ -397,7 +397,7 @@ export default function StudentSubmitPage() {
               왼쪽에서 제출할 과제를 선택하세요.
             </section>
           ) : (
-            <section className="rounded-2xl border-2 border-emerald-200 bg-white p-6">
+            <section className="rounded-2xl border-2 border-primary/20 bg-white p-6">
               <div className="mb-4 border-b border-slate-100 pb-4">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-lg font-bold text-slate-900">{selected.lecAsnTitle}</h2>
@@ -447,7 +447,7 @@ export default function StudentSubmitPage() {
                   }}
                   className={`mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${
                     dragOver
-                      ? "border-emerald-400 bg-emerald-50"
+                      ? "border-primary/40 bg-primary/5"
                       : "border-orange-200 bg-orange-50/40 hover:bg-orange-50"
                   }`}
                 >
@@ -503,7 +503,7 @@ export default function StudentSubmitPage() {
                   rows={2}
                   maxLength={MEMO_MAX}
                   placeholder="과제 제출 관련 메모를 남길 수 있습니다."
-                  className="mt-2 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="mt-2 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -512,7 +512,7 @@ export default function StudentSubmitPage() {
                 <ul className="space-y-1 text-sm text-slate-600">
                   {CHECKLIST.map((item) => (
                     <li key={item} className="flex items-center gap-1.5">
-                      <span className="text-emerald-600">☑</span> {item}
+                      <span className="text-primary">☑</span> {item}
                     </li>
                   ))}
                 </ul>
@@ -537,7 +537,7 @@ export default function StudentSubmitPage() {
                   type="button"
                   onClick={() => void handleSubmit()}
                   disabled={(!file && !memo.trim()) || submitting}
-                  className="rounded-lg bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {submitting ? "제출 중..." : "⤒ 최종 제출하기"}
                 </button>

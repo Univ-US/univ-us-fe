@@ -35,7 +35,7 @@ export const ATTENDANCE_STATUS: Record<
   AttendanceStatus,
   { label: string; dot: string; tag: string; bar: string }
 > = {
-  PRS: { label: "출석", dot: "bg-emerald-500", tag: "bg-emerald-50 text-emerald-700 border-emerald-200", bar: "bg-emerald-500" },
+  PRS: { label: "출석", dot: "bg-primary", tag: "bg-primary/5 text-primary border-primary/20", bar: "bg-primary" },
   LAT: { label: "지각", dot: "bg-amber-500", tag: "bg-amber-50 text-amber-700 border-amber-200", bar: "bg-amber-400" },
   ABS: { label: "결석", dot: "bg-red-500", tag: "bg-red-50 text-red-600 border-red-200", bar: "bg-red-400" },
 };

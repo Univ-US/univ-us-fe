@@ -10,12 +10,12 @@ import type { CalendarEvent } from "@/types/lmsStudentCalendar";
 
 // 학생 = 에메랄드(강의) + 오렌지(과제 마감) — 설계서 SLM-010 그대로
 const THEME: CalendarTheme = {
-  lectureDot: "bg-emerald-600",
-  lectureChip: "bg-emerald-50 text-emerald-700",
+  lectureDot: "bg-primary",
+  lectureChip: "bg-primary/5 text-primary",
   assignmentDot: "bg-orange-500",
   assignmentChip: "bg-orange-50 text-orange-700",
-  today: "bg-emerald-700",
-  navFocus: "focus:ring-emerald-500",
+  today: "bg-primary",
+  navFocus: "focus:ring-primary",
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -67,7 +67,7 @@ export default function StudentCalendarPage() {
           <button
             type="button"
             onClick={load}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>

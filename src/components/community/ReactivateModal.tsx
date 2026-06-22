@@ -15,8 +15,8 @@ export default function ReactivateModal({
     <div className='flex min-h-screen w-full items-center justify-center bg-slate-50 px-4'>
       <div className='w-full max-w-[400px] rounded-2xl border border-border bg-white p-6 shadow-2xl'>
         <div className='flex flex-col items-center justify-center text-center'>
-          <div className='flex size-16 items-center justify-center rounded-full bg-blue-50 mb-4'>
-            <Sparkles className='size-8 text-blue-500' />
+          <div className='flex size-16 items-center justify-center rounded-full bg-primary/5 mb-4'>
+            <Sparkles className='size-8 text-primary' />
           </div>
           
           <h2 className='text-[20px] font-extrabold text-slate-900'>
@@ -33,7 +33,7 @@ export default function ReactivateModal({
             type='button'
             onClick={onSubmit}
             disabled={loading}
-            className='flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 text-[15px] font-bold text-white shadow-md transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60'
+            className='flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-bold text-white shadow-md transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60'
           >
             {loading ? '처리 중...' : '커뮤니티 다시 활성화하기'}
           </button>

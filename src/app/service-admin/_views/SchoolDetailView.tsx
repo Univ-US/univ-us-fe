@@ -127,8 +127,8 @@ export default function SchoolDetailView({
 
     if (loading) {
         return (
-            <section className="flex min-h-72 items-center justify-center rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
-                <RefreshCw className="size-6 animate-spin text-emerald-700" />
+            <section className="flex min-h-72 items-center justify-center rounded-2xl border border-primary/10 bg-white shadow-sm">
+                <RefreshCw className="size-6 animate-spin text-primary" />
             </section>
         );
     }
@@ -142,7 +142,7 @@ export default function SchoolDetailView({
                 </p>
                 <button
                     onClick={() => void loadSchool()}
-                    className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-black text-white"
+                    className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white"
                 >
                     다시 시도
                 </button>
@@ -163,7 +163,7 @@ export default function SchoolDetailView({
                 <div>
                     <button
                         onClick={onBack}
-                        className="mb-3 inline-flex items-center gap-2 text-sm font-extrabold text-slate-500 hover:text-emerald-700"
+                        className="mb-3 inline-flex items-center gap-2 text-sm font-extrabold text-slate-500 hover:text-primary"
                     >
                         <ArrowLeft className="size-4" />
                         학교 목록
@@ -194,9 +194,9 @@ export default function SchoolDetailView({
 
             <div className="grid gap-5 xl:grid-cols-[1fr_400px]">
                 <div className="space-y-5">
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                         <div className="flex items-center gap-3">
-                            <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                            <span className="flex size-11 items-center justify-center rounded-xl bg-primary/5 text-primary">
                                 <Building2 className="size-5" />
                             </span>
                             <div>
@@ -225,9 +225,9 @@ export default function SchoolDetailView({
                         </dl>
                     </section>
 
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                         <div className="flex items-center gap-3">
-                            <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                            <span className="flex size-11 items-center justify-center rounded-xl bg-primary/5 text-primary">
                                 <UsersRound className="size-5" />
                             </span>
                             <div>
@@ -271,9 +271,9 @@ export default function SchoolDetailView({
                     </section>
                 </div>
 
-                <section className="h-fit rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                <section className="h-fit rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/5 text-primary">
                             <CreditCard className="size-5" />
                         </span>
                         <div>
@@ -290,7 +290,7 @@ export default function SchoolDetailView({
                             value={selectedPlanId}
                             onChange={(event) => setSelectedPlanId(Number(event.target.value))}
                             disabled={cannotManage || saving}
-                            className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black outline-none focus:border-emerald-500 disabled:bg-slate-100"
+                            className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black outline-none focus:border-primary disabled:bg-slate-100"
                         >
                             <option value="" disabled>
                                 플랜 선택
@@ -311,7 +311,7 @@ export default function SchoolDetailView({
                             selectedPlanId === "" ||
                             selectedPlanId === school.planId
                         }
-                        className="mt-3 h-10 w-full rounded-lg bg-emerald-700 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                        className="mt-3 h-10 w-full rounded-lg bg-primary text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                     >
                         {saving ? "처리 중" : "플랜 변경"}
                     </button>
@@ -364,10 +364,10 @@ export default function SchoolDetailView({
                         </div>
                     )}
 
-                    <div className="mt-4 rounded-xl bg-emerald-50 p-4">
+                    <div className="mt-4 rounded-xl bg-primary/5 p-4">
                         <div className="flex gap-3">
-                            <CalendarClock className="mt-0.5 size-4 shrink-0 text-emerald-700" />
-                            <p className="text-xs font-bold leading-5 text-emerald-800">
+                            <CalendarClock className="mt-0.5 size-4 shrink-0 text-primary" />
+                            <p className="text-xs font-bold leading-5 text-primary">
                                 플랜 변경 시 기존 예약을 취소하고 변경 금액으로 다시 예약합니다.
                                 구독 취소 시 결제된 기간은 유지하고 다음 예약만 취소합니다.
                             </p>
@@ -390,9 +390,9 @@ export default function SchoolDetailView({
                 </section>
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-0.5 size-5 text-emerald-700" />
+                    <ShieldCheck className="mt-0.5 size-5 text-primary" />
                     <div>
                         <p className="font-black">처리 기준</p>
                         <p className="mt-1 text-sm font-semibold text-slate-500">

@@ -198,7 +198,7 @@ function KpiCard({
   // 톤: neutral=슬레이트 / up·down·warn=의미색(증감·경고) — §13의 '브랜드 강조 green 금지'와 별개인 의미색
   const toneClass = {
     neutral: "bg-slate-100 text-slate-500",
-    up: "bg-emerald-50 text-emerald-600",
+    up: "bg-primary/5 text-primary",
     down: "bg-rose-50 text-rose-600",
     warn: "bg-rose-50 text-rose-600",
   }[tone];
@@ -221,7 +221,7 @@ function KpiCard({
 // 강의 상태(LEC_VAL_STATUS) 배지 색 — PLM-003·SLM-003과 일관: 진행 emerald·신청 sky·종료 slate·폐강 rose
 const VAL_BADGE: Record<string, string> = {
   OPEN: "bg-sky-50 text-sky-700",
-  PROG: "bg-emerald-50 text-emerald-700",
+  PROG: "bg-primary/5 text-primary",
   CLSD: "bg-slate-100 text-slate-500",
   CNCL: "bg-rose-50 text-rose-600",
 };
@@ -360,7 +360,7 @@ function CourseRow({
 
 // 출석률 막대 색 — §21 교수 LMS 공통 임계: 정상(초록)≥95 · 경고(노랑)80~94 · 위험(빨강)<80
 function attendanceBarColor(rate: number) {
-  if (rate >= 95) return "bg-emerald-500";
+  if (rate >= 95) return "bg-primary";
   if (rate >= 80) return "bg-amber-400";
   return "bg-red-400";
 }

@@ -64,7 +64,7 @@ export default function ContactPage() {
         <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-6 py-10">
             <div className="w-full max-w-[420px]">
                 <div className="flex items-center gap-2 justify-center mb-8">
-                    <div className="w-8 h-8 bg-[#11302a] rounded-md flex items-center justify-center text-white text-sm font-black">
+                    <div className="w-8 h-8 bg-[var(--primary)] rounded-md flex items-center justify-center text-white text-sm font-black">
                         U
                     </div>
                     <span className="font-extrabold text-slate-900 text-lg tracking-tight">Univ·us</span>

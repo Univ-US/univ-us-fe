@@ -33,21 +33,21 @@ const capabilities = [
         title: "수업의 모든 맥락을 한 곳에",
         description: "강의, 과제, 출결, 자료를 학생과 교수 모두가 같은 흐름에서 확인합니다.",
         icon: BookOpenCheck,
-        tone: "bg-cyan-50 text-cyan-700",
+        tone: "bg-amber-50 text-amber-700",
     },
     {
         eyebrow: "OPERATIONS",
         title: "운영은 더 단순하고 선명하게",
         description: "구성원, 공지, 문의, 구독 상태를 역할에 맞는 화면에서 관리합니다.",
         icon: LayoutDashboard,
-        tone: "bg-emerald-50 text-emerald-700",
+        tone: "bg-slate-100 text-slate-700",
     },
     {
         eyebrow: "CAMPUS LIFE",
         title: "수업 밖의 캠퍼스 경험까지",
         description: "일정, 시설 예약, 커뮤니티를 연결해 캠퍼스의 일상을 이어갑니다.",
         icon: CalendarDays,
-        tone: "bg-teal-50 text-teal-700",
+        tone: "bg-rose-50 text-rose-600",
     },
 ];
 
@@ -78,13 +78,12 @@ const formatPlanCaption = (plan: SubscriptionPlan) => {
 
 function ProductPreview() {
     return (
-        <div className="relative mx-auto w-full max-w-[650px]" aria-label="UnivUs 운영 화면 예시">
-            <div className="absolute -inset-8 -z-10 rounded-[2.5rem] bg-primary/10 blur-3xl" />
-            <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-[0_30px_80px_-28px_rgba(15,168,150,0.42)]">
+        <div className="landing-float relative mx-auto w-full max-w-[650px]" aria-label="UnivUs 운영 화면 예시">
+            <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-[0_34px_90px_-34px_rgba(15,23,42,0.32)]">
                 <div className="flex h-9 items-center gap-1.5 rounded-t-[1.25rem] bg-slate-50 px-4">
                     <span className="size-2 rounded-full bg-rose-300" />
                     <span className="size-2 rounded-full bg-amber-300" />
-                    <span className="size-2 rounded-full bg-emerald-300" />
+                    <span className="size-2 rounded-full bg-sky-300" />
                     <span className="ml-3 h-4 w-36 rounded bg-slate-200/80" />
                 </div>
                 <div className="grid min-h-[350px] grid-cols-[132px_1fr] overflow-hidden rounded-b-[1.25rem] border border-slate-100 bg-slate-50 sm:min-h-[410px] sm:grid-cols-[156px_1fr]">
@@ -97,7 +96,7 @@ function ProductPreview() {
                             {["대시보드", "구성원 관리", "강의 관리", "공지사항"].map((item, index) => (
                                 <div
                                     key={item}
-                                    className={`rounded-lg px-3 py-2 text-[11px] font-bold ${index === 0 ? "bg-primary/10 text-primary" : "text-slate-400"}`}
+                                    className={`rounded-lg px-3 py-2 text-[11px] font-bold ${index === 0 ? "bg-slate-900 text-white" : "text-slate-400"}`}
                                 >
                                     {item}
                                 </div>
@@ -144,7 +143,7 @@ function ProductPreview() {
                                     <p className="text-xs font-black text-slate-800">최근 운영 항목</p>
                                     <p className="mt-1 text-[10px] text-slate-400">흐름을 놓치지 않고 확인하세요.</p>
                                 </div>
-                                <span className="rounded-full bg-primary/10 px-2 py-1 text-[9px] font-black text-primary">LIVE</span>
+                                <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-700">LIVE</span>
                             </div>
                             <div className="mt-4 space-y-3">
                                 {["공지사항을 확인할 수 있습니다.", "구성원 정보를 관리할 수 있습니다.", "문의 내역을 확인할 수 있습니다."].map((item) => (
@@ -226,15 +225,55 @@ export default function LandingPage() {
         router.refresh();
     };
 
+    useEffect(() => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const targets = Array.from(document.querySelectorAll<HTMLElement>(".landing-scroll-reveal"));
+
+        if (reduceMotion) {
+            targets.forEach((target) => target.classList.add("is-visible"));
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) {
+                        return;
+                    }
+
+                    const target = entry.target as HTMLElement;
+                    const delay = Number(target.dataset.revealDelay ?? "0");
+
+                    window.setTimeout(() => {
+                        target.classList.add("is-visible");
+                    }, delay);
+
+                    observer.unobserve(target);
+                });
+            },
+            { threshold: 0.08, rootMargin: "0px 0px -4% 0px" },
+        );
+
+        const frame = window.requestAnimationFrame(() => {
+            targets.forEach((target) => {
+                if (!target.classList.contains("is-visible")) {
+                    observer.observe(target);
+                }
+            });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            observer.disconnect();
+        };
+    }, [plansLoading, plansError, plans.length]);
+
     return (
-        <main className="min-h-screen overflow-hidden bg-[#f8fbfb] text-slate-950">
-            <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+        <main className="min-h-screen overflow-hidden bg-[#fbfcfd] pt-[72px] text-slate-950">
+            <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
                 <div className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-6">
-                    <Link href="/landing" className="flex items-center gap-2.5" aria-label="UnivUs 랜딩으로 이동">
-                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-                            <Sparkles className="size-4" />
-                        </span>
-                        <span className="text-lg font-black tracking-tight text-slate-950">Univ<span className="text-primary">Us</span></span>
+                    <Link href="/landing" className="flex items-center" aria-label="UnivUs 랜딩으로 이동">
+                        <img src="/univus-logo.svg" alt="UnivUs" className="h-12 w-auto" />
                     </Link>
 
                     <nav className="hidden items-center gap-7 text-sm font-bold text-slate-600 md:flex">
@@ -275,11 +314,11 @@ export default function LandingPage() {
                 )}
             </header>
 
-            <section className="relative">
-                <div className="absolute inset-x-0 top-0 h-[640px] bg-[radial-gradient(circle_at_15%_15%,rgba(15,168,150,0.14),transparent_27%),radial-gradient(circle_at_86%_19%,rgba(45,212,191,0.14),transparent_25%)]" />
+            <section className="relative bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_52%,#f3faf8_100%)]">
+                <div className="absolute inset-x-0 top-0 h-full bg-[linear-gradient(90deg,rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(180deg,rgba(15,23,42,0.04)_1px,transparent_1px)] bg-[size:56px_56px] opacity-50" />
                 <div className="relative mx-auto grid max-w-[1180px] gap-14 px-5 pb-24 pt-20 sm:px-6 lg:grid-cols-[0.93fr_1.07fr] lg:items-center lg:pb-32 lg:pt-28">
-                    <div className="max-w-[600px]">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3.5 py-2 text-xs font-extrabold text-primary shadow-sm">
+                    <div className="landing-scroll-reveal max-w-[600px]">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3.5 py-2 text-xs font-extrabold text-slate-700 shadow-sm">
                             <span className="flex size-5 items-center justify-center rounded-full bg-primary/10"><Building2 className="size-3" /></span>
                             대학 운영을 하나의 흐름으로
                         </div>
@@ -308,14 +347,14 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            <section className="border-y border-primary/10 bg-primary/[0.035]">
+            <section className="border-y border-slate-200 bg-white">
                 <div className="mx-auto grid max-w-[1180px] gap-6 px-5 py-8 sm:grid-cols-3 sm:px-6">
                     {[
                         ["수업에서 운영까지", "분리된 도구 대신 하나의 플랫폼"],
                         ["역할에 맞는 경험", "운영자, 교수자, 학습자의 각기 다른 흐름"],
                         ["더 분명한 정보", "필요한 사람에게 필요한 내용을 빠르게"],
                     ].map(([title, description]) => (
-                        <div key={title} className="border-primary/10 sm:border-l sm:pl-6 first:border-l-0 first:pl-0">
+                        <div key={title} data-reveal-delay={title.length * 12} className="landing-scroll-reveal border-slate-200 sm:border-l sm:pl-6 first:border-l-0 first:pl-0">
                             <p className="text-sm font-black text-slate-900">{title}</p>
                             <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
                         </div>
@@ -334,7 +373,7 @@ export default function LandingPage() {
                     {capabilities.map((capability, index) => {
                         const Icon = capability.icon;
                         return (
-                            <article key={capability.title} className={`group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 transition duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 ${index === 0 ? "lg:col-span-2" : ""}`}>
+                            <article key={capability.title} data-reveal-delay={index * 120} className={`landing-scroll-reveal group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/70 ${index === 0 ? "lg:col-span-2" : ""}`}>
                                 <div className={`flex size-12 items-center justify-center rounded-2xl ${capability.tone}`}><Icon className="size-5" /></div>
                                 <p className="mt-10 text-[11px] font-black tracking-[0.15em] text-primary">{capability.eyebrow}</p>
                                 <h3 className="mt-3 text-2xl font-black tracking-[-0.035em] text-slate-900">{capability.title}</h3>
@@ -344,7 +383,7 @@ export default function LandingPage() {
                                         {["강의", "과제", "출결"].map((item) => <div key={item} className="rounded-xl bg-slate-50 p-3 text-center text-xs font-black text-slate-600">{item}</div>)}
                                     </div>
                                 )}
-                                <div className="absolute -right-8 -top-8 size-32 rounded-full bg-primary/[0.045] transition-transform duration-500 group-hover:scale-150" />
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary via-amber-300 to-rose-300 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             </article>
                         );
                     })}
@@ -358,10 +397,11 @@ export default function LandingPage() {
                     <p className="mx-auto mt-5 max-w-[610px] text-base leading-8 text-slate-500">학교 환경에 맞는 플랜을 확인하고, 도입에 필요한 내용을 함께 논의할 수 있습니다.</p>
                 </div>
 
+                <div className="landing-scroll-reveal mt-12 rounded-[2rem] border border-slate-200 bg-white px-5 py-8 shadow-[0_28px_80px_-46px_rgba(15,23,42,0.35)] sm:px-8 sm:py-10 lg:px-12">
                 {plansLoading ? (
-                    <div className="mt-12 rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">구독 플랜을 불러오는 중입니다.</div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">구독 플랜을 불러오는 중입니다.</div>
                 ) : plansError ? (
-                    <div className="mx-auto mt-12 max-w-[780px] rounded-3xl border border-primary/15 bg-white p-7 text-left shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-9">
+                    <div className="mx-auto max-w-[780px] rounded-3xl border border-primary/15 bg-white p-7 text-left shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-9">
                         <div>
                             <p className="text-sm font-black text-slate-900">우리 학교에 맞는 플랜을 함께 설계합니다.</p>
                             <p className="mt-2 text-sm leading-6 text-slate-500">구성원 규모와 필요한 운영 범위를 기준으로 도입 플랜을 안내해드립니다.</p>
@@ -371,11 +411,11 @@ export default function LandingPage() {
                         </Button>
                     </div>
                 ) : (
-                    <div className="mt-12 grid gap-4 lg:grid-cols-3">
+                    <div className="grid gap-4 lg:grid-cols-3">
                         {plans.map((plan, index) => {
                             const featured = plan.planName.toUpperCase() === "PRO" || (plans.length > 1 && index === 1);
                             return (
-                                <article key={plan.planId} className={`relative rounded-3xl border p-7 ${featured ? "border-primary bg-primary/[0.035] shadow-xl shadow-primary/10" : "border-slate-200 bg-white"}`}>
+                                <article key={plan.planId} data-reveal-delay={index * 100} className={`landing-scroll-reveal relative rounded-3xl border p-7 transition duration-300 hover:-translate-y-1 ${featured ? "border-primary bg-white shadow-xl shadow-slate-200/80" : "border-slate-200 bg-white/95 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/70"}`}>
                                     {featured && <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[11px] font-black text-white">추천 플랜</span>}
                                     <h3 className="text-xl font-black text-slate-900">{plan.planName}</h3>
                                     <div className="mt-7"><span className="text-3xl font-black tracking-[-0.04em] text-slate-950">{formatPlanPrice(plan.price)}</span><span className="ml-1 text-sm font-bold text-slate-400">/ 월</span></div>
@@ -390,18 +430,19 @@ export default function LandingPage() {
                         })}
                     </div>
                 )}
+                </div>
             </section>
 
             <section className="mx-auto max-w-[1180px] px-5 pb-24 sm:px-6 lg:pb-32">
-                <div className="relative overflow-hidden rounded-[2rem] bg-primary px-7 py-12 text-white sm:px-12 sm:py-14">
-                    <div className="absolute -right-16 -top-20 size-72 rounded-full border-[32px] border-white/10" />
-                    <div className="absolute -bottom-28 right-44 size-56 rounded-full bg-white/10 blur-2xl" />
+                <div className="landing-scroll-reveal relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] px-7 py-12 text-white shadow-2xl shadow-primary/10 sm:px-12 sm:py-14">
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-white/30 via-primary-foreground/70 to-white/20" />
+                    <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.12),transparent_44%,rgba(255,255,255,0.06))]" />
                     <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-[680px]">
                             <p className="text-xs font-black tracking-[0.16em] text-white/70">LET&apos;S BUILD A BETTER CAMPUS</p>
                             <h2 className="mt-4 text-3xl font-black leading-tight tracking-[-0.04em] sm:text-4xl">더 나은 대학 운영 경험을<br />UnivUs와 시작하세요.</h2>
                         </div>
-                        <Button asChild size="lg" variant="secondary" className="h-12 shrink-0 rounded-xl bg-white px-5 text-base font-extrabold text-primary hover:bg-white/90">
+                        <Button asChild size="lg" variant="secondary" className="h-12 shrink-0 rounded-xl bg-white px-5 text-base font-extrabold text-slate-950 hover:bg-white/90">
                             <Link href={getSubscriptionPath()}>{dashboardPath ? "대시보드로 이동" : "도입 문의하기"} <ArrowRight className="size-4" /></Link>
                         </Button>
                     </div>

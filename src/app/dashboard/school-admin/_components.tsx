@@ -1,9 +1,9 @@
 export function StatusBadge({ value }: { value: string }) {
     const map: Record<string, string> = {
-        활성: "bg-emerald-100 text-emerald-700",
+        활성: "bg-primary/10 text-primary",
         정지: "bg-amber-100 text-amber-700",
         탈퇴: "bg-rose-100 text-rose-600",
-        완료: "bg-emerald-100 text-emerald-700",
+        완료: "bg-primary/10 text-primary",
         대기: "bg-amber-100 text-amber-700",
         실패: "bg-rose-100 text-rose-600",
     };
@@ -16,7 +16,7 @@ export function StatusBadge({ value }: { value: string }) {
 
 export function TargetBadge({ value }: { value: "전체" | "학생" | "교수" }) {
     const map: Record<string, string> = {
-        전체: "bg-emerald-100 text-emerald-700",
+        전체: "bg-primary/10 text-primary",
         학생: "bg-sky-100 text-sky-700",
         교수: "bg-orange-100 text-orange-700",
     };
@@ -31,7 +31,7 @@ export function TargetBadge({ value }: { value: "전체" | "학생" | "교수" }
 export function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" | "lg" }) {
     const sizeMap = { sm: "size-8 text-sm", md: "size-10 text-base", lg: "size-12 text-lg" };
     return (
-        <span className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-700 font-black text-white ${sizeMap[size]}`}>
+        <span className={`flex shrink-0 items-center justify-center rounded-full bg-primary font-black text-white ${sizeMap[size]}`}>
             {name.slice(0, 1)}
         </span>
     );
@@ -41,7 +41,7 @@ export function Toggle({ checked, onChange }: { checked: boolean; onChange: () =
     return (
         <button
             onClick={onChange}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-emerald-600" : "bg-slate-200"}`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-primary" : "bg-slate-200"}`}
             role="switch"
             aria-checked={checked}
         >

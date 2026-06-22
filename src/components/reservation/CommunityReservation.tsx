@@ -121,7 +121,7 @@ const S = {
   dateBtnGroup: 'flex gap-2',
   dateBtnBase: 'flex h-[64px] w-[56px] flex-col items-center justify-center rounded-xl border font-semibold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0',
   dateBtnActive: 'scale-[1.04] border-primary bg-primary text-white shadow-md',
-  dateBtnSat: 'border-border bg-white text-blue-500',
+  dateBtnSat: 'border-border bg-white text-primary',
   dateBtnSun: 'border-border bg-white text-red-400',
   dateBtnDefault: 'border-border bg-white text-slate-700 hover:border-primary',
   dayOfWeek: 'mb-0.5 text-[11px]',

@@ -18,7 +18,7 @@ import {
 import type { EnrollLectureRow, EnrollSummary, ScheduleSlot } from "@/types/lmsStudentEnroll";
 
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 const slotsOverlap = (a: ScheduleSlot, b: ScheduleSlot) =>
   a.day === b.day && a.start < b.end && b.start < a.end;
@@ -31,12 +31,12 @@ const hasConflict = (target: EnrollLectureRow, others: EnrollLectureRow[]) =>
 const TIMETABLE_DAYS = ["월", "화", "수", "목", "금"] as const;
 const TIMETABLE_SLOT_MIN = 30;
 const TIMETABLE_COLORS = [
-  "bg-emerald-100 text-emerald-700",
+  "bg-primary/10 text-primary",
   "bg-sky-100 text-sky-700",
   "bg-amber-100 text-amber-700",
   "bg-violet-100 text-violet-700",
   "bg-rose-100 text-rose-700",
-  "bg-teal-100 text-teal-700",
+  "bg-primary/10 text-primary",
 ];
 
 const parseTimeToMinutes = (t: string) => {
@@ -143,7 +143,7 @@ function EnrollTimetable({ enrolled, cart }: { enrolled: EnrollLectureRow[]; car
       )}
       <p className="mt-3 flex items-center gap-3 text-[11px] text-slate-400">
         <span className="flex items-center gap-1">
-          <span className="inline-block size-2.5 rounded bg-emerald-200" />
+          <span className="inline-block size-2.5 rounded bg-primary/20" />
           신청 완료
         </span>
         <span className="flex items-center gap-1">
@@ -322,7 +322,7 @@ export default function HomeEnrollPage() {
             <p className="text-sm text-slate-500">수강신청은 학생만 이용할 수 있습니다.</p>
             <Link
               href="/home"
-              className="mt-3 inline-block rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+              className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
             >
               홈으로
             </Link>
@@ -341,7 +341,7 @@ export default function HomeEnrollPage() {
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+                  className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
                 >
                   다시 시도
                 </button>
@@ -361,7 +361,7 @@ export default function HomeEnrollPage() {
                       onChange={(e) => setKeyword(e.target.value)}
                       placeholder="과목명, 학수번호, 교수명 검색"
                       disabled={loading}
-                      className="h-9 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                      className="h-9 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100"
                     />
                     <select
                       value={deptFilter}
@@ -426,7 +426,7 @@ export default function HomeEnrollPage() {
                               </td>
                               <td className="px-2 py-3">
                                 {lecture.alreadyEnrolled ? (
-                                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                  <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[11px] font-semibold text-primary">
                                     신청됨
                                   </span>
                                 ) : (
@@ -435,7 +435,7 @@ export default function HomeEnrollPage() {
                                     onClick={() => addToCart(lecture)}
                                     disabled={disabled}
                                     title={full ? "정원 초과" : conflict ? "시간표 충돌" : inCart ? "이미 담음" : "장바구니에 담기"}
-                                    className="rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                                    className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                                   >
                                     {inCart ? "담음" : full ? "마감" : conflict ? "충돌" : "담기"}
                                   </button>
@@ -497,7 +497,7 @@ export default function HomeEnrollPage() {
                       type="button"
                       onClick={openCaptcha}
                       disabled={cart.length === 0 || overLimit || submitting}
-                      className="mt-4 w-full rounded-lg bg-emerald-700 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                      className="mt-4 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                     >
                       {submitting ? "신청 중..." : `${cart.length}개 강좌 신청하기`}
                     </button>
@@ -578,7 +578,7 @@ export default function HomeEnrollPage() {
               onKeyDown={(e) => e.key === "Enter" && confirmCaptcha()}
               placeholder="문자를 입력하세요"
               autoFocus
-              className="mt-3 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="mt-3 h-10 w-full rounded-lg border border-slate-300 px-3 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {captchaError && (
               <p className="mt-1.5 text-xs text-rose-600">입력한 문자가 일치하지 않습니다. 새로 표시된 문자로 다시 시도해 주세요.</p>
@@ -596,7 +596,7 @@ export default function HomeEnrollPage() {
                 type="button"
                 onClick={confirmCaptcha}
                 disabled={captchaInput.trim().length !== CAPTCHA_LENGTH}
-                className="flex-1 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               >
                 확인
               </button>

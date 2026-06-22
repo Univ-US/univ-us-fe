@@ -94,7 +94,7 @@ export default function ImageCropDialog({
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             aria-label="확대/축소"
-            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-teal-600"
+            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-primary"
           />
           <span className="text-xs text-slate-500">확대</span>
         </div>

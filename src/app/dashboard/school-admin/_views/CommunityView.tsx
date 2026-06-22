@@ -101,7 +101,7 @@ function Pagination({
                             onClick={() => onChange(item)}
                             className={`size-9 rounded-lg text-sm font-black ${
                                 page === item
-                                    ? "bg-emerald-700 text-white"
+                                    ? "bg-primary text-white"
                                     : "border border-slate-200 text-slate-600"
                             }`}
                             aria-current={page === item ? "page" : undefined}
@@ -234,7 +234,7 @@ export default function CommunityView() {
                 </p>
             </div>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[1fr_120px_140px_140px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -242,7 +242,7 @@ export default function CommunityView() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="제목, 작성자 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
                     <input
@@ -253,7 +253,7 @@ export default function CommunityView() {
                         }}
                         placeholder="게시판 ID"
                         inputMode="numeric"
-                        className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-primary"
                     />
                     <select
                         value={blind}
@@ -261,7 +261,7 @@ export default function CommunityView() {
                             setBlind(event.target.value as AdminCommunityBlindFilter);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 노출 상태</option>
                         <option value="VISIBLE">노출중</option>
@@ -273,7 +273,7 @@ export default function CommunityView() {
                             setReport(event.target.value as AdminCommunityReportFilter);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 신고 상태</option>
                         <option value="REPORTED">신고 1건 이상</option>
@@ -281,14 +281,14 @@ export default function CommunityView() {
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 {error ? (
                     <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                         <AlertTriangle className="size-7 text-rose-500" />
                         <p className="mt-3 font-black text-slate-900">{error}</p>
                         <button
                             onClick={() => void loadPosts()}
-                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white"
+                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white"
                         >
                             <RefreshCw className="size-4" />
                             다시 시도
@@ -324,7 +324,7 @@ export default function CommunityView() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={8} className="px-5 py-16 text-center">
-                                                <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                                <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                             </td>
                                         </tr>
                                     ) : (
@@ -341,7 +341,7 @@ export default function CommunityView() {
                                                         href={getPostDetailHref(post.boardId, post.postId)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="flex items-center gap-2 hover:text-emerald-700 hover:underline"
+                                                        className="flex items-center gap-2 hover:text-primary hover:underline"
                                                     >
                                                         <FileText className="size-4 shrink-0 text-slate-400" />
                                                         <span className="truncate">{post.title}</span>
@@ -375,7 +375,7 @@ export default function CommunityView() {
                                                         className={`rounded-full px-2.5 py-1 text-xs font-extrabold ${
                                                             post.isBlind
                                                                 ? "bg-rose-100 text-rose-600"
-                                                                : "bg-emerald-100 text-emerald-700"
+                                                                : "bg-primary/10 text-primary"
                                                         }`}
                                                     >
                                                         {post.isBlind ? "블라인드" : "노출중"}

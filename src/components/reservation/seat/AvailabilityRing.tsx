@@ -13,7 +13,7 @@ export default function AvailabilityRing({
   const stroke = 5;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const color = danger ? '#E04E3A' : '#0FA896';
+  const color = danger ? '#E04E3A' : 'var(--primary)';
   const ratio = total > 0 ? free / total : 0;
 
   return (

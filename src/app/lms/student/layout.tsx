@@ -202,7 +202,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           onClick={() => setSidebarOpen(true)}
           aria-label="사이드바 열기"
           title="사이드바 열기"
-          className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-white text-emerald-800 shadow-lg md:hidden"
+          className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-white text-primary shadow-lg md:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -219,7 +219,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
       {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col bg-emerald-900 text-emerald-100/80 shadow-xl transition-all duration-200 md:sticky md:top-0 md:z-auto md:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col bg-primary/95 text-white/80 shadow-xl transition-all duration-200 md:sticky md:top-0 md:z-auto md:shadow-none ${
           sidebarOpen
             ? "translate-x-0 md:w-60"
             : "-translate-x-full md:w-16 md:translate-x-0"
@@ -230,7 +230,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           onClick={() => setSidebarOpen((open) => !open)}
           aria-label={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
           title={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
-          className="absolute right-0 top-5 z-10 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-emerald-700/70 bg-emerald-950 text-emerald-50 shadow-lg hover:bg-emerald-800"
+          className="absolute right-0 top-5 z-10 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-primary/70 bg-primary/95 text-primary-foreground shadow-lg hover:bg-primary/90"
         >
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
@@ -241,19 +241,19 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
             <Link
               href="/lms/student/dashboard"
               title="대시보드로"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-emerald-800/50"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-primary/50"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
               <>
                 <div className="min-w-0">
-                  <p className="truncate text-[11px] text-emerald-200/70">
+                  <p className="truncate text-[11px] text-white/70">
                     {/* 학교명: BE 제공(계정 미설정이면 null) */}
                     {profile?.universityName || "-"}
                   </p>
                   <p className="text-lg font-bold text-white">UniVUs</p>
                 </div>
-                <span className="ml-auto rounded-md border border-emerald-600/60 px-2 py-0.5 text-xs text-emerald-50">
+                <span className="ml-auto rounded-md border border-primary/60 px-2 py-0.5 text-xs text-primary-foreground">
                   {profile?.role || "학생"}
                 </span>
               </>
@@ -264,7 +264,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               onClick={() => setSidebarOpen(true)}
               aria-label="사이드바 펼치기"
               title="사이드바 펼치기"
-              className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-emerald-800/50"
+              className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-primary/50"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/univusicon.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
@@ -274,7 +274,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
         {/* 사용자 카드 */}
         <div
-          className={`mx-3 mb-4 flex items-center rounded-xl bg-emerald-800/40 px-3 py-3 ${
+          className={`mx-3 mb-4 flex items-center rounded-xl bg-primary/40 px-3 py-3 ${
             sidebarOpen ? "gap-3" : "justify-center"
           }`}
         >
@@ -291,7 +291,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               <p className="truncate text-sm font-semibold text-white">
                 {profile?.name ?? "학생"}
               </p>
-              <p className="truncate text-xs text-emerald-200/60">
+              <p className="truncate text-xs text-white/60">
                 {/* 학과 · 학번 */}
                 {profile?.department ?? "-"}
                 {profile?.studentNo
@@ -314,7 +314,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="mb-4">
               {sidebarOpen && (
-                <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-emerald-300/50">
+                <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-primary-foreground/50">
                   {section.title}
                 </p>
               )}
@@ -350,8 +350,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                     href={item.href}
                     className={`${base} ${
                       active
-                        ? "bg-emerald-700/80 font-semibold text-white before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-full before:bg-emerald-300 before:content-['']"
-                        : "text-emerald-100/80 hover:bg-emerald-800/50"
+                        ? "bg-primary/80 font-semibold text-white before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-full before:bg-primary/30 before:content-['']"
+                        : "text-white/80 hover:bg-primary/50"
                     } ${sidebarOpen ? "" : "justify-center"}`}
                   >
                     {content}
@@ -360,7 +360,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-emerald-200/40 ${
+                    className={`${base} cursor-not-allowed text-white/40 ${
                       sidebarOpen ? "" : "justify-center"
                     }`}
                   >
@@ -377,7 +377,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           <Link
             href="/home"
             title="홈으로"
-            className={`flex items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white ${
+            className={`flex items-center gap-2.5 px-5 py-2 text-sm text-white/80 hover:text-white ${
               sidebarOpen ? "" : "justify-center px-0"
             }`}
           >
@@ -387,7 +387,7 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
             type="button"
             onClick={() => setLogoutOpen(true)}
             title="로그아웃"
-            className={`flex w-full items-center gap-2.5 px-5 py-2 text-sm text-emerald-100/80 hover:text-white ${
+            className={`flex w-full items-center gap-2.5 px-5 py-2 text-sm text-white/80 hover:text-white ${
               sidebarOpen ? "" : "justify-center px-0"
             }`}
           >

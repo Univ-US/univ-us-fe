@@ -254,7 +254,7 @@ export default function CommunityBoardWrite({
 
         {/* 익명 안내 */}
         {isAnon && (
-          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3.5 py-3 text-[13px] text-teal-700'>
+          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-primary/20 bg-primary/5 px-3.5 py-3 text-[13px] text-primary'>
             익명으로 작성됩니다. 작성자 정보는 표시되지 않지만 서로 존중하는 글을
             부탁드립니다.
           </div>
@@ -262,7 +262,7 @@ export default function CommunityBoardWrite({
 
         {/* 공지사항 안내 */}
         {isNotice && (
-          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-blue-200 bg-blue-50 px-3.5 py-3 text-[13px] text-blue-700'>
+          <div className='mb-[22px] flex items-center gap-2 rounded-[10px] border border-primary/20 bg-primary/5 px-3.5 py-3 text-[13px] text-primary'>
             공지사항은 운영 권한이 있는 계정만 게시할 수 있습니다.
           </div>
         )}

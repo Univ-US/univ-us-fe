@@ -14,7 +14,7 @@ import type {
 import type { StudentAssignmentStatus } from "@/types/lmsStudentAssignments";
 
 const attendanceColor = (rate: number) =>
-  rate >= 95 ? "text-emerald-600" : rate >= 80 ? "text-amber-600" : "text-rose-600";
+  rate >= 95 ? "text-primary" : rate >= 80 ? "text-amber-600" : "text-rose-600";
 
 const formatLectureTime = (t: LectureTime, dayMap: Record<string, string>) =>
   `${dayMap[t.dayCode] ?? t.dayCode} ${t.start}~${t.end}`;
@@ -22,11 +22,11 @@ const formatLectureTime = (t: LectureTime, dayMap: Record<string, string>) =>
 const STATUS_BADGE: Record<StudentAssignmentStatus, { cls: string; dot: string }> = {
   NSB: { cls: "text-rose-600", dot: "bg-rose-500" },
   SBM: { cls: "text-amber-600", dot: "bg-amber-500" },
-  GRD: { cls: "text-emerald-600", dot: "bg-emerald-500" },
+  GRD: { cls: "text-primary", dot: "bg-primary" },
 };
 
 const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-100";
+  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 const uniqueYears = (semesters: DashboardSemesterOption[]) =>
   [...new Set(semesters.map((semester) => semester.year))].sort((a, b) => b - a);
@@ -161,7 +161,7 @@ export default function StudentDashboardPage() {
           <button
             type="button"
             onClick={() => void load({ year: selYear, termCode: selTerm }, selectedLecId)}
-            className="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+            className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
           >
             다시 시도
           </button>
@@ -205,7 +205,7 @@ export default function StudentDashboardPage() {
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex min-w-0 items-center gap-2">
                   <h2 className="text-base font-bold text-slate-800">수강 중인 강의</h2>
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  <span className="shrink-0 rounded-full bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
                     {data.semesterLabel}
                   </span>
                 </div>
@@ -224,7 +224,7 @@ export default function StudentDashboardPage() {
                           onClick={() => setSelectedLecId(course.lecId)}
                           aria-pressed={active}
                           className={`flex w-full items-center gap-3 px-2 py-3 text-left transition-colors ${
-                            active ? "bg-emerald-50" : "hover:bg-slate-50"
+                            active ? "bg-primary/5" : "hover:bg-slate-50"
                           }`}
                         >
                           <div className="min-w-0 flex-1">
@@ -256,7 +256,7 @@ export default function StudentDashboardPage() {
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h2 className="text-base font-bold text-slate-800">과제 현황</h2>
                 {selectedCourse && (
-                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                  <span className="shrink-0 rounded-full bg-primary/5 px-2.5 py-0.5 text-xs font-semibold text-primary">
                     총 {courseAssignments.length}건
                   </span>
                 )}
@@ -281,7 +281,7 @@ export default function StudentDashboardPage() {
                           {assignment.status === "NSB" && (
                             <Link
                               href={`/lms/student/assignments/submit?assignmentId=${assignment.id}`}
-                              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-emerald-500 hover:text-emerald-700"
+                              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-primary hover:text-primary"
                             >
                               제출
                             </Link>
@@ -317,7 +317,7 @@ function StatCard({
 }) {
   const body = (
     <>
-      <div className={`mb-3 h-2 w-10 rounded-full ${accent ? "bg-rose-100" : "bg-emerald-100"}`} />
+      <div className={`mb-3 h-2 w-10 rounded-full ${accent ? "bg-rose-100" : "bg-primary/10"}`} />
       <p className="leading-none">
         <span className={`text-2xl font-bold ${valueColor ?? "text-slate-900"}`}>{value}</span>
         <span className="ml-0.5 text-xs text-slate-400">{unit}</span>
@@ -330,7 +330,7 @@ function StatCard({
     return (
       <Link
         href={href}
-        className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-emerald-400 hover:bg-emerald-50/40"
+        className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-primary/40 hover:bg-primary/40"
       >
         {body}
       </Link>

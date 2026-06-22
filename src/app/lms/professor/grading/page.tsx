@@ -371,7 +371,7 @@ export default function ProfessorGradingPage() {
           {/* 헤더 배지: 미채점 뷰=미채점만 / 채점 뷰=채점완료만 */}
           <div className="flex gap-2">
             {selectedKind === "graded" ? (
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                 채점완료 {d.gradedCount}
               </span>
             ) : (
@@ -519,7 +519,7 @@ export default function ProfessorGradingPage() {
                               </div>
                             ) : (
                               <div className="flex items-center justify-end gap-2">
-                                <span className="inline-flex h-8 items-center gap-1 rounded-md border border-emerald-300 px-3 text-sm font-medium text-emerald-700">
+                                <span className="inline-flex h-8 items-center gap-1 rounded-md border border-primary/30 px-3 text-sm font-medium text-primary">
                                   ✓ 완료
                                 </span>
                                 <Button
@@ -568,7 +568,7 @@ export default function ProfessorGradingPage() {
               {overview?.totalUngraded ?? 0}건 미채점
             </span>
           ) : (
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
               {gradedTotal}건 완료
             </span>
           )}
@@ -612,7 +612,7 @@ export default function ProfessorGradingPage() {
                           {a.ungradedCount}명
                         </span>
                       ) : (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                           {a.gradedCount}명
                         </span>
                       )}
@@ -699,7 +699,7 @@ export default function ProfessorGradingPage() {
           <>
             {/* 미채점 배너 / 완료 상태 (현재 필터 범위) */}
             {overview && overview.totalUngraded > 0 ? (
-              <section className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-5 py-4">
+              <section className="mb-6 rounded-2xl border border-primary/20 bg-primary/60 px-5 py-4">
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 text-lg">⚠️</span>
                   <div className="min-w-0">

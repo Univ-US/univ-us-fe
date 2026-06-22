@@ -31,7 +31,7 @@ const PAYMENT_STATUS_LABEL: Record<SubscriptionPaymentHistoryStatus, string> = {
 
 const PAYMENT_STATUS_STYLE: Record<SubscriptionPaymentHistoryStatus, string> = {
     READY: "bg-slate-100 text-slate-600",
-    PAID: "bg-emerald-100 text-emerald-700",
+    PAID: "bg-primary/10 text-primary",
     FAILED: "bg-red-100 text-red-700",
     CANCELED: "bg-slate-100 text-slate-500",
     REFUNDED: "bg-amber-100 text-amber-700",
@@ -180,13 +180,13 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
             ) : (
                 <>
                     <div className="grid gap-5 md:grid-cols-2">
-                        <section className="rounded-2xl bg-[#064b35] p-6 text-white shadow-sm">
+                        <section className="rounded-2xl bg-[var(--primary)] p-6 text-white shadow-sm">
                             <div className="flex items-center justify-between">
                                 <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">
                                     {status ? SUBSCRIPTION_ACCESS_LABEL[status.accessStatus] : "상태 확인 불가"}
                                 </span>
                                 {status?.planName && (
-                                    <span className="text-xs font-bold text-emerald-100">
+                                    <span className="text-xs font-bold text-primary-foreground">
                                         {status.planName}
                                         {status.billingCycle ? ` · ${BILLING_CYCLE_LABEL[status.billingCycle] ?? status.billingCycle}` : ""}
                                     </span>
@@ -194,17 +194,17 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                             </div>
                             <p className="mt-5 text-2xl font-black">{status?.univName ?? "—"}</p>
                             {status?.price != null && (
-                                <p className="mt-1 text-sm text-emerald-100">
+                                <p className="mt-1 text-sm text-primary-foreground">
                                     {status.price.toLocaleString()}원
                                     {status.billingCycle === "MONTHLY" ? " / 월" : status.billingCycle === "YEARLY" ? " / 년" : ""}
                                 </p>
                             )}
                             {status?.pendingAction !== "CANCEL" && status?.nextBillingAt && (
-                                <p className="mt-1 text-xs text-emerald-100/80">
+                                <p className="mt-1 text-xs text-white/80">
                                     결제 예정일 · {formatDate(status.nextBillingAt)}
                                 </p>
                             )}
-                            <div className="mt-4 space-y-1 text-sm text-emerald-100">
+                            <div className="mt-4 space-y-1 text-sm text-primary-foreground">
                                 <p>{status?.address ?? "주소 정보 없음"}</p>
                                 <p>{status?.schoolPhone ?? "전화번호 정보 없음"}</p>
                             </div>
@@ -228,7 +228,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                             </button>
                         </section>
 
-                        <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                        <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                             <h2 className="font-black">결제 수단</h2>
                             {paymentMethod?.registered ? (
                                 <div className="mt-4 rounded-xl bg-slate-50 p-4">
@@ -248,7 +248,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                         </section>
                     </div>
 
-                    <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <h2 className="font-black">플랜 변경</h2>
                             <p className="text-xs text-slate-400">변경한 플랜은 다음 결제부터 적용됩니다.</p>
@@ -292,8 +292,8 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                                             onClick={() => setSelectedPlanId(plan.planId)}
                                             className={`rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                                                 selected
-                                                    ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600"
-                                                    : "border-slate-200 hover:border-emerald-400"
+                                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                                    : "border-slate-200 hover:border-primary/40"
                                             }`}
                                         >
                                             <div className="flex items-center justify-between gap-2">
@@ -333,7 +333,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                                     selectedPlanId == null ||
                                     selectedPlanId === effectivePlanId
                                 }
-                                className="h-10 rounded-lg bg-emerald-700 px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                                className="h-10 rounded-lg bg-primary px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
                             >
                                 {saving ? "처리 중" : "플랜 변경"}
                             </button>
@@ -342,7 +342,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                                 <button
                                     onClick={() => void handleRevertCancel()}
                                     disabled={saving}
-                                    className="text-xs font-medium text-emerald-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-slate-300"
+                                    className="text-xs font-medium text-primary underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:text-slate-300"
                                 >
                                     구독 취소 철회
                                 </button>
@@ -358,7 +358,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                         </div>
                     </section>
 
-                    <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                    <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                         <div className="border-b border-slate-100 px-5 py-4">
                             <h2 className="font-black">결제 내역</h2>
                         </div>

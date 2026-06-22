@@ -101,7 +101,7 @@ function CommentItem({ comment, isAnon, isLast, currentMemberId, onDelete, onRep
               <button
                 type='button'
                 onClick={() => setShowAllReplies((prev) => !prev)}
-                className='text-xs font-bold text-primary transition-colors hover:text-teal-700'
+                className='text-xs font-bold text-primary transition-colors hover:text-primary'
               >
                 {showAllReplies ? '답글 접기' : `답글 ${replyCount}개 더보기`}
               </button>

@@ -52,7 +52,7 @@ export default function InquiriesView() {
             </div>
 
             <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-                <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+                <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                     <div className="border-b border-slate-100 px-5 py-4">
                         <h2 className="font-black">전체 문의 <span className="ml-1 text-sm font-bold text-slate-400">{inquiries.length}건</span></h2>
                     </div>
@@ -67,7 +67,7 @@ export default function InquiriesView() {
                                 <li key={item.supportId}>
                                     <button
                                         onClick={() => setSelected(item)}
-                                        className={`w-full px-5 py-4 text-left transition-colors hover:bg-slate-50 ${selected?.supportId === item.supportId ? "bg-emerald-50" : ""} ${item.status === 1 ? "opacity-50" : ""}`}
+                                        className={`w-full px-5 py-4 text-left transition-colors hover:bg-slate-50 ${selected?.supportId === item.supportId ? "bg-primary/5" : ""} ${item.status === 1 ? "opacity-50" : ""}`}
                                     >
                                         <div className="flex items-center justify-between gap-3">
                                             <span className={`font-black truncate ${item.status === 1 ? "text-slate-400 line-through" : "text-slate-900"}`}>{item.memberName}</span>
@@ -86,12 +86,12 @@ export default function InquiriesView() {
                     )}
                 </section>
 
-                <section className="rounded-2xl border border-emerald-900/10 bg-white p-6 shadow-sm">
+                <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
                     {selected ? (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="font-black text-slate-900">문의 상세</h2>
-                                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${selected.status === 1 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${selected.status === 1 ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700"}`}>
                                     {SUPPORT_STATUS_LABEL[selected.status] ?? selected.status}
                                 </span>
                             </div>
@@ -119,7 +119,7 @@ export default function InquiriesView() {
                                 <button
                                     onClick={handleResolve}
                                     disabled={resolving}
-                                    className="mt-2 w-full rounded-lg bg-[#064b35] py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
+                                    className="mt-2 w-full rounded-lg bg-[var(--primary)] py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
                                 >
                                     {resolving ? "처리 중..." : "처리완료로 변경"}
                                 </button>

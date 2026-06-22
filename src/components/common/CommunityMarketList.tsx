@@ -40,7 +40,7 @@ const resolveImageUrl = (url: string) =>
 
 function StatusBadge({ status }: { status: Product['productStatus'] }) {
   const styles: Record<string, string> = {
-    SALE: 'bg-emerald-100 text-emerald-700',
+    SALE: 'bg-primary/10 text-primary',
     RESERVE: 'bg-amber-100 text-amber-700',
     DONE: 'bg-slate-100 text-slate-500',
   };

@@ -70,7 +70,7 @@ function MarketCommentItem({
           <div className="mb-1 flex items-center gap-2">
             <span className="text-[13px] font-extrabold text-slate-900">{authorLabel}</span>
             {comment.isSeller && (
-              <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
+              <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[11px] font-bold text-primary">
                 판매자
               </span>
             )}
@@ -93,7 +93,7 @@ function MarketCommentItem({
               <button
                 type="button"
                 onClick={() => setShowAllReplies((prev) => !prev)}
-                className="text-xs font-bold text-primary transition-colors hover:text-teal-700"
+                className="text-xs font-bold text-primary transition-colors hover:text-primary"
               >
                 {showAllReplies ? '답글 접기' : `답글 ${replyCount}개 더보기`}
               </button>
@@ -132,7 +132,7 @@ function MarketCommentItem({
                     <div className="mb-1 flex items-center gap-2">
                       <span className="text-[13px] font-extrabold text-slate-900">{replyLabel}</span>
                       {reply.isSeller && (
-                        <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-primary">
+                        <span className="rounded-full bg-primary/5 px-2 py-0.5 text-[11px] font-bold text-primary">
                           판매자
                         </span>
                       )}

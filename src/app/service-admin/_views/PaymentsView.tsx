@@ -57,8 +57,8 @@ const METHOD_LABEL: Record<ServiceAdminPaymentMethod, string> = {
 
 function PaymentStatusBadge({ status }: { status: ServiceAdminPaymentStatus }) {
     const style = {
-        READY: "bg-blue-100 text-blue-700",
-        PAID: "bg-emerald-100 text-emerald-700",
+        READY: "bg-primary/10 text-primary",
+        PAID: "bg-primary/10 text-primary",
         FAILED: "bg-rose-100 text-rose-700",
         CANCELED: "bg-slate-100 text-slate-600",
         REFUNDED: "bg-violet-100 text-violet-700",
@@ -306,14 +306,14 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                         value: formatCurrency(result?.currentMonthRevenue ?? 0),
                         detail: null,
                         icon: Banknote,
-                        tone: "bg-emerald-100 text-emerald-700",
+                        tone: "bg-primary/10 text-primary",
                     },
                     {
                         label: `${currentMonthLabel} 결제 완료`,
                         value: `${(result?.currentMonthPaidCount ?? 0).toLocaleString()}건`,
                         detail: null,
                         icon: CheckCircle2,
-                        tone: "bg-emerald-100 text-emerald-700",
+                        tone: "bg-primary/10 text-primary",
                     },
                     {
                         label: `${currentMonthLabel} 결제 실패`,
@@ -327,12 +327,12 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                         value: `${(result?.currentMonthReadyCount ?? 0).toLocaleString()}건`,
                         detail: formatCurrency(result?.readyPaymentAmount ?? 0),
                         icon: Clock3,
-                        tone: "bg-blue-100 text-blue-700",
+                        tone: "bg-primary/10 text-primary",
                     },
                 ].map(({ label, value, detail, icon: Icon, tone }) => (
                     <div
                         key={label}
-                        className="flex items-center justify-between rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm"
+                        className="flex items-center justify-between rounded-2xl border border-primary/10 bg-white p-5 shadow-sm"
                     >
                         <div>
                             <p className="text-sm font-bold text-slate-500">{label}</p>
@@ -352,7 +352,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                 ))}
             </section>
 
-            <section className="rounded-2xl border border-emerald-900/10 bg-white p-5 shadow-sm">
+            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_150px_145px_145px_175px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -360,7 +360,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="학교명, 주문번호, PortOne ID 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-emerald-500"
+                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
                     <select
@@ -369,7 +369,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             setStatus(event.target.value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 결제 상태</option>
                         {Object.entries(STATUS_LABEL).map(([value, label]) => (
@@ -386,7 +386,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             );
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 플랜</option>
                         {result?.plans.map((plan) => (
@@ -401,7 +401,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             setMethod(event.target.value as typeof method);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="ALL">전체 결제 수단</option>
                         {Object.entries(METHOD_LABEL).map(([value, label]) => (
@@ -414,7 +414,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             setSort(event.target.value as PaymentSort);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-emerald-500"
+                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
                     >
                         <option value="RECENT">최근 결제순</option>
                         <option value="AMOUNT_DESC">결제 금액 높은순</option>
@@ -425,28 +425,28 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
                         검색 결과{" "}
-                        <span className="text-emerald-700">
+                        <span className="text-primary">
                             {(result?.totalElements ?? 0).toLocaleString()}
                         </span>
                         건
                     </p>
                     <button
                         onClick={resetFilters}
-                        className="font-extrabold text-slate-500 hover:text-emerald-700"
+                        className="font-extrabold text-slate-500 hover:text-primary"
                     >
                         필터 초기화
                     </button>
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
                 {error ? (
                     <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                         <AlertTriangle className="size-7 text-rose-500" />
                         <p className="mt-3 font-black text-slate-900">{error}</p>
                         <button
                             onClick={() => void loadPayments()}
-                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white"
+                            className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white"
                         >
                             <RefreshCw className="size-4" />
                             다시 시도
@@ -482,7 +482,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={8} className="px-5 py-16 text-center">
-                                                <RefreshCw className="mx-auto size-6 animate-spin text-emerald-700" />
+                                                <RefreshCw className="mx-auto size-6 animate-spin text-primary" />
                                             </td>
                                         </tr>
                                     ) : (
@@ -490,9 +490,9 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                             <tr
                                                 key={payment.historyId}
                                                 onClick={() => openDetail(payment)}
-                                                className={`cursor-pointer font-semibold text-slate-700 transition hover:bg-emerald-50/60 ${
+                                                className={`cursor-pointer font-semibold text-slate-700 transition hover:bg-primary/60 ${
                                                     selectedPayment?.historyId === payment.historyId
-                                                        ? "bg-emerald-50"
+                                                        ? "bg-primary/5"
                                                         : ""
                                                 }`}
                                             >
@@ -511,7 +511,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                                             }
                                                         }}
                                                         disabled={payment.univId == null}
-                                                        className="flex w-full items-center gap-2 font-black text-slate-950 hover:text-emerald-700 disabled:cursor-default disabled:hover:text-slate-950"
+                                                        className="flex w-full items-center gap-2 font-black text-slate-950 hover:text-primary disabled:cursor-default disabled:hover:text-slate-950"
                                                     >
                                                         <Building2 className="size-4 shrink-0" />
                                                         <span className="truncate">
@@ -586,7 +586,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                             onClick={() => setPage(item)}
                                             className={`size-9 rounded-lg text-sm font-black ${
                                                 page === item
-                                                    ? "bg-emerald-700 text-white"
+                                                    ? "bg-primary text-white"
                                                     : "border border-slate-200 text-slate-600"
                                             }`}
                                             aria-current={page === item ? "page" : undefined}
@@ -661,7 +661,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                     >
                         <header className="flex items-start justify-between border-b border-slate-100 px-7 py-6">
                             <div>
-                                <p className="text-xs font-extrabold text-emerald-700">결제 상세</p>
+                                <p className="text-xs font-extrabold text-primary">결제 상세</p>
                                 <h2 className="mt-2 text-2xl font-black text-slate-950">
                                     {selectedPayment.univName}
                                 </h2>
@@ -682,14 +682,14 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                         </header>
 
                         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
-                            <div className="flex items-center justify-between rounded-2xl bg-emerald-50 p-5">
+                            <div className="flex items-center justify-between rounded-2xl bg-primary/5 p-5">
                                 <div>
                                     <p className="text-sm font-bold text-slate-500">결제 금액</p>
                                     <p className="mt-1 text-3xl font-black text-slate-950">
                                         {formatCurrency(selectedPayment.amount)}
                                     </p>
                                 </div>
-                                <CreditCard className="size-8 text-emerald-700" />
+                                <CreditCard className="size-8 text-primary" />
                             </div>
 
                             <section className="mt-7">
@@ -759,7 +759,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                 <button
                                     onClick={retryPayment}
                                     disabled={processing}
-                                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 text-sm font-black text-white hover:bg-emerald-800 disabled:opacity-50"
+                                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
                                 >
                                     <RefreshCcw className="size-4" />
                                     재결제 요청
@@ -782,7 +782,7 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                                     }
                                 }}
                                 disabled={selectedPayment.univId == null}
-                                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 text-sm font-black text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-slate-100"
+                                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 text-sm font-black text-slate-700 hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-slate-100"
                             >
                                 <Building2 className="size-4" />
                                 해당 학교 상세 보기

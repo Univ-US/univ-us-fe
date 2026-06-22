@@ -79,7 +79,7 @@ export default function SeatMap({
               : canChat
                 ? 'border border-primary/20 bg-primary/10 text-primary hover:-translate-y-0.5 hover:border-primary hover:bg-primary/15 hover:shadow-sm'
                 : isMine
-                  ? 'border border-blue-100 bg-blue-50 text-blue-500'
+                  ? 'border border-primary/10 bg-primary/5 text-primary'
                   : 'border border-border bg-white text-slate-600 hover:-translate-y-0.5 hover:border-primary hover:shadow-sm hover:text-primary',
         )}
       >

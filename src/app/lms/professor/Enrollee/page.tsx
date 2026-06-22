@@ -655,7 +655,7 @@ function PageBtn({
 function lecStatusBadgeClass(code: string | null) {
   switch (code) {
     case "PROG":
-      return "bg-emerald-100 text-emerald-700"; // 강의진행중
+      return "bg-primary/10 text-primary"; // 강의진행중
     case "OPEN":
       return "bg-sky-100 text-sky-700"; // 수강신청중
     case "CLSD":
@@ -669,14 +669,14 @@ function lecStatusBadgeClass(code: string | null) {
 
 // 출석률 막대 색 — 교수 LMS 색상 표준(95/80): 정상 ≥95 · 경고 80~94 · 위험 <80
 function attendanceBarColor(rate: number) {
-  if (rate >= 95) return "bg-emerald-500";
+  if (rate >= 95) return "bg-primary";
   if (rate >= 80) return "bg-amber-400";
   return "bg-red-400";
 }
 
 function assignmentBadgeColor(done: number, total: number) {
   const ratio = total ? done / total : 0;
-  if (ratio >= 1) return "bg-emerald-100 text-emerald-700";
+  if (ratio >= 1) return "bg-primary/10 text-primary";
   if (ratio >= 0.5) return "bg-amber-100 text-amber-700";
   return "bg-red-100 text-red-600";
 }
