@@ -105,6 +105,7 @@ function ServiceAdminDashboardContent() {
         useState<ServiceAdminDashboardResponse | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(true);
     const [dashboardError, setDashboardError] = useState("");
+    const [isOperationsAlertOpen, setIsOperationsAlertOpen] = useState(false);
 
     const loadDashboard = useCallback(async () => {
         setDashboardLoading(true);
@@ -170,6 +171,44 @@ function ServiceAdminDashboardContent() {
         router.push(
             `/service-admin?view=school-detail&schoolId=${schoolId}`,
         );
+    };
+
+    const operationAlerts = dashboard
+        ? [
+            {
+                id: "failed-payments",
+                title: "결제 확인 필요",
+                description: `결제 실패 학교 ${dashboard.summary.failedPaymentSchoolCount.toLocaleString("ko-KR")}곳`,
+                count: dashboard.summary.failedPaymentSchoolCount,
+                view: "payments" as const,
+                tone: "bg-rose-50 text-rose-600",
+            },
+            {
+                id: "pending-schools",
+                title: "구독 승인 대기",
+                description: `승인 대기 학교 ${dashboard.summary.pendingSchoolCount.toLocaleString("ko-KR")}곳`,
+                count: dashboard.summary.pendingSchoolCount,
+                view: "schools" as const,
+                tone: "bg-amber-50 text-amber-700",
+            },
+            {
+                id: "unresolved-inquiries",
+                title: "미처리 문의",
+                description: `답변 또는 처리가 필요한 문의 ${dashboard.summary.unresolvedInquiryCount.toLocaleString("ko-KR")}건`,
+                count: dashboard.summary.unresolvedInquiryCount,
+                view: "inquiries" as const,
+                tone: "bg-sky-50 text-sky-700",
+            },
+        ].filter((alert) => alert.count > 0)
+        : [];
+    const operationAlertCount = operationAlerts.reduce(
+        (total, alert) => total + alert.count,
+        0,
+    );
+
+    const openAlertView = (nextView: ServiceAdminView) => {
+        setIsOperationsAlertOpen(false);
+        navigateToView(nextView);
     };
 
     return (
@@ -292,9 +331,69 @@ function ServiceAdminDashboardContent() {
                                 <span className="text-slate-300">/</span>
                                 <span className="text-slate-900">{VIEW_LABEL[view]}</span>
                             </div>
-                            <button className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
-                                <Bell className="size-4 text-slate-500" />
-                            </button>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsOperationsAlertOpen((open) => !open)}
+                                    className="relative flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition hover:border-emerald-300 hover:text-emerald-700"
+                                    aria-label="운영 알림"
+                                    aria-expanded={isOperationsAlertOpen}
+                                >
+                                    <Bell className="size-4 text-slate-500" />
+                                    {operationAlertCount > 0 && (
+                                        <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black leading-4 text-white">
+                                            {operationAlertCount > 99 ? "99+" : operationAlertCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {isOperationsAlertOpen && (
+                                    <section className="absolute right-0 top-11 z-50 w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+                                        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                                            <div>
+                                                <p className="text-sm font-black text-slate-900">운영 알림</p>
+                                                <p className="mt-0.5 text-xs text-slate-400">확인이 필요한 실제 운영 이슈입니다.</p>
+                                            </div>
+                                            {operationAlertCount > 0 && (
+                                                <span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-600">
+                                                    {operationAlertCount > 99 ? "99+" : operationAlertCount}건
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {dashboardError ? (
+                                            <p className="px-4 py-6 text-center text-sm font-medium text-slate-500">운영 알림을 불러오지 못했습니다.</p>
+                                        ) : dashboardLoading ? (
+                                            <p className="px-4 py-6 text-center text-sm font-medium text-slate-500">운영 알림을 불러오는 중입니다.</p>
+                                        ) : operationAlerts.length === 0 ? (
+                                            <div className="px-4 py-7 text-center">
+                                                <p className="text-sm font-black text-slate-800">현재 확인이 필요한 이슈가 없습니다.</p>
+                                                <p className="mt-1 text-xs leading-5 text-slate-400">결제, 구독 승인, 문의 상태를 계속 확인합니다.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="divide-y divide-slate-100">
+                                                {operationAlerts.map((alert) => (
+                                                    <button
+                                                        key={alert.id}
+                                                        type="button"
+                                                        onClick={() => openAlertView(alert.view)}
+                                                        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50"
+                                                    >
+                                                        <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl text-xs font-black ${alert.tone}`}>
+                                                            {alert.count}
+                                                        </span>
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block text-sm font-black text-slate-800">{alert.title}</span>
+                                                            <span className="mt-0.5 block truncate text-xs text-slate-500">{alert.description}</span>
+                                                        </span>
+                                                        <span className="text-xs font-black text-emerald-700">보기</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </section>
+                                )}
+                            </div>
                         </div>
                     </header>
 

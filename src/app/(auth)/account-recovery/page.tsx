@@ -200,7 +200,7 @@ function IdRecoveryPanel() {
                         ))}
                     </ul>
                     <Button asChild className="mt-4 h-10 w-full font-bold">
-                        <Link href="/home/login">홈 로그인으로</Link>
+                        <Link href="/login">로그인으로</Link>
                     </Button>
                 </div>
             )}
@@ -284,7 +284,7 @@ function PasswordRecoveryPanel() {
         try {
             setLoading(true);
             await resetRecoveredPassword(resetToken, password);
-            router.push("/home/login");
+            router.push("/login");
         } catch (resetError) {
             setError(getApiErrorMessage(resetError, "비밀번호 변경에 실패했습니다."));
         } finally {
@@ -363,7 +363,7 @@ export default function AccountRecoveryPage() {
     return (
         <main className="min-h-screen bg-slate-50 px-6 py-10">
             <div className="mx-auto w-full max-w-5xl">
-                <Link href="/home/login" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-primary">
+                <Link href="/login" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-primary">
                     <ArrowLeft className="size-4" />
                     로그인으로 돌아가기
                 </Link>
@@ -378,7 +378,7 @@ export default function AccountRecoveryPage() {
                 </div>
                 <div className="mt-6 flex justify-center">
                     <Button asChild variant="outline" className="h-11 min-w-32 font-bold">
-                        <Link href="/home">홈으로</Link>
+                        <Link href="/landing">홈으로</Link>
                     </Button>
                 </div>
             </div>

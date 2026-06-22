@@ -112,9 +112,20 @@ export default function LoginPage() {
                 onSubmit={handleSubmit}
                 className="w-full max-w-[380px] rounded-2xl border border-border bg-white p-6 shadow-sm"
             >
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                    로그인
-                </h1>
+                <div className="text-center">
+                    <Link
+                        href="/landing"
+                        className="inline-block text-4xl font-black tracking-[-0.06em] text-slate-950 transition-colors hover:text-primary"
+                    >
+                        Univ<span className="text-primary">Us</span>
+                    </Link>
+                    <h1 className="mt-4 text-xl font-extrabold tracking-tight text-slate-900">
+                        관리자 로그인
+                    </h1>
+                    <p className="mt-2 text-sm text-slate-500">
+                        UnivUs 운영 계정으로 로그인하세요.
+                    </p>
+                </div>
 
                 <div className="mt-6 space-y-4">
                     <input
@@ -141,13 +152,9 @@ export default function LoginPage() {
                     <LogIn className="size-4" />
                     {submitting ? "로그인 중..." : "로그인"}
                 </Button>
-                <div className="mt-4 flex justify-center gap-3 text-xs text-slate-500">
+                <div className="mt-4 flex justify-center text-xs text-slate-500">
                     <Link href="/account-recovery" className="font-medium hover:text-primary">
-                        아이디 찾기
-                    </Link>
-                    <span aria-hidden="true">|</span>
-                    <Link href="/account-recovery" className="font-medium hover:text-primary">
-                        비밀번호 찾기
+                        아이디/비밀번호 찾기
                     </Link>
                 </div>
                 <div className="mt-5 text-center text-sm text-slate-500">
