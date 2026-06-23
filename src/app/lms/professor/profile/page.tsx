@@ -15,6 +15,7 @@ import { useProfessorProfileStore } from "@/store/lms/lmsProfessorProfileStore";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getLmsAvatarColor } from "@/lib/lmsAvatar";
 import ImageCropDialog from "@/components/lms/ImageCropDialog";
+import { hasAllowedImageSignature } from "@/lib/imageSignature";
 
 // 이미지 URL 해석: BE가 상대경로(/uploads/...)를 주므로 로컬 개발 땐 API 도메인을 붙인다.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:9090";
@@ -75,7 +76,7 @@ export default function ProfessorProfilePage() {
     return () => URL.revokeObjectURL(url);
   }, [imageFile]);
 
-  const handlePickImage = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePickImage = async (e: ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setNotice(null);
     const file = e.target.files?.[0];
@@ -86,6 +87,11 @@ export default function ProfessorProfilePage() {
     }
     if (file.size > PROFILE_IMAGE_MAX_SIZE) {
       setError("이미지 용량은 30MB를 초과할 수 없습니다.");
+      return;
+    }
+    // 확장자/Content-Type 위장(.gif→.jpeg 리네임 등)을 막기 위해 실제 시그니처(매직바이트)를 검사한다
+    if (!(await hasAllowedImageSignature(file))) {
+      setError("이미지는 JPG 또는 PNG 형식만 업로드할 수 있습니다.");
       return;
     }
     // 바로 적용하지 않고 크롭 모달을 띄워 위치를 조정한다

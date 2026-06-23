@@ -33,6 +33,7 @@ import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 type RealtimeStatus = "connected" | "disconnected";
 
 const STUDENT_PAGE_SIZE = 5; // '채팅 만들기' 수강생 클릭 리스트 한 페이지당 표시 인원
+const MESSAGE_MAX_LENGTH = 1000; // 채팅 메시지 최대 글자수 (DB CHT_ROM_MSG_CONTENT 1000자)
 
 function sortRooms(rooms: ProfessorChatRoom[]) {
   return [...rooms].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
@@ -441,9 +442,9 @@ export default function ProfessorChatPage() {
                             <span className="mb-1 text-[11px] text-slate-400">
                               {selectedRoom.studentName}
                             </span>
-                            <div className="flex max-w-[85%] items-end gap-2">
-                              <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2 text-sm text-slate-700 shadow-sm">
-                                <p className="whitespace-pre-wrap break-words">{message.chtRomMsgContent}</p>
+                            <div className="flex min-w-0 max-w-[85%] items-end gap-2">
+                              <div className="min-w-0 rounded-2xl rounded-tl-sm bg-white px-3.5 py-2 text-sm text-slate-700 shadow-sm">
+                                <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.chtRomMsgContent}</p>
                               </div>
                               <span className="shrink-0 text-[11px] text-slate-400">
                                 {formatChatMessageTime(message.chtRomMsgDate)}
@@ -452,13 +453,13 @@ export default function ProfessorChatPage() {
                           </div>
                         ) : (
                           <div key={message.messageId} className="flex justify-end">
-                            <div className="flex max-w-[85%] items-end gap-2">
+                            <div className="flex min-w-0 max-w-[85%] items-end gap-2">
                               <span className="shrink-0 text-[11px] text-slate-400">
                                 {message.read ? "읽음 " : ""}
                                 {formatChatMessageTime(message.chtRomMsgDate)}
                               </span>
-                              <div className="rounded-2xl rounded-tr-sm bg-slate-800 px-3.5 py-2 text-sm text-white shadow-sm">
-                                <p className="whitespace-pre-wrap break-words">{message.chtRomMsgContent}</p>
+                              <div className="min-w-0 rounded-2xl rounded-tr-sm bg-slate-800 px-3.5 py-2 text-sm text-white shadow-sm">
+                                <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.chtRomMsgContent}</p>
                               </div>
                             </div>
                           </div>
@@ -469,31 +470,36 @@ export default function ProfessorChatPage() {
                   )}
                 </div>
 
-                <form onSubmit={handleSend} className="flex items-end gap-2 border-t border-slate-100 px-4 py-3">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    rows={1}
-                    maxLength={1000}
-                    placeholder="메시지를 입력하세요."
-                    className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-slate-500 focus:bg-white"
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                        event.preventDefault();
-                        event.currentTarget.form?.requestSubmit();
-                      }
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    onMouseDown={(event) => event.preventDefault()}
-                    disabled={!input.trim() || sending}
-                    aria-label="메시지 보내기"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    <Send className="size-4" />
-                  </button>
+                <form onSubmit={handleSend} className="border-t border-slate-100 px-4 py-3">
+                  <div className="flex items-end gap-2">
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(event) => setInput(event.target.value)}
+                      rows={1}
+                      maxLength={MESSAGE_MAX_LENGTH}
+                      placeholder="메시지를 입력하세요."
+                      className="min-h-10 flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-300 focus:border-slate-500 focus:bg-white"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                          event.preventDefault();
+                          event.currentTarget.form?.requestSubmit();
+                        }
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      onMouseDown={(event) => event.preventDefault()}
+                      disabled={!input.trim() || sending}
+                      aria-label="메시지 보내기"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      <Send className="size-4" />
+                    </button>
+                  </div>
+                  <p className="mt-1.5 pr-1 text-right text-[11px] text-slate-400">
+                    {input.length} / {MESSAGE_MAX_LENGTH}자
+                  </p>
                 </form>
               </>
             )}
