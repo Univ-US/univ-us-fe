@@ -12,6 +12,7 @@
 // 실패 시 가짜 데이터로 가리지 않고 describeApiError로 에러 표기.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import ProfessorSubmissionPreviewDialog from "@/components/lms/ProfessorSubmissionPreviewDialog";
 import {
   getGradingOverview,
@@ -656,34 +657,28 @@ export default function ProfessorGradingPage() {
           </div>
           {/* 년도·학기 분리 필터 — 둘 다 기본 '전체'(서버 필터) */}
           <div className="flex gap-2">
-            <select
-              className={selectClass}
+            <LmsSelectDropdown
+              className="w-28"
               value={yearFilter === "all" ? "all" : String(yearFilter)}
-              onChange={(e) =>
-                handleYearChange(e.target.value === "all" ? "all" : Number(e.target.value))
+              onChange={(value) =>
+                handleYearChange(value === "all" ? "all" : Number(value))
               }
               disabled={ungradedLoading || gradedLoading}
-            >
-              <option value="all">전체 연도</option>
-              {yearOptions.map((y) => (
-                <option key={y} value={String(y)}>
-                  {y}년
-                </option>
-              ))}
-            </select>
-            <select
-              className={selectClass}
+              options={[
+                { value: "all", label: "전체 연도" },
+                ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+              ]}
+            />
+            <LmsSelectDropdown
+              className="w-32"
               value={termFilter}
-              onChange={(e) => handleTermChange(e.target.value)}
+              onChange={handleTermChange}
               disabled={ungradedLoading || gradedLoading}
-            >
-              <option value="all">전체 학기</option>
-              {termOptions.map((t) => (
-                <option key={t} value={t}>
-                  {termMap[t] ?? t}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "all", label: "전체 학기" },
+                ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+              ]}
+            />
           </div>
         </header>
 
@@ -739,8 +734,6 @@ export default function ProfessorGradingPage() {
   );
 }
 
-const selectClass =
-  "shrink-0 truncate rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/30 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 // 과제 목록 페이지당 건수 (서버 페이지네이션 size). 과제는 보통 적어 5건이면 대개 1페이지.
 const ASSIGNMENTS_PAGE_SIZE = 5;

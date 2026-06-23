@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import ProfessorMaterialUploadDialog from "@/components/lms/ProfessorMaterialUploadDialog";
 import {
   deleteUpload,
@@ -238,34 +239,28 @@ export default function LectureUploadPage() {
                   <span className="text-sm text-slate-500">{totalElements}건</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
+                  <LmsSelectDropdown
                     value={yearFilter}
-                    onChange={(e) => changeYear(e.target.value)}
+                    onChange={changeYear}
                     disabled={loading}
                     aria-label="연도 필터"
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                  >
-                    <option value="all">전체 연도</option>
-                    {yearOptions.map((y) => (
-                      <option key={y} value={String(y)}>
-                        {y}년
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    className="w-28"
+                    options={[
+                      { value: "all", label: "전체 연도" },
+                      ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+                    ]}
+                  />
+                  <LmsSelectDropdown
                     value={termFilter}
-                    onChange={(e) => changeTerm(e.target.value)}
+                    onChange={changeTerm}
                     disabled={loading}
                     aria-label="학기 필터"
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-50"
-                  >
-                    <option value="all">전체 학기</option>
-                    {termOptions.map((t) => (
-                      <option key={t} value={t}>
-                        {termMap[t] ?? t}
-                      </option>
-                    ))}
-                  </select>
+                    className="w-32"
+                    options={[
+                      { value: "all", label: "전체 학기" },
+                      ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+                    ]}
+                  />
                 </div>
               </div>
               <div className="overflow-x-auto">

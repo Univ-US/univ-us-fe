@@ -8,6 +8,7 @@
 // BE 연동: /api/lms/professor/attendance/** (lib: lmsProfessorAttendanceApi).
 // 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError).
 import { useCallback, useEffect, useMemo, useState } from "react";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import ProfessorAttendanceEditDialog from "@/components/lms/ProfessorAttendanceEditDialog";
 import {
   getAttendanceLectures,
@@ -183,48 +184,39 @@ export default function ProfessorAttendancePage() {
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {/* 년도·학기 분리 필터 — 기본값 둘 다 '전체'(전 화면 공통 규칙) */}
-            <select
+            <LmsSelectDropdown
               value={yearFilter === "all" ? "" : String(yearFilter)}
-              onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
-              className={`${selectClass} w-28`}
-            >
-              <option value="">전체 연도</option>
-              {yearOptions.map((y) => (
-                <option key={y} value={String(y)}>
-                  {y}년
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => handleYearChange(value === "" ? "all" : Number(value))}
+              className="w-28"
+              options={[
+                { value: "", label: "전체 연도" },
+                ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+              ]}
+            />
+            <LmsSelectDropdown
               value={termFilter === "all" ? "" : termFilter}
-              onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
-              className={`${selectClass} w-32`}
-            >
-              <option value="">전체 학기</option>
-              {termOptions.map((t) => (
-                <option key={t} value={t}>
-                  {termLabel(t)}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => handleTermChange(value === "" ? "all" : value)}
+              className="w-32"
+              options={[
+                { value: "", label: "전체 학기" },
+                ...termOptions.map((t) => ({ value: t, label: termLabel(t) })),
+              ]}
+            />
+            <LmsSelectDropdown
               value={selectedLecId ?? ""}
-              onChange={(e) => setSelectedLecId(Number(e.target.value))}
+              onChange={(value) => setSelectedLecId(Number(value))}
               disabled={filteredLectures.length === 0}
-              className={`${selectClass} w-56 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
-            >
-              {filteredLectures.length === 0 ? (
-                <option value="" disabled>
-                  강의 없음
-                </option>
-              ) : (
-                filteredLectures.map((l) => (
-                  <option key={l.lecId} value={l.lecId} title={l.lecName}>
-                    {l.lecName} · {l.lecSection}반
-                  </option>
-                ))
-              )}
-            </select>
+              className="w-56"
+              menuClassName="w-64"
+              options={
+                filteredLectures.length === 0
+                  ? [{ value: "", label: "강의 없음", disabled: true }]
+                  : filteredLectures.map((lecture) => ({
+                      value: lecture.lecId,
+                      label: `${lecture.lecName} · ${lecture.lecSection}반`,
+                    }))
+              }
+            />
           </div>
         </header>
 
@@ -410,9 +402,6 @@ export default function ProfessorAttendancePage() {
 }
 
 // ── 헬퍼 ────────────────────────────────────────────────────
-const selectClass =
-  "shrink-0 truncate rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/30";
-
 type Tone = "slate" | "emerald" | "amber" | "red";
 const TAG_TONE: Record<Tone, string> = {
   slate: "bg-slate-100 text-slate-500",

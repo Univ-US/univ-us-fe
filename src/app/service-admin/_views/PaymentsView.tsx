@@ -6,10 +6,6 @@ import {
     Banknote,
     Building2,
     CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     CircleAlert,
     Clock3,
     CreditCard,
@@ -30,7 +26,7 @@ import {
     type ServiceAdminPaymentQuery,
     type ServiceAdminPaymentStatus,
 } from "@/lib/serviceAdminApi";
-import { formatCurrency } from "../_components";
+import { formatCurrency, SelectDropdown, ServiceAdminPagination } from "../_components";
 
 interface PaymentsViewProps {
     onOpenSchool: (schoolId: number) => void;
@@ -40,7 +36,6 @@ type PaymentSort = NonNullable<ServiceAdminPaymentQuery["sort"]>;
 type PaginationItem = number | "ellipsis-start" | "ellipsis-end";
 
 const PAGE_WINDOW_SIZE = 5;
-const PAGE_JUMP_SIZE = 10;
 
 const STATUS_LABEL: Record<ServiceAdminPaymentStatus, string> = {
     READY: "결제 예정",
@@ -363,64 +358,65 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
-                    <select
+                    <SelectDropdown
                         value={status}
-                        onChange={(event) => {
-                            setStatus(event.target.value as typeof status);
+                        onChange={(value) => {
+                            setStatus(value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 결제 상태</option>
-                        {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                            <option key={value} value={value}>{label}</option>
-                        ))}
-                    </select>
-                    <select
+                        options={[
+                            { value: "ALL", label: "전체 결제 상태" },
+                            ...Object.entries(STATUS_LABEL).map(([value, label]) => ({
+                                value,
+                                label,
+                            })),
+                        ]}
+                    />
+                    <SelectDropdown
                         value={planId}
-                        onChange={(event) => {
+                        onChange={(value) => {
                             setPlanId(
-                                event.target.value === "ALL"
+                                value === "ALL"
                                     ? "ALL"
-                                    : Number(event.target.value),
+                                    : Number(value),
                             );
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 플랜</option>
-                        {result?.plans.map((plan) => (
-                            <option key={plan.planId} value={plan.planId}>
-                                {plan.planName}
-                            </option>
-                        ))}
-                    </select>
-                    <select
+                        options={[
+                            { value: "ALL", label: "전체 플랜" },
+                            ...(result?.plans.map((plan) => ({
+                                value: plan.planId,
+                                label: plan.planName,
+                            })) ?? []),
+                        ]}
+                    />
+                    <SelectDropdown
                         value={method}
-                        onChange={(event) => {
-                            setMethod(event.target.value as typeof method);
+                        onChange={(value) => {
+                            setMethod(value as typeof method);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 결제 수단</option>
-                        {Object.entries(METHOD_LABEL).map(([value, label]) => (
-                            <option key={value} value={value}>{label}</option>
-                        ))}
-                    </select>
-                    <select
+                        options={[
+                            { value: "ALL", label: "전체 결제 수단" },
+                            ...Object.entries(METHOD_LABEL).map(([value, label]) => ({
+                                value,
+                                label,
+                            })),
+                        ]}
+                    />
+                    <SelectDropdown
                         value={sort}
-                        onChange={(event) => {
-                            setSort(event.target.value as PaymentSort);
+                        onChange={(value) => {
+                            setSort(value as PaymentSort);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="RECENT">최근 결제순</option>
-                        <option value="AMOUNT_DESC">결제 금액 높은순</option>
-                        <option value="AMOUNT_ASC">결제 금액 낮은순</option>
-                        <option value="SCHOOL_ASC">학교 이름순</option>
-                    </select>
+                        options={[
+                            { value: "RECENT", label: "최근 결제순" },
+                            { value: "AMOUNT_DESC", label: "결제 금액 높은순" },
+                            { value: "AMOUNT_ASC", label: "결제 금액 낮은순" },
+                            { value: "SCHOOL_ASC", label: "학교 이름순" },
+                        ]}
+                    />
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
@@ -550,90 +546,14 @@ export default function PaymentsView({ onOpenSchool }: PaymentsViewProps) {
                             </table>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4">
-                            <p className="text-sm font-bold text-slate-400">
-                                {(result?.totalPages ?? 0) === 0 ? 0 : page + 1} /{" "}
-                                {result?.totalPages ?? 0} 페이지
-                            </p>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                                <button
-                                    onClick={() => setPage(0)}
-                                    disabled={page === 0}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="첫 페이지"
-                                >
-                                    <ChevronsLeft className="size-4" />
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => current - PAGE_JUMP_SIZE)}
-                                    disabled={page < PAGE_JUMP_SIZE}
-                                    className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    -10
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => Math.max(0, current - 1))}
-                                    disabled={result?.first ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="이전 페이지"
-                                >
-                                    <ChevronLeft className="size-4" />
-                                </button>
-                                {paginationItems.map((item) =>
-                                    typeof item === "number" ? (
-                                        <button
-                                            key={item}
-                                            onClick={() => setPage(item)}
-                                            className={`size-9 rounded-lg text-sm font-black ${
-                                                page === item
-                                                    ? "bg-primary text-white"
-                                                    : "border border-slate-200 text-slate-600"
-                                            }`}
-                                            aria-current={page === item ? "page" : undefined}
-                                        >
-                                            {item + 1}
-                                        </button>
-                                    ) : (
-                                        <span
-                                            key={item}
-                                            className="flex size-7 items-center justify-center text-sm font-black text-slate-400"
-                                        >
-                                            ...
-                                        </span>
-                                    ),
-                                )}
-                                <button
-                                    onClick={() =>
-                                        setPage((current) =>
-                                            Math.min(
-                                                Math.max(0, (result?.totalPages ?? 1) - 1),
-                                                current + 1,
-                                            ),
-                                        )
-                                    }
-                                    disabled={result?.last ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="다음 페이지"
-                                >
-                                    <ChevronRight className="size-4" />
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => current + PAGE_JUMP_SIZE)}
-                                    disabled={page + PAGE_JUMP_SIZE >= (result?.totalPages ?? 0)}
-                                    className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    +10
-                                </button>
-                                <button
-                                    onClick={() => setPage(Math.max((result?.totalPages ?? 1) - 1, 0))}
-                                    disabled={result?.last ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="마지막 페이지"
-                                >
-                                    <ChevronsRight className="size-4" />
-                                </button>
-                            </div>
-                        </div>
+                        <ServiceAdminPagination
+                            page={page}
+                            totalPages={result?.totalPages ?? 0}
+                            first={result?.first ?? true}
+                            last={result?.last ?? true}
+                            paginationItems={paginationItems}
+                            onChange={setPage}
+                        />
                     </>
                 )}
             </section>

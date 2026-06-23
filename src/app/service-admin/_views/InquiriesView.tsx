@@ -25,6 +25,7 @@ import {
 } from "react";
 import SockJS from "sockjs-client";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { SelectDropdown } from "../_components";
 import {
     CATEGORY_LABEL,
     INQUIRY_ROOMS_TOPIC,
@@ -425,18 +426,29 @@ export default function InquiriesView() {
                             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="학교명, 관리자명, 제목 검색" className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary" />
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            <select value={status} onChange={(event) => setStatus(event.target.value as "ALL" | InquiryStatus)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
-                                <option value="ALL">전체 상태</option>
-                                <option value="WAITING">응답 대기</option>
-                                <option value="IN_PROGRESS">진행 중</option>
-                                <option value="CLOSED">종료</option>
-                            </select>
-                            <select value={category} onChange={(event) => setCategory(event.target.value as "ALL" | InquiryCategory)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
-                                <option value="ALL">전체 분류</option>
-                                {Object.entries(CATEGORY_LABEL).map(([value, label]) => (
-                                    <option key={value} value={value}>{label}</option>
-                                ))}
-                            </select>
+                            <SelectDropdown
+                                value={status}
+                                onChange={(value) => setStatus(value as "ALL" | InquiryStatus)}
+                                className="w-full"
+                                options={[
+                                    { value: "ALL", label: "전체 상태" },
+                                    { value: "WAITING", label: "응답 대기" },
+                                    { value: "IN_PROGRESS", label: "진행 중" },
+                                    { value: "CLOSED", label: "종료" },
+                                ]}
+                            />
+                            <SelectDropdown
+                                value={category}
+                                onChange={(value) => setCategory(value as "ALL" | InquiryCategory)}
+                                className="w-full"
+                                options={[
+                                    { value: "ALL", label: "전체 분류" },
+                                    ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({
+                                        value,
+                                        label,
+                                    })),
+                                ]}
+                            />
                         </div>
                     </div>
 

@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import {
   UPLOAD_ACCEPT,
@@ -27,7 +28,7 @@ import {
 } from "@/lib/lmsProfessorUploadApi";
 import type { Attachment, Lecture, Material } from "@/types/lmsProfessorUpload";
 import { describeApiError } from "@/lib/lmsApiError";
-import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
+import { truncateLectureName } from "@/lib/lmsLectureName";
 
 interface ProfessorMaterialUploadFormProps {
   lectures: Lecture[];
@@ -190,26 +191,20 @@ export default function ProfessorMaterialUploadForm({
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">대상 과목</label>
           {/* 수정 모드에서는 대상 과목 변경 불가(disabled) — 등록 모드에서만 선택 */}
-          <select
-            className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500`}
+          <LmsSelectDropdown
+            className="w-full"
             value={String(lecId)}
-            onChange={(e) => setLecId(Number(e.target.value))}
+            onChange={(value) => setLecId(Number(value))}
             disabled={uploading || mode === "edit"}
-          >
-            {lectures.length === 0 ? (
-              <option value="0">담당 강의가 없습니다</option>
-            ) : (
-              lectures.map((l) => (
-                <option
-                  key={l.lecId}
-                  value={String(l.lecId)}
-                  title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
-                >
-                  {lectureLabel(l)}
-                </option>
-              ))
-            )}
-          </select>
+            options={
+              lectures.length === 0
+                ? [{ value: "0", label: "담당 강의가 없습니다", disabled: true }]
+                : lectures.map((lecture) => ({
+                    value: String(lecture.lecId),
+                    label: lectureLabel(lecture),
+                  }))
+            }
+          />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">제목</label>

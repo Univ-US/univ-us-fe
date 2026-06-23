@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Download, Search, UserCheck, UserX, Users } from "lucide-react";
+import { Check, ChevronDown, Download, Search, UserCheck, UserX, Users } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import {
     getAdminMembers,
@@ -511,25 +511,20 @@ export default function MembersView() {
                         </tbody>
                     </table>
                 </div>
-                <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs font-bold text-slate-500">
-                        {filtered.length > 0
-                            ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} / ${filtered.length}`
-                            : "0건"}
-                    </p>
-                    <div className="flex gap-1">
+                <div className="flex items-center justify-center border-t border-slate-100 px-5 py-3">
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={() => setPage((p) => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            className="flex size-8 items-center justify-center rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                         >
-                            <ChevronLeft className="size-4" />
+                            ‹
                         </button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPage(p)}
-                                className={`flex size-8 items-center justify-center rounded-lg border text-sm font-bold ${p === page ? "border-primary bg-primary text-white" : "border-slate-200 hover:bg-slate-50"}`}
+                                className={`h-8 w-8 rounded-lg text-xs font-bold ${p === page ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-50"}`}
                             >
                                 {p}
                             </button>
@@ -537,9 +532,9 @@ export default function MembersView() {
                         <button
                             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            className="flex size-8 items-center justify-center rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                         >
-                            <ChevronRight className="size-4" />
+                            ›
                         </button>
                     </div>
                 </div>

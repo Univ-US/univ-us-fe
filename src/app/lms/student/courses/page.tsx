@@ -4,14 +4,12 @@
 // /courses/semesters 로 카드 헤더(요약) 렌더, 각 카드가 /courses/semesters/{semId} 로 과목 페이지를 서버 조회.
 // 년도/학기 필터 = 요약 카드 목록을 좁힘(필터). ⚠️ 대시보드는 별 엔드포인트(getStudentCourses 전체) 사용.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import { getSemesterSummaries, getSemesterCoursesPaged } from "@/lib/lmsStudentCoursesApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import type { CourseRow, SemesterSummary } from "@/types/lmsStudentCourses";
 
 const COURSE_PAGE_SIZE = 5;
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
-
 export default function StudentCoursesPage() {
   const [summaries, setSummaries] = useState<SemesterSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,32 +75,26 @@ export default function StudentCoursesPage() {
           <p className="mt-1 text-sm text-slate-500">학기별 수강 강의와 시간표를 확인하세요.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
+            onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-28`}
-          >
-            <option value="">전체 연도</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={[
+              { value: "", label: "전체 연도" },
+              ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+            ]}
+          />
+          <LmsSelectDropdown
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
+            onChange={(value) => setTermFilter(value === "" ? "all" : value)}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-32`}
-          >
-            <option value="">전체 학기</option>
-            {termOptions.map((t) => (
-              <option key={t} value={t}>
-                {termMap[t] ?? t}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={[
+              { value: "", label: "전체 학기" },
+              ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+            ]}
+          />
         </div>
       </header>
 

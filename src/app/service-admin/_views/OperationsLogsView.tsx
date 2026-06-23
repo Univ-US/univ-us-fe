@@ -3,10 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     CheckCircle2,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     CircleAlert,
     Clock3,
     CreditCard,
@@ -25,12 +21,11 @@ import {
     type ServiceAdminOperationLogQuery,
     type ServiceAdminOperationLogResult,
 } from "@/lib/serviceAdminApi";
-import { formatCurrency } from "../_components";
+import { formatCurrency, SelectDropdown, ServiceAdminPagination } from "../_components";
 
 type PaginationItem = number | "ellipsis-start" | "ellipsis-end";
 
 const PAGE_WINDOW_SIZE = 5;
-const PAGE_JUMP_SIZE = 10;
 
 const CATEGORY_LABEL: Record<ServiceAdminOperationLogCategory, string> = {
     ACCESS: "접근",
@@ -371,47 +366,50 @@ export default function OperationsLogsView() {
                         />
                     </label>
 
-                    <select
+                    <SelectDropdown
                         value={category}
-                        onChange={(event) => {
-                            setCategory(event.target.value as typeof category);
+                        onChange={(value) => {
+                            setCategory(value as typeof category);
                             setPage(0);
                         }}
-                        className="h-11 w-[140px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
-                    >
-                        <option value="ALL">전체 종류</option>
-                        <option value="ACCESS">접근</option>
-                        <option value="PAYMENT">구독결제</option>
-                    </select>
+                        className="w-[140px]"
+                        options={[
+                            { value: "ALL", label: "전체 종류" },
+                            { value: "ACCESS", label: "접근" },
+                            { value: "PAYMENT", label: "구독결제" },
+                        ]}
+                    />
 
-                    <select
+                    <SelectDropdown
                         value={result}
-                        onChange={(event) => {
-                            setResult(event.target.value as typeof result);
+                        onChange={(value) => {
+                            setResult(value as typeof result);
                             setPage(0);
                         }}
-                        className="h-11 w-[140px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
-                    >
-                        <option value="ALL">전체 결과</option>
-                        <option value="SUCCESS">성공</option>
-                        <option value="FAILURE">실패</option>
-                        <option value="SCHEDULED">예정</option>
-                    </select>
+                        className="w-[140px]"
+                        options={[
+                            { value: "ALL", label: "전체 결과" },
+                            { value: "SUCCESS", label: "성공" },
+                            { value: "FAILURE", label: "실패" },
+                            { value: "SCHEDULED", label: "예정" },
+                        ]}
+                    />
 
-                    <select
+                    <SelectDropdown
                         value={period}
-                        onChange={(event) => {
-                            setPeriod(event.target.value as ServiceAdminOperationLogPeriod);
+                        onChange={(value) => {
+                            setPeriod(value as ServiceAdminOperationLogPeriod);
                             setPage(0);
                         }}
-                        className="h-11 w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700"
-                    >
-                        <option value="1">최근 1일</option>
-                        <option value="7">최근 7일</option>
-                        <option value="30">최근 30일</option>
-                        <option value="90">최근 90일</option>
-                        <option value="ALL">전체</option>
-                    </select>
+                        className="w-[150px]"
+                        options={[
+                            { value: "1", label: "최근 1일" },
+                            { value: "7", label: "최근 7일" },
+                            { value: "30", label: "최근 30일" },
+                            { value: "90", label: "최근 90일" },
+                            { value: "ALL", label: "전체" },
+                        ]}
+                    />
 
                     <button
                         type="button"
@@ -525,107 +523,15 @@ export default function OperationsLogsView() {
                     </table>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                    <p className="text-sm font-bold text-slate-500">
-                        {(data?.totalPages ?? 0) === 0 ? 0 : page + 1} /{" "}
-                        {data?.totalPages ?? 0} 페이지 · 총{" "}
-                        {(data?.totalElements ?? 0).toLocaleString("ko-KR")}건
-                    </p>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setPage(0)}
-                            disabled={page === 0}
-                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="맨 앞 페이지"
-                            title="맨 앞 페이지"
-                        >
-                            <ChevronsLeft className="size-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPage((current) => current - PAGE_JUMP_SIZE)}
-                            disabled={page < PAGE_JUMP_SIZE}
-                            className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="10페이지 앞으로"
-                            title="10페이지 앞으로"
-                        >
-                            -10
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.max(page - 1, 0))}
-                            disabled={data?.first ?? true}
-                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="이전 페이지"
-                        >
-                            <ChevronLeft className="size-4" />
-                        </button>
-                        {paginationItems.map((item) =>
-                            typeof item === "number" ? (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => setPage(item)}
-                                    className={`size-9 rounded-lg text-sm font-black ${
-                                        item === page
-                                            ? "bg-primary text-white"
-                                            : "border border-slate-200 text-slate-600"
-                                    }`}
-                                    aria-label={`${item + 1}페이지`}
-                                    aria-current={page === item ? "page" : undefined}
-                                >
-                                    {item + 1}
-                                </button>
-                            ) : (
-                                <span
-                                    key={item}
-                                    className="flex size-7 items-center justify-center text-sm font-black text-slate-400"
-                                    aria-hidden="true"
-                                >
-                                    ...
-                                </span>
-                            ),
-                        )}
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setPage((current) =>
-                                    Math.min(Math.max(0, totalPages - 1), current + 1),
-                                )
-                            }
-                            disabled={data?.last ?? true}
-                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="다음 페이지"
-                        >
-                            <ChevronRight className="size-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setPage((current) =>
-                                    Math.min(Math.max(0, totalPages - 1), current + PAGE_JUMP_SIZE),
-                                )
-                            }
-                            disabled={page + PAGE_JUMP_SIZE >= totalPages}
-                            aria-label="10페이지 다음"
-                            title="10페이지 다음"
-                            className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            +10
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.max(totalPages - 1, 0))}
-                            disabled={data?.last ?? true}
-                            className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                            aria-label="맨 뒤 페이지"
-                            title="맨 뒤 페이지"
-                        >
-                            <ChevronsRight className="size-4" />
-                        </button>
-                    </div>
-                </div>
+                <ServiceAdminPagination
+                    page={page}
+                    totalPages={data?.totalPages ?? 0}
+                    first={data?.first ?? true}
+                    last={data?.last ?? true}
+                    paginationItems={paginationItems}
+                    onChange={setPage}
+                    totalElements={data?.totalElements ?? 0}
+                />
             </section>
 
             {selectedLog && (

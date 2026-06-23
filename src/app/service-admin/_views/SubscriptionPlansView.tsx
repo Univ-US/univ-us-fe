@@ -24,7 +24,7 @@ import {
     type ServiceAdminPlanResponse,
     type ServiceAdminPlanStatus,
 } from "@/lib/serviceAdminApi";
-import { formatCurrency } from "../_components";
+import { formatCurrency, SelectDropdown } from "../_components";
 
 type PlanForm = {
     name: string;
@@ -318,21 +318,21 @@ export default function SubscriptionPlansView() {
                             className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
                         />
                     </label>
-                    <select
+                    <SelectDropdown
                         value={status}
-                        onChange={(event) =>
+                        onChange={(value) =>
                             setStatus(
-                                event.target.value as
+                                value as
                                     | "ALL"
                                     | ServiceAdminPlanStatus,
                             )
                         }
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 상태</option>
-                        <option value="ACTIVE">활성</option>
-                        <option value="INACTIVE">비활성</option>
-                    </select>
+                        options={[
+                            { value: "ALL", label: "전체 상태" },
+                            { value: "ACTIVE", label: "활성" },
+                            { value: "INACTIVE", label: "비활성" },
+                        ]}
+                    />
                 </div>
             </section>
 

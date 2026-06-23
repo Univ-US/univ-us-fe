@@ -5,6 +5,7 @@
 // 지각·결석 수치(>0) 클릭 → 해당 날짜 팝오버(SLM-005-01). 년도/학기=요약 카드 목록 좁힘.
 // ⚠️ 대시보드는 별 엔드포인트(getStudentAttendance 전체) 사용.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import {
@@ -16,9 +17,6 @@ import type {
   AttendanceRecord,
   AttendanceSemesterSummary,
 } from "@/types/lmsStudentAttendance";
-
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 // 출석률 색상 — ≥95 정상 / 80~94 경고 / <80 위험(강조)
 const rateColor = (rate: number) =>
@@ -88,32 +86,26 @@ export default function StudentAttendancePage() {
           <p className="mt-1 text-sm text-slate-500">학기별 출석·지각·결석 현황</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
+            onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-28`}
-          >
-            <option value="">전체 연도</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={[
+              { value: "", label: "전체 연도" },
+              ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+            ]}
+          />
+          <LmsSelectDropdown
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
+            onChange={(value) => setTermFilter(value === "" ? "all" : value)}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-32`}
-          >
-            <option value="">전체 학기</option>
-            {termOptions.map((t) => (
-              <option key={t} value={t}>
-                {termMap[t] ?? t}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={[
+              { value: "", label: "전체 학기" },
+              ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+            ]}
+          />
         </div>
       </header>
 

@@ -13,6 +13,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Color, FontSize, TextStyle } from "@tiptap/extension-text-style";
 import { CharacterCount } from "@tiptap/extensions";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import "./lms-content.css";
 
 interface ProfessorRichTextEditorProps {
@@ -155,23 +156,18 @@ export default function ProfessorRichTextEditor({
         <span className="mx-1 h-4 w-px bg-slate-200" aria-hidden />
 
         {/* 글자 크기 */}
-        <select
-          title="글자 크기"
+        <LmsSelectDropdown
           disabled={disabled || !editor}
           value={state?.fontSize ?? ""}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v) editor?.chain().focus().setFontSize(v).run();
+          onChange={(value) => {
+            if (value) editor?.chain().focus().setFontSize(value).run();
             else editor?.chain().focus().unsetFontSize().run();
           }}
-          className="h-7 rounded border border-slate-200 bg-white px-1.5 text-xs text-slate-600 outline-none focus:border-slate-400 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {FONT_SIZES.map((s) => (
-            <option key={s.label} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          className="w-24"
+          menuClassName="w-24"
+          buttonClassName="h-7 gap-1.5 px-2 text-xs"
+          options={FONT_SIZES}
+        />
 
         <span className="mx-1 h-4 w-px bg-slate-200" aria-hidden />
 
