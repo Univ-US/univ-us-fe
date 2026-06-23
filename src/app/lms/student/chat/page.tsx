@@ -160,8 +160,19 @@ export default function StudentChatPage() {
     void loadThread(selectedRoomId);
   }, [loadThread, selectedRoomId]);
 
+  // 구독 콜백·selectedRoom을 ref로 보관 → WS 연결 effect가 콜백/방 객체 참조 변화에 재실행되지 않음
+  // (재실행되면 client.activate()가 즉시 새 핸드셰이크를 띄워 info?t= 폭주·NS_BINDING_ABORTED 유발)
+  const selectedRoomRef = useRef(selectedRoom);
+  const appendMessageRef = useRef(appendMessage);
+  const loadThreadRef = useRef(loadThread);
   useEffect(() => {
-    if (selectedRoomId == null || !selectedRoom) {
+    selectedRoomRef.current = selectedRoom;
+    appendMessageRef.current = appendMessage;
+    loadThreadRef.current = loadThread;
+  }, [selectedRoom, appendMessage, loadThread]);
+
+  useEffect(() => {
+    if (selectedRoomId == null) {
       setRealtimeStatus("disconnected");
       return;
     }
@@ -179,15 +190,17 @@ export default function StudentChatPage() {
         setRealtimeStatus("connected");
         client.subscribe(`${LMS_STUDENT_CHAT_TOPIC_PREFIX}/${selectedRoomId}`, (message) => {
           if (!message.body) return;
+          const room = selectedRoomRef.current;
+          if (!room) return;
           try {
             const payload = normalizeMessageForRoom(
               JSON.parse(message.body) as ChatMessage,
-              selectedRoom,
+              room,
             );
             if (payload.sender !== "me") {
-              void loadThread(selectedRoomId);
+              void loadThreadRef.current(selectedRoomId);
             } else {
-              appendMessage(payload);
+              appendMessageRef.current(payload);
             }
           } catch {
             // Ignore malformed realtime payloads.
@@ -207,7 +220,7 @@ export default function StudentChatPage() {
       setRealtimeStatus("disconnected");
       void client.deactivate();
     };
-  }, [appendMessage, loadThread, selectedRoom, selectedRoomId]);
+  }, [selectedRoomId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
