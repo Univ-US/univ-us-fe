@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
     ArrowRight,
@@ -18,6 +19,18 @@ import {
     ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
+
+const getDashboardPathByRole = (role: string | null) => {
+    switch (role) {
+        case "SUA":
+            return "/service-admin";
+        case "ADM":
+            return "/dashboard/school-admin";
+        default:
+            return null;
+    }
+};
 
 type RoleSection = {
     number: string;
@@ -108,6 +121,31 @@ function RolePanel({ section }: { section: RoleSection }) {
 }
 
 export default function ServicePage() {
+    const router = useRouter();
+    const logoutAction = useAuthStore((state) => state.logoutAction);
+    const role = useAuthStore((state) => state.role);
+    const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const isInitialized = useAuthStore((state) => state.isInitialized);
+    const dashboardPath = getDashboardPathByRole(role);
+    const shouldRedirectToHome =
+        isLoggedIn && (role === "STU" || role === "PROF" || role === "ALU");
+
+    const getStartPath = () => {
+        if (!isLoggedIn) return "/login";
+        return dashboardPath ?? "/subscribe";
+    };
+
+    const handleLogout = async () => {
+        await logoutAction();
+        router.refresh();
+    };
+
+    useEffect(() => {
+        if (isInitialized && shouldRedirectToHome) {
+            router.replace("/home");
+        }
+    }, [isInitialized, router, shouldRedirectToHome]);
+
     useEffect(() => {
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const targets = Array.from(document.querySelectorAll<HTMLElement>(".service-reveal"));
@@ -151,12 +189,29 @@ export default function ServicePage() {
         };
     }, []);
 
+    if (!isInitialized || shouldRedirectToHome) {
+        return null;
+    }
+
     return (
         <main className="min-h-screen overflow-hidden bg-[#fbfcfd] pt-[72px] text-slate-950">
             <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
                 <div className="mx-auto flex h-[72px] max-w-[1180px] items-center justify-between px-5 sm:px-6">
                     <Link href="/landing" className="flex items-center" aria-label="UnivUs 랜딩으로 이동"><img src="/univus-logo.svg" alt="UnivUs" className="h-12 w-auto" /></Link>
-                    <nav className="flex items-center gap-4 text-sm font-bold text-slate-600 sm:gap-7"><Link href="/landing" className="hidden transition-colors hover:text-primary sm:block">홈</Link><a href="#roles" className="hidden transition-colors hover:text-primary sm:block">역할별 기능</a><Link href="/login" className="transition-colors hover:text-primary">로그인</Link><Button asChild size="sm" className="h-9 rounded-lg px-4 font-bold"><Link href="/login">시작하기 <ArrowRight className="size-3.5" /></Link></Button></nav>
+                    <nav className="flex items-center gap-4 text-sm font-bold text-slate-600 sm:gap-7">
+                        <Link href="/landing" className="hidden transition-colors hover:text-primary sm:block">홈</Link>
+                        <a href="#roles" className="hidden transition-colors hover:text-primary sm:block">역할별 기능</a>
+                        {isLoggedIn ? (
+                            <button type="button" onClick={handleLogout} className="transition-colors hover:text-primary">로그아웃</button>
+                        ) : (
+                            <Link href="/login" className="transition-colors hover:text-primary">로그인</Link>
+                        )}
+                        <Button asChild size="sm" className="h-9 rounded-lg px-4 font-bold">
+                            <Link href={dashboardPath ?? getStartPath()}>
+                                {dashboardPath ? "대시보드" : "시작하기"} <ArrowRight className="size-3.5" />
+                            </Link>
+                        </Button>
+                    </nav>
                 </div>
             </header>
 

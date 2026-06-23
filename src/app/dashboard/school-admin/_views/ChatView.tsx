@@ -615,10 +615,10 @@ export default function ChatView() {
                                     const mine = item.senderRole === "ADM";
                                     return (
                                         <div key={item.messageId} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                                            <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
+                                            <div className={`flex min-w-0 w-fit max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`} style={{ maxWidth: "78%" }}>
                                                 <p className="mb-1 px-1 text-[11px] font-extrabold text-slate-400">{mine ? memberName ?? item.senderName : item.senderName}</p>
-                                                <div className={`rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${mine ? "rounded-br-md bg-[var(--primary)] text-white" : "rounded-bl-md border border-slate-200 bg-white text-slate-800"}`}>
-                                                    {item.content && <p className="whitespace-pre-wrap">{item.content}</p>}
+                                                <div className={`min-w-0 max-w-full rounded-2xl px-4 py-3 text-sm font-semibold leading-6 ${mine ? "rounded-br-md bg-[var(--primary)] text-white" : "rounded-bl-md border border-slate-200 bg-white text-slate-800"}`}>
+                                                    {item.content && <p className="whitespace-pre-wrap" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>{item.content}</p>}
                                                     {item.attachments.length > 0 && (
                                                         <div className="mt-2 space-y-1">
                                                             {item.attachments.map((attachment) => (
