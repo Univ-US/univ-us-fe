@@ -1,4 +1,4 @@
-import api, { API_BASE_URL } from "@/lib/api";
+import api, { API_BASE_URL, getCsrfToken } from "@/lib/api";
 import type { HomeWidgetConfig } from "@/lib/adminApi";
 
 export const getHomeConfig = async (): Promise<HomeWidgetConfig> => {
@@ -39,31 +39,35 @@ export const getUniversities = async (): Promise<University[]> => {
 };
 
 async function refreshAccessToken(): Promise<void> {
+    const csrfToken = await getCsrfToken();
     const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
+        headers: csrfToken ? { "X-XSRF-TOKEN": csrfToken } : undefined,
     });
     if (!res.ok) throw new Error("Refresh failed");
 }
 
-function buildStreamRequest(message: string): Request {
+async function buildStreamRequest(message: string): Promise<Request> {
+    const csrfToken = await getCsrfToken();
     return new Request(`${API_BASE_URL}/api/ai/stream`, {
         method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
+            ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
         },
         body: JSON.stringify({ message }),
     });
 }
 
 export async function* streamChatMessage(message: string): AsyncGenerator<string> {
-    let res = await fetch(buildStreamRequest(message));
+    let res = await fetch(await buildStreamRequest(message));
 
     if (res.status === 401) {
         try {
             await refreshAccessToken();
-            res = await fetch(buildStreamRequest(message));
+            res = await fetch(await buildStreamRequest(message));
         } catch {
             throw new Error("UNAUTHORIZED");
         }

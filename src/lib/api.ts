@@ -5,6 +5,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://loca
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
+    _csrfRetry?: boolean;
 }
 
 interface SubscriptionAccessErrorResponse {
@@ -28,8 +29,46 @@ const refreshClient = axios.create({
     withCredentials: true,
 });
 
+const csrfClient = axios.create({
+    baseURL: API_BASE_URL,
+    withCredentials: true,
+});
+
+let csrfPromise: Promise<string> | null = null;
 let refreshPromise: Promise<void> | null = null;
 const SESSION_ROLE_KEY = "univus:auth-role";
+
+const isStateChangingRequest = (method?: string) => {
+    return ["post", "put", "patch", "delete"].includes(method?.toLowerCase() ?? "");
+};
+
+export const getCsrfToken = async () => {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    if (!csrfPromise) {
+        csrfPromise = csrfClient
+            .get<{ token: string }>("/api/auth/csrf")
+            .then((response) => response.data.token)
+            .finally(() => {
+                csrfPromise = null;
+            });
+    }
+
+    return csrfPromise;
+};
+
+const attachCsrfToken = async (config: InternalAxiosRequestConfig) => {
+    if (!isStateChangingRequest(config.method)) {
+        return;
+    }
+
+    const token = await getCsrfToken();
+    if (token) {
+        config.headers.set("X-XSRF-TOKEN", token);
+    }
+};
 
 const isAuthApiRequest = (url?: string) => {
     return !!url && url.startsWith("/api/auth/");
@@ -69,11 +108,21 @@ const getSessionExpiredLoginPath = () => {
 };
 
 api.interceptors.request.use(
-    (config) => {
+    async (config) => {
+        await attachCsrfToken(config);
+
         if (config.data instanceof FormData) {
             delete config.headers["Content-Type"];
         }
 
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+refreshClient.interceptors.request.use(
+    async (config) => {
+        await attachCsrfToken(config);
         return config;
     },
     (error) => Promise.reject(error)
@@ -98,6 +147,17 @@ api.interceptors.response.use(
                     responseData.role === "ADM" ? "/subscribe" : "/unauthorized";
             }
             return Promise.reject(error);
+        }
+
+        if (
+            originalRequest &&
+            error.response?.status === 403 &&
+            responseData?.code === "CSRF_INVALID" &&
+            !originalRequest._csrfRetry
+        ) {
+            originalRequest._csrfRetry = true;
+            await getCsrfToken();
+            return api(originalRequest);
         }
 
         if (!originalRequest || error.response?.status !== 401) {
