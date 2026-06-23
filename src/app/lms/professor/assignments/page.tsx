@@ -11,10 +11,11 @@
 // - 수정: 행 '수정' → 폼 프리필(과목은 변경 불가) + dirty 가드 / 삭제: confirm 경유
 // - 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기 + 재시도(grading 패턴)
 import { useCallback, useEffect, useMemo, useState } from "react";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import useEscapeClose from "@/components/lms/useEscapeClose";
 import ProfessorRichTextEditor from "@/components/lms/ProfessorRichTextEditor";
 import { htmlToPlainText } from "@/lib/lmsSanitize";
-import { truncateLectureName, LECTURE_NAME_MAX } from "@/lib/lmsLectureName";
+import { truncateLectureName } from "@/lib/lmsLectureName";
 import {
   ASSIGNMENT_ACCEPT,
   ASSIGNMENT_ALLOWED_EXTS,
@@ -32,8 +33,6 @@ import type { Assignment, AssignmentLecture } from "@/types/lmsProfessorAssignme
 import { getCommonCodeMap } from "@/lib/lmsProfessorStudentsApi";
 import { getCommonCodeList } from "@/lib/lmsCommonCode";
 
-const selectClass =
-  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 const inputClass =
   "h-10 w-full rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500";
 const labelClass = "text-sm font-semibold text-slate-700";
@@ -396,56 +395,42 @@ export default function ProfessorAssignmentsPage() {
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {/* 년도·학기 분리 필터 — 기본값 둘 다 '전체'(전 화면 공통 규칙) */}
-            <select
+            <LmsSelectDropdown
               value={yearFilter === "all" ? "" : String(yearFilter)}
-              onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
+              onChange={(value) => handleYearChange(value === "" ? "all" : Number(value))}
               disabled={loading && lectures.length === 0}
-              className={`${selectClass} w-28`}
-            >
-              <option value="">전체 연도</option>
-              {yearOptions.map((y) => (
-                <option key={y} value={String(y)}>
-                  {y}년
-                </option>
-              ))}
-            </select>
-            <select
+              className="w-28"
+              options={[
+                { value: "", label: "전체 연도" },
+                ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+              ]}
+            />
+            <LmsSelectDropdown
               value={termFilter === "all" ? "" : termFilter}
-              onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
+              onChange={(value) => handleTermChange(value === "" ? "all" : value)}
               disabled={loading && lectures.length === 0}
-              className={`${selectClass} w-32`}
-            >
-              <option value="">전체 학기</option>
-              {termOptions.map((t) => (
-                <option key={t} value={t}>
-                  {termMap[t] ?? t}
-                </option>
-              ))}
-            </select>
+              className="w-32"
+              options={[
+                { value: "", label: "전체 학기" },
+                ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+              ]}
+            />
             {/* 과목 드롭다운 — 년도/학기로 좁힌 담당 강의, 첫 과목 자동 선택 */}
-            <select
+            <LmsSelectDropdown
               value={selectedLecId ?? ""}
-              onChange={(e) => handleLectureChange(Number(e.target.value))}
+              onChange={(value) => handleLectureChange(Number(value))}
               disabled={filteredLectures.length === 0}
-              className={`${selectClass} w-64`}
-            >
-              {filteredLectures.length === 0 ? (
-                <option value="" disabled>
-                  담당 강의 없음
-                </option>
-              ) : (
-                filteredLectures.map((l) => (
-                  <option
-                    key={l.lecId}
-                    value={l.lecId}
-                    title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
-                  >
-                    {truncateLectureName(l.courseName)}
-                    {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
-                  </option>
-                ))
-              )}
-            </select>
+              className="w-64"
+              menuClassName="w-72"
+              options={
+                filteredLectures.length === 0
+                  ? [{ value: "", label: "담당 강의 없음", disabled: true }]
+                  : filteredLectures.map((lecture) => ({
+                      value: lecture.lecId,
+                      label: `${truncateLectureName(lecture.courseName)}${lecture.lecSection != null ? ` · ${lecture.lecSection}반` : ""} · ${semLabelOf(lecture.semYear, lecture.semTerm)}`,
+                    }))
+              }
+            />
             {/* 과제 등록 — 폼은 모달로 (필터 오른쪽 배치) */}
             <button
               type="button"
@@ -492,24 +477,20 @@ export default function ProfessorAssignmentsPage() {
                     대상 과목 <span className="text-rose-500">*</span>
                   </label>
                   {/* 수정 시 과목 변경 불가(소속 데이터가 달라지므로) — 신규 등록에서만 선택 */}
-                  <select
-                    className={`${selectClass} mt-2 h-10 w-full`}
+                  <LmsSelectDropdown
+                    className="mt-2 w-full"
+                    menuClassName="w-full"
                     value={form.lecId === "" ? "" : String(form.lecId)}
-                    onChange={(e) => setForm((p) => ({ ...p, lecId: e.target.value === "" ? "" : Number(e.target.value) }))}
+                    onChange={(value) => setForm((p) => ({ ...p, lecId: value === "" ? "" : Number(value) }))}
                     disabled={!!editing}
-                  >
-                    <option value="">과목을 선택하세요</option>
-                    {lectures.map((l) => (
-                      <option
-                        key={l.lecId}
-                        value={String(l.lecId)}
-                        title={l.courseName.length > LECTURE_NAME_MAX ? l.courseName : undefined}
-                      >
-                        {truncateLectureName(l.courseName)}
-                        {l.lecSection != null ? ` · ${l.lecSection}반` : ""} · {semLabelOf(l.semYear, l.semTerm)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "과목을 선택하세요" },
+                      ...lectures.map((lecture) => ({
+                        value: String(lecture.lecId),
+                        label: `${truncateLectureName(lecture.courseName)}${lecture.lecSection != null ? ` · ${lecture.lecSection}반` : ""} · ${semLabelOf(lecture.semYear, lecture.semTerm)}`,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>

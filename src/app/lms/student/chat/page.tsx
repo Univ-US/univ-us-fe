@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import SockJS from "sockjs-client";
 
 import { getApiErrorMessage } from "@/lib/apiError";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import {
   deleteChatRoom,
   formatChatDateLabel,
@@ -25,9 +26,6 @@ import { getCommonCodeList } from "@/lib/lmsCommonCode";
 import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 
 type RealtimeStatus = "connected" | "disconnected";
-
-const NEW_CHAT_SELECT_CLASS =
-  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary";
 
 function sortRooms(rooms: ChatRoom[]) {
   return [...rooms].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
@@ -667,50 +665,41 @@ function NewChatModal({
           <>
             {/* 년도 / 학기 필터 */}
             <div className="mb-3 flex flex-wrap gap-2">
-              <select
+              <LmsSelectDropdown
                 value={yearFilter === "all" ? "" : String(yearFilter)}
-                onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
-                className={`${NEW_CHAT_SELECT_CLASS} w-28`}
-              >
-                <option value="">전체 연도</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={String(y)}>
-                    {y}년
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
+                className="w-28"
+                options={[
+                  { value: "", label: "전체 연도" },
+                  ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+                ]}
+              />
+              <LmsSelectDropdown
                 value={termFilter === "all" ? "" : termFilter}
-                onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
-                className={`${NEW_CHAT_SELECT_CLASS} w-32`}
-              >
-                <option value="">전체 학기</option>
-                {termOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {termMap[t] ?? t}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setTermFilter(value === "" ? "all" : value)}
+                className="w-32"
+                options={[
+                  { value: "", label: "전체 학기" },
+                  ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+                ]}
+              />
             </div>
 
             {/* 과목 드롭다운 — 첫 과목 자동선택 */}
-            <select
+            <LmsSelectDropdown
               value={selRoomId == null ? "" : String(selRoomId)}
-              onChange={(e) => setSelRoomId(e.target.value === "" ? null : Number(e.target.value))}
+              onChange={(value) => setSelRoomId(value === "" ? null : Number(value))}
               disabled={filtered.length === 0}
-              className={`${NEW_CHAT_SELECT_CLASS} mb-4 w-full disabled:cursor-not-allowed disabled:bg-slate-100`}
-            >
-              {filtered.length === 0 ? (
-                <option value="">대화 가능한 강의 없음</option>
-              ) : (
-                filtered.map((c) => (
-                  <option key={c.roomId} value={String(c.roomId)}>
-                    {c.courseName}
-                    {c.lecSection ? ` ${c.lecSection}반` : ""}
-                  </option>
-                ))
-              )}
-            </select>
+              className="mb-4 w-full"
+              options={
+                filtered.length === 0
+                  ? [{ value: "", label: "대화 가능한 강의 없음", disabled: true }]
+                  : filtered.map((c) => ({
+                      value: String(c.roomId),
+                      label: `${c.courseName}${c.lecSection ? ` ${c.lecSection}반` : ""}`,
+                    }))
+              }
+            />
 
             {/* 선택 강의의 담당 교수 = 채팅 대상 */}
             {selected ? (

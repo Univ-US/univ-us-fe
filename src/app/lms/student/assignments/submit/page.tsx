@@ -4,6 +4,7 @@
 // 서버 페이지네이션: 년도/학기 필터 + page/size로 서버 조회(클라 slice 없음, SLM-006 미러).
 // 딥링크(?assignmentId=)는 BE가 그 과제가 속한 페이지를 계산해 반환 → 해당 과제 자동 선택.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import {
   formatFileSize,
   UPLOAD_ACCEPT,
@@ -34,8 +35,6 @@ const FILE_ACCEPT_HINT =
   "영상(MP4·AVI·MOV·WMV) · 음성(MP3·M4A·WAV) · 문서(PDF·HWP·DOC·PPT·XLS·TXT) · 이미지(JPG·PNG·GIF) · ZIP — 최대 5GB";
 const MEMO_MAX = 1000;
 const PAGE_SIZE = 6;
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 
 export default function StudentSubmitPage() {
   // 요약(전역 미제출 수·연도 드롭다운 소스) — null=미로드
@@ -243,32 +242,26 @@ export default function StudentSubmitPage() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
+            onChange={(value) => handleYearChange(value === "" ? "all" : Number(value))}
             disabled={filtersDisabled}
-            className={`${selectClass} w-28`}
-          >
-            <option value="">전체 연도</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={[
+              { value: "", label: "전체 연도" },
+              ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+            ]}
+          />
+          <LmsSelectDropdown
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
+            onChange={(value) => handleTermChange(value === "" ? "all" : value)}
             disabled={filtersDisabled}
-            className={`${selectClass} w-32`}
-          >
-            <option value="">전체 학기</option>
-            {termOptions.map((t) => (
-              <option key={t} value={t}>
-                {termMap[t] ?? t}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={[
+              { value: "", label: "전체 학기" },
+              ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+            ]}
+          />
         </div>
       </header>
 

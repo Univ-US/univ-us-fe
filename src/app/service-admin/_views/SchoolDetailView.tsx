@@ -23,6 +23,7 @@ import {
     formatCurrency,
     PaymentBadge,
     PendingActionBadge,
+    SelectDropdown,
     SubscriptionBadge,
 } from "../_components";
 
@@ -286,21 +287,19 @@ export default function SchoolDetailView({
 
                     <label className="mt-6 block">
                         <span className="text-xs font-extrabold text-slate-500">구독 플랜</span>
-                        <select
+                        <SelectDropdown
                             value={selectedPlanId}
-                            onChange={(event) => setSelectedPlanId(Number(event.target.value))}
+                            onChange={(value) => setSelectedPlanId(Number(value))}
                             disabled={cannotManage || saving}
-                            className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black outline-none focus:border-primary disabled:bg-slate-100"
-                        >
-                            <option value="" disabled>
-                                플랜 선택
-                            </option>
-                            {plans.map((plan) => (
-                                <option key={plan.planId} value={plan.planId}>
-                                    {plan.planName} · {formatCurrency(plan.price)}
-                                </option>
-                            ))}
-                        </select>
+                            className="mt-2 w-full"
+                            options={[
+                                { value: "", label: "플랜 선택", disabled: true },
+                                ...plans.map((plan) => ({
+                                    value: plan.planId,
+                                    label: `${plan.planName} · ${formatCurrency(plan.price)}`,
+                                })),
+                            ]}
+                        />
                     </label>
 
                     <button

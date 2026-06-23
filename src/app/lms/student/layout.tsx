@@ -5,8 +5,23 @@
 // - 네비: '프로필'만 활성(SLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 학생 LMS 페이지
 import { Client, type IStompSocket } from "@stomp/stompjs";
-import { useEffect, useState, type ReactNode } from "react";
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import {
+  BookOpen,
+  CalendarDays,
+  Clapperboard,
+  FileText,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  Menu,
+  MessageSquareText,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Send,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import SockJS from "sockjs-client";
@@ -38,31 +53,36 @@ const resolveImg = (u?: string | null) =>
 // href("/lms/student/profile")와 정확 일치가 깨진다. 양끝 슬래시를 떼고 비교.
 const stripSlash = (p: string) => p.replace(/\/+$/, "") || "/";
 
-type NavItem = { label: string; icon: string; href?: string; badge?: number };
+type NavItem = {
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  href?: string;
+  badge?: number;
+};
 const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
-  { title: "계정", items: [{ label: "프로필", icon: "👤", href: "/lms/student/profile" }] },
+  { title: "계정", items: [{ label: "프로필", icon: UserRound, href: "/lms/student/profile" }] },
   {
     title: "메인",
     items: [
-      { label: "대시보드", icon: "🏠", href: "/lms/student/dashboard" },
-      { label: "수강 내역", icon: "📖", href: "/lms/student/courses" },
-      { label: "과제 내역", icon: "📄", href: "/lms/student/assignments/history" },
-      { label: "출석 내역", icon: "🗓️", href: "/lms/student/attendance" },
+      { label: "대시보드", icon: LayoutDashboard, href: "/lms/student/dashboard" },
+      { label: "수강 내역", icon: BookOpen, href: "/lms/student/courses" },
+      { label: "과제 내역", icon: FileText, href: "/lms/student/assignments/history" },
+      { label: "출석 내역", icon: CalendarDays, href: "/lms/student/attendance" },
     ],
   },
   {
     title: "학습",
     items: [
-      { label: "강의 자료", icon: "🎬", href: "/lms/student/materials" },
-      { label: "과제 제출", icon: "📤", href: "/lms/student/assignments/submit" },
-      { label: "공지사항", icon: "📢", href: "/lms/student/notice" },
+      { label: "강의 자료", icon: Clapperboard, href: "/lms/student/materials" },
+      { label: "과제 제출", icon: Send, href: "/lms/student/assignments/submit" },
+      { label: "공지사항", icon: Megaphone, href: "/lms/student/notice" },
     ],
   },
   {
     title: "커뮤니케이션",
     items: [
-      { label: "채팅", icon: "💬", href: "/lms/student/chat" },
-      { label: "캘린더", icon: "📅", href: "/lms/student/calendar" },
+      { label: "채팅", icon: MessageSquareText, href: "/lms/student/chat" },
+      { label: "캘린더", icon: CalendarDays, href: "/lms/student/calendar" },
     ],
   },
 ];
@@ -191,11 +211,12 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
 
   const avatar = resolveImg(profile?.imageUrl ?? null);
   const initial = profile?.name?.trim()?.[0] ?? "U";
+  const sidebarOffsetClass = sidebarOpen ? "md:pl-[256px]" : "md:pl-[104px]";
 
   if (!accessChecked) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f7f8fb] text-slate-950">
       {!sidebarOpen && (
         <button
           type="button"
@@ -219,10 +240,10 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
       {/* 사이드바 — sticky로 뷰포트 상단에 붙어 긴 페이지 스크롤 시에도 화면을 따라다님.
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-60 shrink-0 flex-col bg-primary/95 text-white/80 shadow-xl transition-all duration-200 md:sticky md:top-0 md:z-auto md:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen shrink-0 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding,transform] duration-300 ease-out md:translate-x-0 ${
           sidebarOpen
-            ? "translate-x-0 md:w-60"
-            : "-translate-x-full md:w-16 md:translate-x-0"
+            ? "w-[256px] translate-x-0 px-4"
+            : "-translate-x-full px-4 md:w-[104px] md:px-4"
         }`}
       >
         <button
@@ -230,33 +251,28 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
           onClick={() => setSidebarOpen((open) => !open)}
           aria-label={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
           title={sidebarOpen ? "사이드바 접기" : "사이드바 펼치기"}
-          className="absolute right-0 top-5 z-10 flex h-9 w-9 translate-x-1/2 items-center justify-center rounded-full border border-primary/70 bg-primary/95 text-primary-foreground shadow-lg hover:bg-primary/90"
+          className="absolute -right-4 top-1/2 z-40 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-lg shadow-primary/15 transition-all duration-200 hover:-translate-y-1/2 hover:scale-105 hover:bg-primary hover:text-white md:flex"
         >
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
 
         {/* 브랜드: 학교명(API) + UniVUs — 클릭 시 학생 LMS 대시보드로 이동 */}
-        <div className={`flex items-center px-3 py-4 ${sidebarOpen ? "gap-2" : "justify-center"}`}>
+        <div className={`flex items-center gap-2 ${sidebarOpen ? "justify-between" : "justify-center"}`}>
           {sidebarOpen ? (
             <Link
               href="/lms/student/dashboard"
               title="대시보드로"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-primary/50"
+              className="group flex h-12 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] px-3 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14]"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/univusicon.png" alt="UniVUs" className="h-10 w-10 shrink-0 object-contain" />
-              <>
-                <div className="min-w-0">
-                  <p className="truncate text-[11px] text-white/70">
-                    {/* 학교명: BE 제공(계정 미설정이면 null) */}
-                    {profile?.universityName || "-"}
-                  </p>
-                  <p className="text-lg font-bold text-white">UniVUs</p>
-                </div>
-                <span className="ml-auto rounded-md border border-primary/60 px-2 py-0.5 text-xs text-primary-foreground">
-                  {profile?.role || "학생"}
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                <img src="/univusicon.png" alt="UniVUs" className="size-6 rounded-lg object-contain" />
+              </span>
+              <span className="ml-2 min-w-0 text-left">
+                <span className="block text-sm font-black leading-4 text-white">UniVUs</span>
+                <span className="block truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {profile?.universityName || "Student LMS"}
                 </span>
-              </>
+              </span>
             </Link>
           ) : (
             <button
@@ -264,57 +280,61 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
               onClick={() => setSidebarOpen(true)}
               aria-label="사이드바 펼치기"
               title="사이드바 펼치기"
-              className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-primary/50"
+              className="group flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14]"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/univusicon.png" alt="" className="h-10 w-10 shrink-0 object-contain" />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                <img src="/univusicon.png" alt="" className="size-6 rounded-lg object-contain" />
+              </span>
             </button>
+          )}
+          {sidebarOpen && (
+            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
+              {profile?.role || "학생"}
+            </span>
           )}
         </div>
 
         {/* 사용자 카드 */}
         <div
-          className={`mx-3 mb-4 flex items-center rounded-xl bg-primary/40 px-3 py-3 ${
-            sidebarOpen ? "gap-3" : "justify-center"
+          className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${
+            sidebarOpen ? "p-4" : "p-2"
           }`}
         >
-          <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.studentNo)} text-sm font-semibold text-white`}>
-            {avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatar} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span>{initial}</span>
+          <div className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"}`}>
+            <div className={`flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.studentNo)} text-sm font-black text-white`}>
+              {avatar ? (
+                <img src={avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span>{initial}</span>
+              )}
+            </div>
+            {sidebarOpen && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-extrabold text-white">
+                  {profile?.name ?? "학생"}
+                </p>
+                <p className="mt-0.5 truncate text-xs font-medium text-slate-300">
+                  {profile?.department ?? "-"}
+                  {profile?.studentNo ? ` · ${profile.studentNo}` : ""}
+                </p>
+              </div>
             )}
           </div>
-          {sidebarOpen && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">
-                {profile?.name ?? "학생"}
-              </p>
-              <p className="truncate text-xs text-white/60">
-                {/* 학과 · 학번 */}
-                {profile?.department ?? "-"}
-                {profile?.studentNo
-                  ? ` · ${profile.studentNo}`
-                  : ""}
-              </p>
-            </div>
-          )}
         </div>
 
         {/* 프로필 로드 실패 시 (가짜 정보로 가리지 않고 표기) */}
         {sidebarOpen && loadFailed && !profile && (
-          <p className="mx-3 -mt-2 mb-3 text-[11px] text-amber-300">
-            ⚠ 프로필 정보를 불러오지 못했습니다 (서버 확인)
+          <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-[11px] font-bold text-amber-200">
+            프로필 정보를 불러오지 못했습니다.
           </p>
         )}
 
         {/* 네비게이션 */}
-        <nav className="flex-1 overflow-y-auto px-3">
+        <nav className={`mt-5 min-h-0 flex-1 overflow-y-auto ${sidebarOpen ? "pr-1" : "space-y-2 pr-0"}`}>
           {NAV_SECTIONS.map((section) => (
-            <div key={section.title} className="mb-4">
+            <div key={section.title} className={sidebarOpen ? "mb-4 space-y-0.5" : "mb-2 space-y-2"}>
               {sidebarOpen && (
-                <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-primary-foreground/50">
+                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
                   {section.title}
                 </p>
               )}
@@ -327,14 +347,15 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                     : item.href === "/lms/student/chat"
                       ? chatUnreadCount
                     : item.badge;
+                const Icon = item.icon;
                 const content = (
                   <>
-                    <span className="text-base">{item.icon}</span>
-                    {sidebarOpen && <span className="flex-1">{item.label}</span>}
+                    <Icon className="size-4 shrink-0" />
+                    <span className={sidebarOpen ? "flex-1 truncate" : "sr-only"}>{item.label}</span>
                     {badge != null && badge > 0 && (
                       <span
-                        className={`rounded-full bg-orange-500 px-1.5 text-[11px] font-semibold text-white ${
-                          sidebarOpen ? "" : "absolute right-0.5 top-0.5"
+                        className={`flex min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black leading-4 text-white ${
+                          sidebarOpen ? "" : "absolute -right-1 -top-1"
                         }`}
                       >
                         {badge}
@@ -343,16 +364,16 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                   </>
                 );
                 const base =
-                  "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors";
+                  "relative flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200";
                 return item.href ? (
                   <Link
                     key={item.label}
                     href={item.href}
                     className={`${base} ${
                       active
-                        ? "bg-primary/80 font-semibold text-white before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-full before:bg-primary/30 before:content-['']"
-                        : "text-white/80 hover:bg-primary/50"
-                    } ${sidebarOpen ? "" : "justify-center"}`}
+                        ? "bg-white text-primary shadow-sm"
+                        : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                    } ${sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"}`}
                   >
                     {content}
                   </Link>
@@ -360,8 +381,8 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-white/40 ${
-                      sidebarOpen ? "" : "justify-center"
+                    className={`${base} cursor-not-allowed text-white/35 ${
+                      sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"
                     }`}
                   >
                     {content}
@@ -373,43 +394,47 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
         </nav>
 
         {/* 하단 액션: 홈으로(/home) + 로그아웃 */}
-        <div className="py-2">
+        <div className="mt-4 space-y-1.5">
           <Link
             href="/home"
             title="홈으로"
-            className={`flex items-center gap-2.5 px-5 py-2 text-sm text-white/80 hover:text-white ${
-              sidebarOpen ? "" : "justify-center px-0"
+            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${
+              sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >
-            <span className="text-base">🏠</span> {sidebarOpen && "홈으로"}
+            <Home className="size-4" />
+            <span className={sidebarOpen ? "truncate" : "sr-only"}>홈으로</span>
           </Link>
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}
             title="로그아웃"
-            className={`flex w-full items-center gap-2.5 px-5 py-2 text-sm text-white/80 hover:text-white ${
-              sidebarOpen ? "" : "justify-center px-0"
+            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${
+              sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >
-            <span className="text-base">↩</span> {sidebarOpen && "로그아웃"}
+            <LogOut className="size-4" />
+            <span className={sidebarOpen ? "truncate" : "sr-only"}>로그아웃</span>
           </button>
         </div>
       </aside>
 
       {/* 콘텐츠 */}
-      <div className="flex-1 overflow-x-hidden">{children}</div>
+      <div className={`min-h-screen overflow-x-hidden transition-[padding] duration-300 ease-out ${sidebarOffsetClass}`}>
+        {children}
+      </div>
 
       {/* SLM-011 로그아웃 확인 모달 — 사이드바(w-60) 제외 본문 기준 중앙 */}
       {logoutOpen && (
         <div
-          className="fixed inset-y-0 right-0 left-60 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="로그아웃 확인"
         >
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-2xl">
-              🚪
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
+              <LogOut className="size-6" />
             </div>
             <h3 className="text-lg font-bold text-slate-900">로그아웃 하시겠습니까?</h3>
             <p className="mt-1 text-sm text-slate-500">아래 계정에서 로그아웃됩니다.</p>
@@ -418,7 +443,6 @@ function LmsStudentLayoutInner({ children }: { children: ReactNode }) {
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-left">
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${getLmsAvatarColor(profile?.studentNo)} text-sm font-semibold text-white`}>
                 {avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatar} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <span>{initial}</span>

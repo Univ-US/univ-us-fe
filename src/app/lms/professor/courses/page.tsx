@@ -10,6 +10,7 @@
 // 출력 규칙 §21: 건수=N건 / 인원=N명 / 빈값=- / 강의명 CSS truncate.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import { getProfessorCourses } from "@/lib/lmsProfessorCoursesApi";
 import type {
   ProfessorCourseRow,
@@ -24,9 +25,6 @@ const TERM_LABEL: Record<string, string> = {
   SM2: "2학기",
   WNT: "겨울 계절",
 };
-
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100";
 
 export default function ProfessorCoursesPage() {
   const [overview, setOverview] = useState<ProfessorCoursesOverview | null>(null);
@@ -95,32 +93,26 @@ export default function ProfessorCoursesPage() {
           <p className="mt-1 text-sm text-slate-500">학기별 담당 강의와 수강 현황을 확인하세요.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
+            onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
             disabled={loading || semesters.length === 0}
-            className={`${selectClass} w-28`}
-          >
-            <option value="">전체 연도</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={[
+              { value: "", label: "전체 연도" },
+              ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+            ]}
+          />
+          <LmsSelectDropdown
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
+            onChange={(value) => setTermFilter(value === "" ? "all" : value)}
             disabled={loading || semesters.length === 0}
-            className={`${selectClass} w-32`}
-          >
-            <option value="">전체 학기</option>
-            {termOptions.map((t) => (
-              <option key={t} value={t}>
-                {termMap[t] ?? TERM_LABEL[t] ?? t}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={[
+              { value: "", label: "전체 학기" },
+              ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? TERM_LABEL[t] ?? t })),
+            ]}
+          />
         </div>
       </header>
 

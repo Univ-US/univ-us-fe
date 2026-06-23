@@ -9,6 +9,7 @@
 // 실패 시 가짜 데이터로 가리지 않고 에러 상태 표기(describeApiError = 상태코드 + 다시 시도).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import StudentReportDialog from "@/components/lms/StudentReportDialog";
 import {
   getLectures,
@@ -18,7 +19,6 @@ import {
   getCommonCodeList,
   exportEnrollees,
   lectureLabel,
-  LECTURE_NAME_MAX,
   resolveImageUrl,
   EMPTY_LECTURE_STUDENTS,
 } from "@/lib/lmsProfessorStudentsApi";
@@ -301,52 +301,39 @@ export default function ProfessorStudentsPage() {
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {/* 년도·학기 분리 필터 — 기본값 둘 다 '전체'(전 화면 공통 규칙). 담당 강의를 클라이언트에서 좁힘 */}
-            <select
+            <LmsSelectDropdown
               value={yearFilter === "all" ? "" : String(yearFilter)}
-              onChange={(e) => handleYearChange(e.target.value === "" ? "all" : Number(e.target.value))}
-              className={`${selectClass} w-28`}
-            >
-              <option value="">전체 연도</option>
-              {yearOptions.map((y) => (
-                <option key={y} value={String(y)}>
-                  {y}년
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => handleYearChange(value === "" ? "all" : Number(value))}
+              className="w-28"
+              options={[
+                { value: "", label: "전체 연도" },
+                ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+              ]}
+            />
+            <LmsSelectDropdown
               value={termFilter === "all" ? "" : termFilter}
-              onChange={(e) => handleTermChange(e.target.value === "" ? "all" : e.target.value)}
-              className={`${selectClass} w-32`}
-            >
-              <option value="">전체 학기</option>
-              {termOptions.map((t) => (
-                <option key={t} value={t}>
-                  {termMap[t] ?? t}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={(value) => handleTermChange(value === "" ? "all" : value)}
+              className="w-32"
+              options={[
+                { value: "", label: "전체 학기" },
+                ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+              ]}
+            />
+            <LmsSelectDropdown
               value={selectedLecId ?? ""}
-              onChange={(e) => handleLectureChange(Number(e.target.value))}
+              onChange={(value) => handleLectureChange(Number(value))}
               disabled={filteredLectures.length === 0}
-              className={`${selectClass} w-64 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}
-            >
-              {filteredLectures.length === 0 ? (
-                <option value="" disabled>
-                  등록된 강의 없음
-                </option>
-              ) : (
-                filteredLectures.map((l) => (
-                  <option
-                    key={l.lecId}
-                    value={l.lecId}
-                    title={l.lecName.length > LECTURE_NAME_MAX ? l.lecName : undefined}
-                  >
-                    {lectureLabel(l, termMap, statusMap)}
-                  </option>
-                ))
-              )}
-            </select>
+              className="w-64"
+              menuClassName="w-72"
+              options={
+                filteredLectures.length === 0
+                  ? [{ value: "", label: "등록된 강의 없음", disabled: true }]
+                  : filteredLectures.map((lecture) => ({
+                      value: lecture.lecId,
+                      label: lectureLabel(lecture, termMap, statusMap),
+                    }))
+              }
+            />
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
@@ -415,10 +402,10 @@ export default function ProfessorStudentsPage() {
                     <div className="absolute right-0 z-20 mt-1 w-60 rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
                       {/* 정렬 기준: 이름/학번/출석률/평균점수/과제제출 (택1) — 드래프트 */}
                       <label className="mb-1 block text-xs font-medium text-slate-500">정렬 기준</label>
-                      <select
+                      <LmsSelectDropdown
                         value={draftCriterion}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                        onChange={(value) => {
+                          const v = value;
                           if (v === "submission") {
                             setDraftSubmission("complete");
                             setDraftSort("name");
@@ -428,34 +415,37 @@ export default function ProfessorStudentsPage() {
                             setDraftSubmission("");
                           }
                         }}
-                        className={`${selectClass} mb-2 w-full`}
-                      >
-                        <option value="name">이름</option>
-                        <option value="studentNo">학번</option>
-                        <option value="attendance">출석률</option>
-                        <option value="score">평균 점수</option>
-                        <option value="submission">과제 제출</option>
-                      </select>
+                        className="mb-2 w-full"
+                        options={[
+                          { value: "name", label: "이름" },
+                          { value: "studentNo", label: "학번" },
+                          { value: "attendance", label: "출석률" },
+                          { value: "score", label: "평균 점수" },
+                          { value: "submission", label: "과제 제출" },
+                        ]}
+                      />
 
                       {/* 과제 제출이면 제출완료/미제출, 그 외엔 오름/내림차순 */}
                       {draftCriterion === "submission" ? (
-                        <select
+                        <LmsSelectDropdown
                           value={draftSubmission}
-                          onChange={(e) => setDraftSubmission(e.target.value as Submission)}
-                          className={`${selectClass} w-full`}
-                        >
-                          <option value="complete">제출 완료</option>
-                          <option value="incomplete">미제출</option>
-                        </select>
+                          onChange={(value) => setDraftSubmission(value as Submission)}
+                          className="w-full"
+                          options={[
+                            { value: "complete", label: "제출 완료" },
+                            { value: "incomplete", label: "미제출" },
+                          ]}
+                        />
                       ) : (
-                        <select
+                        <LmsSelectDropdown
                           value={draftOrder}
-                          onChange={(e) => setDraftOrder(e.target.value as Order)}
-                          className={`${selectClass} w-full`}
-                        >
-                          <option value="asc">오름차순</option>
-                          <option value="desc">내림차순</option>
-                        </select>
+                          onChange={(value) => setDraftOrder(value as Order)}
+                          className="w-full"
+                          options={[
+                            { value: "asc", label: "오름차순" },
+                            { value: "desc", label: "내림차순" },
+                          ]}
+                        />
                       )}
 
                       {/* 확인 = 적용 + 닫힘 / 초기화 = 드래프트 기본값 */}
@@ -610,9 +600,6 @@ export default function ProfessorStudentsPage() {
 }
 
 // ── 헬퍼 ────────────────────────────────────────────────────
-const selectClass =
-  "shrink-0 truncate rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/30";
-
 function StatCard({ icon, tag, value, sub }: { icon: string; tag: string; value: string; sub: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

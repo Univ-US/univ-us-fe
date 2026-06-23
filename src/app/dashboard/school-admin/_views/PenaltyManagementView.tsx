@@ -5,8 +5,6 @@ import {
     AlertTriangle,
     Check,
     ChevronDown,
-    ChevronLeft,
-    ChevronRight,
     RefreshCw,
     Search,
     ShieldAlert,
@@ -471,7 +469,7 @@ export default function PenaltyManagementView() {
                                     className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                                     aria-label="이전 페이지"
                                 >
-                                    <ChevronLeft className="size-4" />
+                                    ‹
                                 </button>
                                 {paginationItems.map((item, index) =>
                                     typeof item === "number" ? (
@@ -506,7 +504,7 @@ export default function PenaltyManagementView() {
                                     className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                                     aria-label="다음 페이지"
                                 >
-                                    <ChevronRight className="size-4" />
+                                    ›
                                 </button>
                             </div>
                         </div>

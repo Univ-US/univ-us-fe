@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import { describeApiError } from "@/lib/lmsApiError";
 import { getCommonCodeList, getCommonCodeMap } from "@/lib/lmsCommonCode";
 import { getStudentDashboard } from "@/lib/lmsStudentDashboardApi";
@@ -24,9 +25,6 @@ const STATUS_BADGE: Record<StudentAssignmentStatus, { cls: string; dot: string }
   SBM: { cls: "text-amber-600", dot: "bg-amber-500" },
   GRD: { cls: "text-primary", dot: "bg-primary" },
 };
-
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 const uniqueYears = (semesters: DashboardSemesterOption[]) =>
   [...new Set(semesters.map((semester) => semester.year))].sort((a, b) => b - a);
@@ -128,30 +126,26 @@ export default function StudentDashboardPage() {
           <p className="mt-1 text-sm text-slate-500">안녕하세요, {data?.studentName ?? "학생"}님</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={selYear ?? ""}
-            onChange={(e) => handleYearChange(Number(e.target.value))}
+            onChange={(value) => handleYearChange(Number(value))}
             disabled={loading || yearOptions.length === 0}
-            className={`${selectClass} w-28`}
-          >
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={yearOptions.map((year) => ({
+              value: year,
+              label: `${year}년`,
+            }))}
+          />
+          <LmsSelectDropdown
             value={selTerm ?? ""}
-            onChange={(e) => handleTermChange(e.target.value)}
+            onChange={handleTermChange}
             disabled={loading || termOptions.length === 0}
-            className={`${selectClass} w-32`}
-          >
-            {termOptions.map((term) => (
-              <option key={term} value={term}>
-                {termMap[term] ?? term}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={termOptions.map((term) => ({
+              value: term,
+              label: termMap[term] ?? term,
+            }))}
+          />
         </div>
       </header>
 

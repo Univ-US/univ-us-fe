@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import SockJS from "sockjs-client";
 
 import { getApiErrorMessage } from "@/lib/apiError";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import {
   deleteProfessorChatRoom,
   formatChatDateLabel,
@@ -31,8 +32,6 @@ import { resolveImageUrl } from "@/lib/lmsProfessorStudentsApi";
 
 type RealtimeStatus = "connected" | "disconnected";
 
-const NEW_CHAT_SELECT_CLASS =
-  "h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500";
 const STUDENT_PAGE_SIZE = 5; // '채팅 만들기' 수강생 클릭 리스트 한 페이지당 표시 인원
 
 function sortRooms(rooms: ProfessorChatRoom[]) {
@@ -710,52 +709,41 @@ function NewChatModal({
           <>
             {/* 년도 / 학기 필터 */}
             <div className="mb-3 flex flex-wrap gap-2">
-              <select
+              <LmsSelectDropdown
                 value={yearFilter === "all" ? "" : String(yearFilter)}
-                onChange={(e) =>
-                  setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))
-                }
-                className={`${NEW_CHAT_SELECT_CLASS} w-28`}
-              >
-                <option value="">전체 연도</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={String(y)}>
-                    {y}년
-                  </option>
-                ))}
-              </select>
-              <select
+                onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
+                className="w-28"
+                options={[
+                  { value: "", label: "전체 연도" },
+                  ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+                ]}
+              />
+              <LmsSelectDropdown
                 value={termFilter === "all" ? "" : termFilter}
-                onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
-                className={`${NEW_CHAT_SELECT_CLASS} w-32`}
-              >
-                <option value="">전체 학기</option>
-                {termOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {termMap[t] ?? t}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setTermFilter(value === "" ? "all" : value)}
+                className="w-32"
+                options={[
+                  { value: "", label: "전체 학기" },
+                  ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+                ]}
+              />
             </div>
 
             {/* 과목(강의) 드롭다운 — 첫 강의 자동선택 */}
-            <select
+            <LmsSelectDropdown
               value={selLecId == null ? "" : String(selLecId)}
-              onChange={(e) => setSelLecId(e.target.value === "" ? null : Number(e.target.value))}
+              onChange={(value) => setSelLecId(value === "" ? null : Number(value))}
               disabled={courseOptions.length === 0}
-              className={`${NEW_CHAT_SELECT_CLASS} mb-3 w-full disabled:cursor-not-allowed disabled:bg-slate-100`}
-            >
-              {courseOptions.length === 0 ? (
-                <option value="">담당 강의 없음</option>
-              ) : (
-                courseOptions.map((c) => (
-                  <option key={c.lecId} value={String(c.lecId)}>
-                    {c.courseName}
-                    {c.lecSection ? ` ${c.lecSection}반` : ""}
-                  </option>
-                ))
-              )}
-            </select>
+              className="mb-3 w-full"
+              options={
+                courseOptions.length === 0
+                  ? [{ value: "", label: "담당 강의 없음", disabled: true }]
+                  : courseOptions.map((course) => ({
+                      value: String(course.lecId),
+                      label: `${course.courseName}${course.lecSection ? ` ${course.lecSection}반` : ""}`,
+                    }))
+              }
+            />
 
             {/* 수강생 = 클릭 선택 리스트 (한 페이지 5명, 클릭 시 선택) */}
             <p className="mb-1 text-xs font-semibold text-slate-500">수강생 {students.length}명</p>

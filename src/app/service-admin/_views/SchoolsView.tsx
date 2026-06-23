@@ -3,10 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     AlertTriangle,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     RefreshCw,
     Search,
 } from "lucide-react";
@@ -22,6 +18,8 @@ import {
     formatCurrency,
     PaymentBadge,
     PendingActionBadge,
+    ServiceAdminPagination,
+    SelectDropdown,
     SubscriptionBadge,
 } from "../_components";
 
@@ -33,7 +31,6 @@ type SortOption = NonNullable<ServiceAdminSchoolQuery["sort"]>;
 type PaginationItem = number | "ellipsis-start" | "ellipsis-end";
 
 const PAGE_WINDOW_SIZE = 5;
-const PAGE_JUMP_SIZE = 10;
 
 function formatDate(value: string | null) {
     return value ? new Date(value).toLocaleDateString("ko-KR") : "-";
@@ -159,54 +156,51 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                         />
                     </label>
 
-                    <select
+                    <SelectDropdown
                         value={status}
-                        onChange={(event) => {
-                            setStatus(event.target.value as typeof status);
+                        onChange={(value) => {
+                            setStatus(value as typeof status);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 구독 상태</option>
-                        <option value="ACTIVE">구독 중</option>
-                        <option value="PAST_DUE">결제 지연</option>
-                        <option value="PENDING">승인 대기</option>
-                        <option value="CANCELED">구독 취소</option>
-                        <option value="UNSUBSCRIBED">미구독</option>
-                    </select>
+                        options={[
+                            { value: "ALL", label: "전체 구독 상태" },
+                            { value: "ACTIVE", label: "구독 중" },
+                            { value: "PAST_DUE", label: "결제 지연" },
+                            { value: "PENDING", label: "승인 대기" },
+                            { value: "CANCELED", label: "구독 취소" },
+                            { value: "UNSUBSCRIBED", label: "미구독" },
+                        ]}
+                    />
 
-                    <select
+                    <SelectDropdown
                         value={planId}
-                        onChange={(event) => {
-                            const value = event.target.value;
+                        onChange={(value) => {
                             setPlanId(value === "ALL" ? "ALL" : Number(value));
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 플랜</option>
-                        {plans.map((plan) => (
-                            <option key={plan.planId} value={plan.planId}>
-                                {plan.planName}
-                                {plan.status === "INACTIVE" ? " (비활성)" : ""}
-                            </option>
-                        ))}
-                    </select>
+                        options={[
+                            { value: "ALL", label: "전체 플랜" },
+                            ...plans.map((plan) => ({
+                                value: plan.planId,
+                                label: `${plan.planName}${plan.status === "INACTIVE" ? " (비활성)" : ""}`,
+                            })),
+                        ]}
+                    />
 
-                    <select
+                    <SelectDropdown
                         value={sort}
-                        onChange={(event) => {
-                            setSort(event.target.value as SortOption);
+                        onChange={(value) => {
+                            setSort(value as SortOption);
                             setPage(0);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="NAME_ASC">학교 이름순</option>
-                        <option value="MEMBERS_ASC">회원 수 적은 순</option>
-                        <option value="MEMBERS_DESC">회원 수 많은 순</option>
-                        <option value="REVENUE_ASC">이번 달 매출 낮은 순</option>
-                        <option value="REVENUE_DESC">이번 달 매출 높은 순</option>
-                    </select>
+                        options={[
+                            { value: "NAME_ASC", label: "학교 이름순" },
+                            { value: "MEMBERS_ASC", label: "회원 수 적은 순" },
+                            { value: "MEMBERS_DESC", label: "회원 수 많은 순" },
+                            { value: "REVENUE_ASC", label: "이번 달 매출 낮은 순" },
+                            { value: "REVENUE_DESC", label: "이번 달 매출 높은 순" },
+                        ]}
+                    />
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
                     <p className="font-bold text-slate-500">
@@ -347,102 +341,14 @@ export default function SchoolsView({ onSelectSchool }: SchoolsViewProps) {
                             </table>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4">
-                            <p className="text-sm font-bold text-slate-400">
-                                {(result?.totalPages ?? 0) === 0 ? 0 : page + 1} /{" "}
-                                {result?.totalPages ?? 0} 페이지
-                            </p>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                                <button
-                                    onClick={() => setPage(0)}
-                                    disabled={page === 0}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="맨 앞 페이지"
-                                    title="맨 앞 페이지"
-                                >
-                                    <ChevronsLeft className="size-4" />
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => current - PAGE_JUMP_SIZE)}
-                                    disabled={page < PAGE_JUMP_SIZE}
-                                    className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="10페이지 앞으로"
-                                    title="10페이지 앞으로"
-                                >
-                                    -10
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => Math.max(0, current - 1))}
-                                    disabled={result?.first ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="이전 페이지"
-                                >
-                                    <ChevronLeft className="size-4" />
-                                </button>
-                                {paginationItems.map((item) =>
-                                    typeof item === "number" ? (
-                                        <button
-                                            key={item}
-                                            onClick={() => setPage(item)}
-                                            className={`size-9 rounded-lg text-sm font-black ${
-                                                page === item
-                                                    ? "bg-primary text-white"
-                                                    : "border border-slate-200 text-slate-600"
-                                            }`}
-                                            aria-label={`${item + 1}페이지`}
-                                            aria-current={page === item ? "page" : undefined}
-                                        >
-                                            {item + 1}
-                                        </button>
-                                    ) : (
-                                        <span
-                                            key={item}
-                                            className="flex size-7 items-center justify-center text-sm font-black text-slate-400"
-                                            aria-hidden="true"
-                                        >
-                                            ...
-                                        </span>
-                                    ),
-                                )}
-                                <button
-                                    onClick={() =>
-                                        setPage((current) =>
-                                            Math.min(
-                                                Math.max((result?.totalPages ?? 1) - 1, 0),
-                                                current + 1,
-                                            ),
-                                        )
-                                    }
-                                    disabled={result?.last ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="다음 페이지"
-                                >
-                                    <ChevronRight className="size-4" />
-                                </button>
-                                <button
-                                    onClick={() => setPage((current) => current + PAGE_JUMP_SIZE)}
-                                    disabled={
-                                        page + PAGE_JUMP_SIZE >= (result?.totalPages ?? 0)
-                                    }
-                                    className="flex h-9 min-w-11 items-center justify-center rounded-lg border border-slate-200 px-2 text-xs font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="10페이지 뒤로"
-                                    title="10페이지 뒤로"
-                                >
-                                    +10
-                                </button>
-                                <button
-                                    onClick={() =>
-                                        setPage(Math.max((result?.totalPages ?? 1) - 1, 0))
-                                    }
-                                    disabled={result?.last ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                    aria-label="맨 뒤 페이지"
-                                    title="맨 뒤 페이지"
-                                >
-                                    <ChevronsRight className="size-4" />
-                                </button>
-                            </div>
-                        </div>
+                        <ServiceAdminPagination
+                            page={page}
+                            totalPages={result?.totalPages ?? 0}
+                            first={result?.first ?? true}
+                            last={result?.last ?? true}
+                            paginationItems={paginationItems}
+                            onChange={setPage}
+                        />
                     </>
                 )}
             </section>

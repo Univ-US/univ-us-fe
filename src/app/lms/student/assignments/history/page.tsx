@@ -6,6 +6,7 @@
 // 배지(미제출 수)는 권위 카운트(store.loadSubmittableCount → /submittable/summary)에 위임 — 여기서 직접 계산 안 함.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import LmsSelectDropdown from "@/components/lms/LmsSelectDropdown";
 import StudentSubmissionPreviewDialog from "@/components/lms/StudentSubmissionPreviewDialog";
 import StudentFeedbackDialog from "@/components/lms/StudentFeedbackDialog";
 import { describeApiError } from "@/lib/lmsApiError";
@@ -34,9 +35,6 @@ const STATUS_PILL: Record<StudentAssignmentStatus, string> = {
 };
 
 const ASSIGNMENT_PAGE_SIZE = 10;
-
-const selectClass =
-  "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
 
 export default function StudentAssignmentsHistoryPage() {
   const router = useRouter();
@@ -129,32 +127,26 @@ export default function StudentAssignmentsHistoryPage() {
           <p className="mt-1 text-sm text-slate-500">미제출 {unsubmittedCount}건</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <select
+          <LmsSelectDropdown
             value={yearFilter === "all" ? "" : String(yearFilter)}
-            onChange={(e) => setYearFilter(e.target.value === "" ? "all" : Number(e.target.value))}
+            onChange={(value) => setYearFilter(value === "" ? "all" : Number(value))}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-28`}
-          >
-            <option value="">전체 연도</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}년
-              </option>
-            ))}
-          </select>
-          <select
+            className="w-28"
+            options={[
+              { value: "", label: "전체 연도" },
+              ...yearOptions.map((y) => ({ value: String(y), label: `${y}년` })),
+            ]}
+          />
+          <LmsSelectDropdown
             value={termFilter === "all" ? "" : termFilter}
-            onChange={(e) => setTermFilter(e.target.value === "" ? "all" : e.target.value)}
+            onChange={(value) => setTermFilter(value === "" ? "all" : value)}
             disabled={loading || summaries.length === 0}
-            className={`${selectClass} w-32`}
-          >
-            <option value="">전체 학기</option>
-            {termOptions.map((t) => (
-              <option key={t} value={t}>
-                {termMap[t] ?? t}
-              </option>
-            ))}
-          </select>
+            className="w-32"
+            options={[
+              { value: "", label: "전체 학기" },
+              ...termOptions.map((t) => ({ value: t, label: termMap[t] ?? t })),
+            ]}
+          />
         </div>
       </header>
 
