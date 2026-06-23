@@ -210,7 +210,7 @@ function SchoolAdminDashboard() {
                                 key={v}
                                 onClick={() => setView(v)}
                                 title={label}
-                                className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
+                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
                                 <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
@@ -223,7 +223,7 @@ function SchoolAdminDashboard() {
                                 key={v}
                                 onClick={() => setView(v)}
                                 title={label}
-                                className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
+                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
                                 <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>

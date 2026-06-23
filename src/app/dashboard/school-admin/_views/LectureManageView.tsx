@@ -11,7 +11,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Check, ChevronDown, Pencil, Plus, Search } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { isAxiosError } from "axios";
 import {
@@ -46,6 +46,134 @@ const STATUS_OPTIONS = [
     { value: "DEL", label: "삭제", className: "bg-rose-100 text-rose-600" },
 ];
 
+type DropdownOption<T extends string | number> = {
+    value: T;
+    label: string;
+    className?: string;
+};
+
+function SelectDropdown<T extends string | number>({
+    label,
+    options,
+    value,
+    open,
+    onToggle,
+    onChange,
+    disabled = false,
+    className = "w-full sm:w-36",
+    menuClassName = "w-full",
+}: {
+    label?: string;
+    options: DropdownOption<T>[];
+    value: T;
+    open: boolean;
+    onToggle: () => void;
+    onChange: (value: T) => void;
+    disabled?: boolean;
+    className?: string;
+    menuClassName?: string;
+}) {
+    const selected = options.find((option) => option.value === value) ?? options[0];
+
+    return (
+        <div className={`relative ${className}`} data-lecture-manage-dropdown>
+            <button
+                type="button"
+                onClick={onToggle}
+                disabled={disabled}
+                className={`flex h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-300 ${
+                    open
+                        ? "border-primary bg-white text-primary ring-2 ring-primary/15"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/20 hover:bg-white"
+                }`}
+                aria-expanded={open}
+            >
+                <span className="flex min-w-0 items-center gap-2">
+                    {label && <span className="text-xs font-black text-slate-400">{label}</span>}
+                    <span className="truncate">{selected?.label}</span>
+                </span>
+                <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180 text-primary" : ""}`} />
+            </button>
+
+            {open && !disabled && (
+                <div className={`absolute left-0 top-12 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-top-1 duration-150 ${menuClassName}`}>
+                    {options.map((option) => {
+                        const isSelected = option.value === value;
+                        return (
+                            <button
+                                key={String(option.value)}
+                                type="button"
+                                onClick={() => onChange(option.value)}
+                                className={`flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-sm font-bold transition-colors ${
+                                    isSelected
+                                        ? "bg-primary/10 text-primary"
+                                        : option.className ?? "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                                }`}
+                            >
+                                <span className="truncate">{option.label}</span>
+                                {isSelected && <Check className="size-4 shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function StatusDropdown({
+    value,
+    open,
+    onToggle,
+    onChange,
+}: {
+    value: string;
+    open: boolean;
+    onToggle: () => void;
+    onChange: (value: string) => void;
+}) {
+    const selected = STATUS_OPTIONS.find((option) => option.value === value) ?? STATUS_OPTIONS[0];
+
+    return (
+        <div className="relative inline-flex" data-lecture-manage-dropdown>
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`inline-flex h-7 min-w-[64px] items-center justify-center gap-1.5 rounded-full px-2.5 text-xs font-black transition-all ${
+                    selected.className
+                } ${open ? "ring-2 ring-primary/15" : "hover:brightness-95"}`}
+                aria-expanded={open}
+            >
+                {selected.label}
+                <ChevronDown className={`size-3.5 shrink-0 opacity-70 transition-transform ${open ? "rotate-180" : ""}`} />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 top-9 z-30 w-24 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {STATUS_OPTIONS.map((option) => {
+                        const isSelected = option.value === value;
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => onChange(option.value)}
+                                className={`flex h-8 w-full items-center justify-between rounded-lg px-2 text-left text-xs font-black transition-colors ${
+                                    isSelected
+                                        ? option.className
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                                }`}
+                            >
+                                <span>{option.label}</span>
+                                {isSelected && <Check className="size-3.5 shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function LectureManageView() {
     const { univId: myUnivId } = useAuthStore();
 
@@ -62,6 +190,7 @@ export default function LectureManageView() {
     const [editTarget, setEditTarget] = useState<ApiLecture | null>(null);
     const [form, setForm] = useState({ deptId: 0, lecCode: "", lecCodName: "" });
     const [submitting, setSubmitting] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
     const fetchLectures = useCallback(() => {
         setTableLoading(true);
@@ -79,6 +208,18 @@ export default function LectureManageView() {
         if (myUnivId) getAdminDepartments(myUnivId).then(setDepts).catch(console.error);
         getLectureAssigns().then(setAssigns).catch(console.error);
     }, [myUnivId]);
+
+    useEffect(() => {
+        const closeDropdown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest("[data-lecture-manage-dropdown]")) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener("mousedown", closeDropdown);
+        return () => document.removeEventListener("mousedown", closeDropdown);
+    }, []);
 
     // 강의코드별 배정 내역 묶음 (연도↓·학기순·분반↑ 정렬)
     const assignsByCode = useMemo(() => {
@@ -209,37 +350,39 @@ export default function LectureManageView() {
                 </div>
                 {/* 학과 필터 + 검색 + 강의 추가 */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <select
+                    <SelectDropdown
+                        label="학과"
                         value={deptFilter}
-                        onChange={(e) => setDeptFilter(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value={0}>전체 학과</option>
-                        {depts.map((d) => (
-                            <option key={d.deptId} value={d.deptId}>
-                                {d.deptName}
-                            </option>
-                        ))}
-                    </select>
+                        open={openDropdown === "dept-filter"}
+                        onToggle={() => setOpenDropdown((current) => current === "dept-filter" ? null : "dept-filter")}
+                        onChange={(nextValue) => {
+                            setDeptFilter(nextValue);
+                            setOpenDropdown(null);
+                        }}
+                        options={[
+                            { value: 0, label: "전체 학과" },
+                            ...depts.map((dept) => ({ value: dept.deptId, label: dept.deptName })),
+                        ]}
+                    />
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="코드 또는 강의명 검색"
-                            className="h-10 w-64 rounded-lg border border-border bg-white pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="h-10 w-64 rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/15"
                         />
                     </div>
                     <button
                         onClick={openCreate}
-                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
+                        className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90"
                     >
                         <Plus className="size-4" /> 강의 추가
                     </button>
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                         <tr>
@@ -288,20 +431,15 @@ export default function LectureManageView() {
                                         )}
                                     </td>
                                     <td className="px-5 py-4">
-                                        <select
+                                        <StatusDropdown
                                             value={l.valStatus}
-                                            onChange={(e) => handleStatusChange(l, e.target.value)}
-                                            className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-primary ${
-                                                STATUS_OPTIONS.find((o) => o.value === l.valStatus)?.className ??
-                                                "bg-slate-100 text-slate-500"
-                                            }`}
-                                        >
-                                            {STATUS_OPTIONS.map((o) => (
-                                                <option key={o.value} value={o.value}>
-                                                    {o.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            open={openDropdown === `lecture-status-${l.lecCodeId}`}
+                                            onToggle={() => setOpenDropdown((current) => current === `lecture-status-${l.lecCodeId}` ? null : `lecture-status-${l.lecCodeId}`)}
+                                            onChange={(nextValue) => {
+                                                setOpenDropdown(null);
+                                                void handleStatusChange(l, nextValue);
+                                            }}
+                                        />
                                     </td>
                                     <td className="px-5 py-4">
                                         <button
@@ -355,7 +493,7 @@ export default function LectureManageView() {
             {/* 배정 내역 모달 — 'N건' 클릭 시 학기·분반 리스트 */}
             {assignTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <h2 className="text-lg font-black">배정 내역</h2>
                         <p className="mt-1 text-sm text-slate-500">
                             <span className="font-mono font-black text-slate-950">{assignTarget.lecCode}</span> ·{" "}
@@ -375,7 +513,7 @@ export default function LectureManageView() {
                         <div className="mt-6 flex justify-end">
                             <button
                                 onClick={() => setAssignTarget(null)}
-                                className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:bg-slate-50"
+                                className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
                             >
                                 닫기
                             </button>
@@ -386,25 +524,27 @@ export default function LectureManageView() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <h2 className="text-lg font-black">{editTarget ? "강의 수정" : "강의 추가"}</h2>
                         <div className="mt-5 space-y-4">
                             <div>
                                 <label className="text-sm font-black">
                                     학과 <span className="text-rose-500">*</span>
                                 </label>
-                                <select
+                                <SelectDropdown
                                     value={form.deptId}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, deptId: Number(e.target.value) }))}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                >
-                                    <option value={0}>학과 선택</option>
-                                    {depts.map((d) => (
-                                        <option key={d.deptId} value={d.deptId}>
-                                            {d.deptName}
-                                        </option>
-                                    ))}
-                                </select>
+                                    open={openDropdown === "form-dept"}
+                                    onToggle={() => setOpenDropdown((current) => current === "form-dept" ? null : "form-dept")}
+                                    onChange={(nextValue) => {
+                                        setForm((prev) => ({ ...prev, deptId: nextValue }));
+                                        setOpenDropdown(null);
+                                    }}
+                                    className="mt-2 w-full"
+                                    options={[
+                                        { value: 0, label: "학과 선택" },
+                                        ...depts.map((dept) => ({ value: dept.deptId, label: dept.deptName })),
+                                    ]}
+                                />
                             </div>
                             <div>
                                 <label className="text-sm font-black">
@@ -421,7 +561,7 @@ export default function LectureManageView() {
                                     }
                                     placeholder="예) DTST"
                                     maxLength={CODE_MAX}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 font-mono text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 />
                                 <p className={`mt-1 text-xs ${form.lecCode.length >= CODE_MAX ? "text-rose-500" : "text-slate-400"}`}>
                                     영문·숫자·하이픈(-) 입력 가능 (소문자는 대문자로 자동 변환) · 최대 {CODE_MAX}자 ({form.lecCode.length}/{CODE_MAX})
@@ -436,7 +576,7 @@ export default function LectureManageView() {
                                     onChange={(e) => setForm((prev) => ({ ...prev, lecCodName: e.target.value }))}
                                     placeholder="예) 자료구조"
                                     maxLength={NAME_MAX}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 />
                                 <p className={`mt-1 text-xs ${form.lecCodName.length >= NAME_MAX ? "text-rose-500" : "text-slate-400"}`}>
                                     최대 {NAME_MAX}자 ({form.lecCodName.length}/{NAME_MAX})
@@ -446,14 +586,14 @@ export default function LectureManageView() {
                         <div className="mt-6 flex justify-end gap-3">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:bg-slate-50"
+                                className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={submit}
                                 disabled={submitting || !form.lecCode.trim() || !form.lecCodName.trim() || !form.deptId}
-                                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
+                                className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90 disabled:opacity-50"
                             >
                                 {submitting ? "저장 중..." : editTarget ? "수정 완료" : "등록"}
                             </button>
