@@ -176,11 +176,20 @@ export default function LandingPage() {
     const logoutAction = useAuthStore((state) => state.logoutAction);
     const role = useAuthStore((state) => state.role);
     const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const isInitialized = useAuthStore((state) => state.isInitialized);
     const dashboardPath = getDashboardPathByRole(role);
+    const shouldRedirectToHome =
+        isLoggedIn && (role === "STU" || role === "PROF" || role === "ALU");
     const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
     const [plansLoading, setPlansLoading] = useState(true);
     const [plansError, setPlansError] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (isInitialized && shouldRedirectToHome) {
+            router.replace("/home");
+        }
+    }, [isInitialized, router, shouldRedirectToHome]);
 
     useEffect(() => {
         let active = true;
@@ -268,6 +277,10 @@ export default function LandingPage() {
         };
     }, [plansLoading, plansError, plans.length]);
 
+    if (!isInitialized || shouldRedirectToHome) {
+        return null;
+    }
+
     return (
         <main className="min-h-screen overflow-hidden bg-[#fbfcfd] pt-[72px] text-slate-950">
             <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
@@ -281,14 +294,15 @@ export default function LandingPage() {
                         <a href="#experience" className="transition-colors hover:text-primary">주요 기능</a>
                         <a href="#pricing" className="transition-colors hover:text-primary">요금제</a>
                         {!isLoggedIn && <Link href="/signup" className="transition-colors hover:text-primary">회원가입</Link>}
-                        {dashboardPath && <Link href={dashboardPath} className="transition-colors hover:text-primary">대시보드</Link>}
                         {isLoggedIn ? (
                             <button type="button" onClick={handleLogout} className="transition-colors hover:text-primary">로그아웃</button>
                         ) : (
                             <Link href="/login" className="transition-colors hover:text-primary">로그인</Link>
                         )}
                         <Button asChild size="sm" className="h-9 rounded-lg px-4 font-bold">
-                            <Link href={getSubscriptionPath()}>도입 문의 <ArrowRight className="size-3.5" /></Link>
+                            <Link href={dashboardPath ?? getSubscriptionPath()}>
+                                {dashboardPath ? "대시보드" : "도입 문의"} <ArrowRight className="size-3.5" />
+                            </Link>
                         </Button>
                     </nav>
 
