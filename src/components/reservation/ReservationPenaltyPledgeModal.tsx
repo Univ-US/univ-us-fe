@@ -9,6 +9,7 @@ type ReservationPenaltyPledgeModalProps = {
   error: string;
   onClose: () => void;
   onSubmit: (pledgeText: string, agreed: boolean) => void;
+  onValidationError: (message: string) => void;
 };
 
 export default function ReservationPenaltyPledgeModal({
@@ -17,15 +18,27 @@ export default function ReservationPenaltyPledgeModal({
   error,
   onClose,
   onSubmit,
+  onValidationError,
 }: ReservationPenaltyPledgeModalProps) {
   const [pledgeText, setPledgeText] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const canSubmit = pledgeText.trim() === status.pledgePhrase && agreed;
 
   useEffect(() => {
     setPledgeText('');
     setAgreed(false);
   }, [status.pledgePhrase]);
+
+  function handleSubmit() {
+    if (pledgeText.trim() !== status.pledgePhrase) {
+      onValidationError('서약 문구가 일치하지 않습니다.');
+      return;
+    }
+    if (!agreed) {
+      onValidationError('예약 이용 정책 확인에 동의해주세요.');
+      return;
+    }
+    onSubmit(pledgeText, agreed);
+  }
 
   return (
     <div className='fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 px-4'>
@@ -108,8 +121,8 @@ export default function ReservationPenaltyPledgeModal({
           </button>
           <button
             type='button'
-            onClick={() => onSubmit(pledgeText, agreed)}
-            disabled={loading || !canSubmit}
+            onClick={handleSubmit}
+            disabled={loading}
             className='h-10 rounded-xl bg-primary px-4 text-[13px] font-bold text-white shadow-md transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50'
           >
             {loading ? '확인 중' : '서약하고 이용하기'}
