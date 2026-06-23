@@ -173,14 +173,14 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
             {loading ? (
                 <p className="text-sm text-slate-400">불러오는 중...</p>
             ) : error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
                     <p>{error}</p>
                     <button onClick={load} className="mt-2 font-bold underline">다시 시도</button>
                 </div>
             ) : (
                 <>
                     <div className="grid gap-5 md:grid-cols-2">
-                        <section className="rounded-2xl bg-[var(--primary)] p-6 text-white shadow-sm">
+                        <section className="rounded-xl bg-[var(--primary)] p-6 text-white shadow-sm">
                             <div className="flex items-center justify-between">
                                 <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold">
                                     {status ? SUBSCRIPTION_ACCESS_LABEL[status.accessStatus] : "상태 확인 불가"}
@@ -228,7 +228,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                             </button>
                         </section>
 
-                        <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h2 className="font-black">결제 수단</h2>
                             {paymentMethod?.registered ? (
                                 <div className="mt-4 rounded-xl bg-slate-50 p-4">
@@ -248,7 +248,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                         </section>
                     </div>
 
-                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <h2 className="font-black">플랜 변경</h2>
                             <p className="text-xs text-slate-400">변경한 플랜은 다음 결제부터 적용됩니다.</p>
@@ -358,7 +358,7 @@ export default function BillingView({ onNavigate }: { onNavigate: (view: string)
                         </div>
                     </section>
 
-                    <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="border-b border-slate-100 px-5 py-4">
                             <h2 className="font-black">결제 내역</h2>
                         </div>

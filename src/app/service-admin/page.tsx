@@ -281,7 +281,7 @@ function ServiceAdminDashboardContent() {
                                     onClick={() => itemView && navigateToView(itemView)}
                                     disabled={!isReady}
                                     title={label}
-                                    className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
+                                    className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
                                         isActive
                                             ? "bg-white text-primary shadow-sm"
                                             : isReady
@@ -310,7 +310,7 @@ function ServiceAdminDashboardContent() {
                                         onClick={() => itemView && navigateToView(itemView)}
                                         disabled={!isReady}
                                         title={label}
-                                        className={`flex h-10 w-full items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
+                                        className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${
                                             itemView === view
                                                 ? "bg-white text-primary shadow-sm"
                                                 : isReady

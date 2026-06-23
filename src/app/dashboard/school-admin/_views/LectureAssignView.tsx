@@ -10,7 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Info, Lock, Pencil, Plus, Unlock } from "lucide-react";
+import { Check, ChevronDown, Info, Lock, Pencil, Plus, Unlock } from "lucide-react";
 import { isAxiosError } from "axios";
 import { useAuthStore } from "@/store/authStore";
 import {
@@ -48,7 +48,81 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 const inputClass =
-    "mt-2 h-10 w-full rounded-lg border border-border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-50 disabled:text-slate-400";
+    "mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-slate-50 disabled:text-slate-400";
+
+type DropdownOption<T extends string | number> = {
+    value: T;
+    label: string;
+};
+
+function SelectDropdown<T extends string | number>({
+    label,
+    options,
+    value,
+    open,
+    onToggle,
+    onChange,
+    disabled = false,
+    className = "w-full sm:w-32",
+    menuClassName = "w-full",
+}: {
+    label?: string;
+    options: DropdownOption<T>[];
+    value: T;
+    open: boolean;
+    onToggle: () => void;
+    onChange: (value: T) => void;
+    disabled?: boolean;
+    className?: string;
+    menuClassName?: string;
+}) {
+    const selected = options.find((option) => option.value === value) ?? options[0];
+
+    return (
+        <div className={`relative ${className}`} data-lecture-assign-dropdown>
+            <button
+                type="button"
+                onClick={onToggle}
+                disabled={disabled}
+                className={`flex h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-300 ${
+                    open
+                        ? "border-primary bg-white text-primary ring-2 ring-primary/15"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/20 hover:bg-white"
+                }`}
+                aria-expanded={open}
+            >
+                <span className="flex min-w-0 items-center gap-2">
+                    {label && <span className="text-xs font-black text-slate-400">{label}</span>}
+                    <span className="truncate">{selected?.label}</span>
+                </span>
+                <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180 text-primary" : ""}`} />
+            </button>
+
+            {open && !disabled && (
+                <div className={`absolute left-0 top-12 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-top-1 duration-150 ${menuClassName}`}>
+                    {options.map((option) => {
+                        const selectedOption = option.value === value;
+                        return (
+                            <button
+                                key={String(option.value)}
+                                type="button"
+                                onClick={() => onChange(option.value)}
+                                className={`flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-sm font-bold transition-colors ${
+                                    selectedOption
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                                }`}
+                            >
+                                <span className="truncate">{option.label}</span>
+                                {selectedOption && <Check className="size-4 shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 const sectionLabel = (section: number) => String(section).padStart(2, "0");
 
@@ -95,6 +169,7 @@ export default function LectureAssignView() {
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
     const fetchAssigns = useCallback(() => {
         setTableLoading(true);
@@ -114,6 +189,18 @@ export default function LectureAssignView() {
         getAdminProfessors().then(setProfessors).catch(console.error);
         getAdminSemesters().then(setSemesters).catch(console.error);
     }, [myUnivId]);
+
+    useEffect(() => {
+        const closeDropdown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest("[data-lecture-assign-dropdown]")) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener("mousedown", closeDropdown);
+        return () => document.removeEventListener("mousedown", closeDropdown);
+    }, []);
 
     // 수정 모달에서 기존 강의가 숨김/삭제 상태여도 현재 선택값은 옵션에 유지
     const deptLectures = lectures.filter(
@@ -358,30 +445,34 @@ export default function LectureAssignView() {
                 </div>
                 {/* 년도·학기 필터 + 강의 배정 (기본 둘 다 '전체') */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <select
+                    <SelectDropdown
+                        label="년도"
                         value={yearFilter}
-                        onChange={(e) => setYearFilter(Number(e.target.value))}
-                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value={0}>전체 년도</option>
-                        {yearOptions.map((y) => (
-                            <option key={y} value={y}>
-                                {y}년
-                            </option>
-                        ))}
-                    </select>
-                    <select
+                        open={openDropdown === "year-filter"}
+                        onToggle={() => setOpenDropdown((current) => current === "year-filter" ? null : "year-filter")}
+                        onChange={(nextValue) => {
+                            setYearFilter(nextValue);
+                            setOpenDropdown(null);
+                        }}
+                        options={[
+                            { value: 0, label: "전체 년도" },
+                            ...yearOptions.map((year) => ({ value: year, label: `${year}년` })),
+                        ]}
+                    />
+                    <SelectDropdown
+                        label="학기"
                         value={termFilter}
-                        onChange={(e) => setTermFilter(e.target.value)}
-                        className="h-10 rounded-lg border border-border bg-white px-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="">전체 학기</option>
-                        {termOptions.map((t) => (
-                            <option key={t} value={t}>
-                                {SEM_TERM_LABEL[t] ?? t}
-                            </option>
-                        ))}
-                    </select>
+                        open={openDropdown === "term-filter"}
+                        onToggle={() => setOpenDropdown((current) => current === "term-filter" ? null : "term-filter")}
+                        onChange={(nextValue) => {
+                            setTermFilter(nextValue);
+                            setOpenDropdown(null);
+                        }}
+                        options={[
+                            { value: "", label: "전체 학기" },
+                            ...termOptions.map((term) => ({ value: term, label: SEM_TERM_LABEL[term] ?? term })),
+                        ]}
+                    />
                     <button
                         onClick={() => void handleOpenPeriod()}
                         disabled={!periodSemester || periodProcessing}
@@ -403,7 +494,7 @@ export default function LectureAssignView() {
                             resetForm();
                             setShowModal(true);
                         }}
-                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
+                        className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90"
                     >
                         <Plus className="size-4" /> 강의 배정
                     </button>
@@ -412,7 +503,7 @@ export default function LectureAssignView() {
 
             {/* 학기별 수강신청 열림 여부 — 클릭하면 해당 학기로 필터 이동 */}
             {semesterOpenStatus.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/10 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <span className="mr-1 shrink-0 text-xs font-extrabold text-slate-400">수강신청 상태</span>
                     {semesterOpenStatus.map(({ semester, isOpen }) => (
                         <button
@@ -438,7 +529,7 @@ export default function LectureAssignView() {
 
             <>
                     {/* 배정 강의 목록 */}
-                    <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                         <table className="w-full text-left text-sm">
                             <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
                                 <tr>
@@ -566,7 +657,7 @@ export default function LectureAssignView() {
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div
-                        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl lg:p-8"
+                        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-2xl lg:p-8"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-lg font-black">{editTarget ? "강의 배정 수정" : "강의 배정"}</h2>
@@ -588,46 +679,48 @@ export default function LectureAssignView() {
                             <label className="text-sm font-black">
                                 학과 <span className="text-rose-500">*</span>
                             </label>
-                            <select
+                            <SelectDropdown
                                 value={deptId}
-                                onChange={(e) => {
-                                    // 순차 선택 체인: 상위 변경 시 하위(강의→교수→학점) 연쇄 리셋
-                                    setDeptId(Number(e.target.value));
+                                open={openDropdown === "form-dept"}
+                                onToggle={() => setOpenDropdown((current) => current === "form-dept" ? null : "form-dept")}
+                                onChange={(nextValue) => {
+                                    setDeptId(nextValue);
                                     setLecCodeId(0);
                                     setProfessorMemberId(0);
                                     setCredit("");
+                                    setOpenDropdown(null);
                                 }}
-                                className={inputClass}
-                            >
-                                <option value={0}>학과 선택</option>
-                                {departments.map((d) => (
-                                    <option key={d.deptId} value={d.deptId}>
-                                        {d.deptName}
-                                    </option>
-                                ))}
-                            </select>
+                                className="mt-2 w-full"
+                                options={[
+                                    { value: 0, label: "학과 선택" },
+                                    ...departments.map((dept) => ({ value: dept.deptId, label: dept.deptName })),
+                                ]}
+                            />
                         </div>
                         <div>
                             <label className="text-sm font-black">
                                 강의 <span className="text-rose-500">*</span>
                             </label>
-                            <select
+                            <SelectDropdown
                                 value={lecCodeId}
-                                onChange={(e) => {
-                                    setLecCodeId(Number(e.target.value));
+                                open={openDropdown === "form-lecture"}
+                                onToggle={() => setOpenDropdown((current) => current === "form-lecture" ? null : "form-lecture")}
+                                onChange={(nextValue) => {
+                                    setLecCodeId(nextValue);
                                     setProfessorMemberId(0);
                                     setCredit("");
+                                    setOpenDropdown(null);
                                 }}
                                 disabled={!deptId}
-                                className={inputClass}
-                            >
-                                <option value={0}>{!deptId ? "학과를 먼저 선택하세요" : "강의 선택"}</option>
-                                {deptLectures.map((l) => (
-                                    <option key={l.lecCodeId} value={l.lecCodeId}>
-                                        {l.lecCode} · {l.lecCodName}
-                                    </option>
-                                ))}
-                            </select>
+                                className="mt-2 w-full"
+                                options={[
+                                    { value: 0, label: !deptId ? "학과를 먼저 선택하세요" : "강의 선택" },
+                                    ...deptLectures.map((lecture) => ({
+                                        value: lecture.lecCodeId,
+                                        label: `${lecture.lecCode} · ${lecture.lecCodName}`,
+                                    })),
+                                ]}
+                            />
                             {deptId !== 0 && deptLectures.length === 0 ? (
                                 <p className="mt-1 text-xs text-rose-500">
                                     이 학과에 등록된 강의가 없습니다 — &lsquo;강의 관리&rsquo; 메뉴에서 먼저 등록하세요.
@@ -642,38 +735,46 @@ export default function LectureAssignView() {
                             <label className="text-sm font-black">
                                 담당 교수 <span className="text-rose-500">*</span>
                             </label>
-                            <select
+                            <SelectDropdown
                                 value={professorMemberId}
-                                onChange={(e) => {
-                                    setProfessorMemberId(Number(e.target.value));
+                                open={openDropdown === "form-professor"}
+                                onToggle={() => setOpenDropdown((current) => current === "form-professor" ? null : "form-professor")}
+                                onChange={(nextValue) => {
+                                    setProfessorMemberId(nextValue);
                                     setCredit("");
+                                    setOpenDropdown(null);
                                 }}
                                 disabled={!lecCodeId}
-                                className={inputClass}
-                            >
-                                <option value={0}>{!lecCodeId ? "강의를 먼저 선택하세요" : "교수 선택"}</option>
-                                {professors.map((p) => (
-                                    <option key={p.memberId} value={p.memberId}>
-                                        {p.memberName} 교수{p.deptName ? ` (${p.deptName})` : ""}
-                                    </option>
-                                ))}
-                            </select>
+                                className="mt-2 w-full"
+                                options={[
+                                    { value: 0, label: !lecCodeId ? "강의를 먼저 선택하세요" : "교수 선택" },
+                                    ...professors.map((professor) => ({
+                                        value: professor.memberId,
+                                        label: `${professor.memberName} 교수${professor.deptName ? ` (${professor.deptName})` : ""}`,
+                                    })),
+                                ]}
+                            />
                         </div>
                         <div>
                             <label className="text-sm font-black">학점</label>
-                            <select
+                            <SelectDropdown
                                 value={credit}
-                                onChange={(e) => setCredit(e.target.value)}
+                                open={openDropdown === "form-credit"}
+                                onToggle={() => setOpenDropdown((current) => current === "form-credit" ? null : "form-credit")}
+                                onChange={(nextValue) => {
+                                    setCredit(nextValue);
+                                    setOpenDropdown(null);
+                                }}
                                 disabled={!professorMemberId}
-                                className={inputClass}
-                            >
-                                <option value="">{!professorMemberId ? "교수를 먼저 선택하세요" : "선택 안 함"}</option>
-                                {Array.from({ length: 9 }, (_, i) => i + 1).map((n) => (
-                                    <option key={n} value={n}>
-                                        {n}학점
-                                    </option>
-                                ))}
-                            </select>
+                                className="mt-2 w-full"
+                                options={[
+                                    { value: "", label: !professorMemberId ? "교수를 먼저 선택하세요" : "선택 안 함" },
+                                    ...Array.from({ length: 9 }, (_, i) => i + 1).map((creditValue) => ({
+                                        value: String(creditValue),
+                                        label: `${creditValue}학점`,
+                                    })),
+                                ]}
+                            />
                             <p className="mt-1 text-xs text-slate-400">1–9학점 (선택)</p>
                         </div>
                         <div>
@@ -708,34 +809,36 @@ export default function LectureAssignView() {
                                     년도·학기 <span className="text-rose-500">*</span>
                                 </label>
                                 <div className="flex gap-2">
-                                    <select
+                                    <SelectDropdown
                                         value={formYear}
-                                        onChange={(e) => {
-                                            setFormYear(Number(e.target.value));
-                                            setFormTerm(""); // 년도 변경 시 학기 재선택
+                                        open={openDropdown === "form-year"}
+                                        onToggle={() => setOpenDropdown((current) => current === "form-year" ? null : "form-year")}
+                                        onChange={(nextValue) => {
+                                            setFormYear(nextValue);
+                                            setFormTerm("");
+                                            setOpenDropdown(null);
                                         }}
-                                        className={inputClass}
-                                    >
-                                        <option value={0}>년도 선택</option>
-                                        {yearOptions.map((y) => (
-                                            <option key={y} value={y}>
-                                                {y}년
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <select
+                                        className="mt-2 w-full"
+                                        options={[
+                                            { value: 0, label: "년도 선택" },
+                                            ...yearOptions.map((year) => ({ value: year, label: `${year}년` })),
+                                        ]}
+                                    />
+                                    <SelectDropdown
                                         value={formTerm}
-                                        onChange={(e) => setFormTerm(e.target.value)}
+                                        open={openDropdown === "form-term"}
+                                        onToggle={() => setOpenDropdown((current) => current === "form-term" ? null : "form-term")}
+                                        onChange={(nextValue) => {
+                                            setFormTerm(nextValue);
+                                            setOpenDropdown(null);
+                                        }}
                                         disabled={!formYear}
-                                        className={inputClass}
-                                    >
-                                        <option value="">{formYear ? "학기 선택" : "년도 먼저 선택"}</option>
-                                        {formTermOptions.map((t) => (
-                                            <option key={t} value={t}>
-                                                {SEM_TERM_LABEL[t] ?? t}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        className="mt-2 w-full"
+                                        options={[
+                                            { value: "", label: formYear ? "학기 선택" : "년도 먼저 선택" },
+                                            ...formTermOptions.map((term) => ({ value: term, label: SEM_TERM_LABEL[term] ?? term })),
+                                        ]}
+                                    />
                                 </div>
                             </div>
                             <div>
@@ -766,7 +869,7 @@ export default function LectureAssignView() {
                                         className={`h-9 w-9 rounded-lg border text-sm font-bold transition-colors ${
                                             days.includes(code)
                                                 ? "border-primary bg-primary text-white"
-                                                : "border-border bg-white text-slate-600 hover:bg-slate-50"
+                                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                                         }`}
                                     >
                                         {DAY_LABEL[code]}
@@ -827,14 +930,14 @@ export default function LectureAssignView() {
                                     resetForm();
                                     setShowModal(false);
                                 }}
-                                className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:bg-slate-50"
+                                className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={submit}
                                 disabled={!canSubmit}
-                                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
+                                className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90 disabled:opacity-50"
                             >
                                 <Check className="size-4" />
                                 {submitting

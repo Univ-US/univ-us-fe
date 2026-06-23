@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     AlertTriangle,
+    Check,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     RefreshCw,
@@ -22,6 +24,68 @@ import {
 } from "@/lib/adminPenaltyApi";
 
 type PaginationItem = number | "ellipsis";
+
+function FilterDropdown<T extends string>({
+    label,
+    options,
+    value,
+    open,
+    onToggle,
+    onChange,
+}: {
+    label: string;
+    options: { label: string; value: T }[];
+    value: T;
+    open: boolean;
+    onToggle: () => void;
+    onChange: (value: T) => void;
+}) {
+    const selectedLabel = options.find((option) => option.value === value)?.label ?? label;
+
+    return (
+        <div className="relative" data-penalty-filter-dropdown>
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`flex h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 text-sm font-bold transition-all ${
+                    open
+                        ? "border-primary bg-white text-primary ring-2 ring-primary/15"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/20 hover:bg-white"
+                }`}
+                aria-expanded={open}
+            >
+                <span className="flex min-w-0 items-center gap-2">
+                    <span className="text-xs font-black text-slate-400">{label}</span>
+                    <span className="truncate">{selectedLabel}</span>
+                </span>
+                <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180 text-primary" : ""}`} />
+            </button>
+
+            {open && (
+                <div className="absolute left-0 top-12 z-30 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {options.map((option) => {
+                        const selected = option.value === value;
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => onChange(option.value)}
+                                className={`flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-sm font-bold transition-colors ${
+                                    selected
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                                }`}
+                            >
+                                <span>{option.label}</span>
+                                {selected && <Check className="size-4" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
 
 const STATUS_LABEL: Record<AdminPenaltyStatus, string> = {
     ACTIVE: "진행중",
@@ -85,6 +149,7 @@ export default function PenaltyManagementView() {
     const [lookupResult, setLookupResult] = useState<AdminMemberPenaltyStatus | null>(null);
     const [lookupLoading, setLookupLoading] = useState(false);
     const [lookupError, setLookupError] = useState("");
+    const [statusFilterOpen, setStatusFilterOpen] = useState(false);
 
     useEffect(() => {
         const timer = window.setTimeout(() => {
@@ -117,6 +182,18 @@ export default function PenaltyManagementView() {
     useEffect(() => {
         void loadPenalties();
     }, [loadPenalties]);
+
+    useEffect(() => {
+        if (!statusFilterOpen) return;
+
+        const closeOnOutsideClick = (event: MouseEvent) => {
+            if ((event.target as HTMLElement).closest("[data-penalty-filter-dropdown]")) return;
+            setStatusFilterOpen(false);
+        };
+
+        document.addEventListener("mousedown", closeOnOutsideClick);
+        return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+    }, [statusFilterOpen]);
 
     const paginationItems = useMemo(
         () => buildPaginationItems(page, result?.totalPages ?? 0),
@@ -194,7 +271,7 @@ export default function PenaltyManagementView() {
     };
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black tracking-tight">노쇼 페널티 관리</h1>
@@ -205,13 +282,13 @@ export default function PenaltyManagementView() {
                 <button
                     onClick={() => void createPenalty()}
                     disabled={creating}
-                    className="h-11 shrink-0 rounded-lg bg-primary px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                    className="h-10 shrink-0 rounded-lg bg-primary px-5 text-sm font-black text-white shadow-sm shadow-primary/10 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 >
                     {creating ? "처리 중" : "페널티 수동 부과"}
                 </button>
             </div>
 
-            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm font-black text-slate-800">회원별 현재 차단 상태 조회</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
                     <input
@@ -221,12 +298,12 @@ export default function PenaltyManagementView() {
                         }
                         placeholder="회원 ID 입력"
                         inputMode="numeric"
-                        className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-primary"
+                        className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold outline-none transition-colors focus:border-primary focus:bg-white"
                     />
                     <button
                         onClick={() => void lookupMemberStatus()}
                         disabled={lookupLoading || !lookupMemberId.trim()}
-                        className="h-11 rounded-lg border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="h-10 rounded-lg border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                         {lookupLoading ? "조회 중" : "조회"}
                     </button>
@@ -257,7 +334,7 @@ export default function PenaltyManagementView() {
                 )}
             </section>
 
-            <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
+            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="grid gap-3 lg:grid-cols-[1fr_180px]">
                     <label className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -265,26 +342,30 @@ export default function PenaltyManagementView() {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="회원명, 로그인 ID 검색"
-                            className="h-11 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary"
+                            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-semibold outline-none transition-colors focus:border-primary focus:bg-white"
                         />
                     </label>
-                    <select
+                    <FilterDropdown
+                        label="상태"
                         value={status}
-                        onChange={(event) => {
-                            setStatus(event.target.value as typeof status);
+                        open={statusFilterOpen}
+                        onToggle={() => setStatusFilterOpen((open) => !open)}
+                        onChange={(nextStatus) => {
+                            setStatus(nextStatus);
                             setPage(0);
+                            setStatusFilterOpen(false);
                         }}
-                        className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary"
-                    >
-                        <option value="ALL">전체 상태</option>
-                        <option value="ACTIVE">진행중</option>
-                        <option value="PLEDGED">서약 해소</option>
-                        <option value="ADMIN_RELEASED">관리자 면제</option>
-                    </select>
+                        options={[
+                            { label: "전체 상태", value: "ALL" },
+                            { label: STATUS_LABEL.ACTIVE, value: "ACTIVE" },
+                            { label: STATUS_LABEL.PLEDGED, value: "PLEDGED" },
+                            { label: STATUS_LABEL.ADMIN_RELEASED, value: "ADMIN_RELEASED" },
+                        ]}
+                    />
                 </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 {error ? (
                     <div className="flex min-h-72 flex-col items-center justify-center p-6 text-center">
                         <AlertTriangle className="size-7 text-rose-500" />
@@ -310,7 +391,7 @@ export default function PenaltyManagementView() {
                                     <col className="w-[260px]" />
                                     <col className="w-[120px]" />
                                 </colgroup>
-                                <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
+                                <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-extrabold text-slate-500">
                                     <tr>
                                         <th className="px-5 py-3">회원</th>
                                         <th className="px-5 py-3">로그인 ID</th>
@@ -382,16 +463,12 @@ export default function PenaltyManagementView() {
                             </table>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4">
-                            <p className="text-sm font-bold text-slate-400">
-                                {(result?.totalPages ?? 0) === 0 ? 0 : page + 1} /{" "}
-                                {result?.totalPages ?? 0} 페이지
-                            </p>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex items-center justify-center border-t border-slate-100 px-5 py-3">
+                            <div className="flex flex-wrap items-center justify-center gap-1">
                                 <button
                                     onClick={() => setPage((current) => Math.max(0, current - 1))}
                                     disabled={result?.first ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                                     aria-label="이전 페이지"
                                 >
                                     <ChevronLeft className="size-4" />
@@ -401,10 +478,10 @@ export default function PenaltyManagementView() {
                                         <button
                                             key={item}
                                             onClick={() => setPage(item)}
-                                            className={`size-9 rounded-lg text-sm font-black ${
+                                            className={`h-8 w-8 rounded-lg text-xs font-bold ${
                                                 page === item
                                                     ? "bg-primary text-white"
-                                                    : "border border-slate-200 text-slate-600"
+                                                    : "text-slate-500 hover:bg-slate-50"
                                             }`}
                                             aria-current={page === item ? "page" : undefined}
                                         >
@@ -413,7 +490,7 @@ export default function PenaltyManagementView() {
                                     ) : (
                                         <span
                                             key={`ellipsis-${index}`}
-                                            className="flex size-7 items-center justify-center text-sm font-black text-slate-400"
+                                            className="flex h-8 w-8 items-center justify-center text-xs font-bold text-slate-400"
                                         >
                                             ...
                                         </span>
@@ -426,7 +503,7 @@ export default function PenaltyManagementView() {
                                         )
                                     }
                                     disabled={result?.last ?? true}
-                                    className="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-200"
                                     aria-label="다음 페이지"
                                 >
                                     <ChevronRight className="size-4" />

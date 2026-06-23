@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquareText } from "lucide-react";
+import { MessageSquareText, X } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getAdminSupports, updateSupportStatus, SUPPORT_STATUS_LABEL, type ApiSupport } from "@/lib/adminApi";
 
@@ -36,6 +36,17 @@ export default function InquiriesView() {
             .finally(() => setLoading(false));
     }, [univId]);
 
+    useEffect(() => {
+        if (!selected) return;
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setSelected(null);
+        };
+
+        document.addEventListener("keydown", closeOnEscape);
+        return () => document.removeEventListener("keydown", closeOnEscape);
+    }, [selected]);
+
     if (loading) {
         return (
             <div className="flex h-64 items-center justify-center">
@@ -51,8 +62,7 @@ export default function InquiriesView() {
                 <p className="mt-1 text-sm text-slate-500">학교 구성원이 보낸 문의를 확인합니다.</p>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-                <section className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+            <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div className="border-b border-slate-100 px-5 py-4">
                         <h2 className="font-black">전체 문의 <span className="ml-1 text-sm font-bold text-slate-400">{inquiries.length}건</span></h2>
                     </div>
@@ -63,76 +73,105 @@ export default function InquiriesView() {
                         </div>
                     ) : (
                         <ul className="divide-y divide-slate-100">
-                            {inquiries.map((item) => (
-                                <li key={item.supportId}>
-                                    <button
-                                        onClick={() => setSelected(item)}
-                                        className={`w-full px-5 py-4 text-left transition-colors hover:bg-slate-50 ${selected?.supportId === item.supportId ? "bg-primary/5" : ""} ${item.status === 1 ? "opacity-50" : ""}`}
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <span className={`font-black truncate ${item.status === 1 ? "text-slate-400 line-through" : "text-slate-900"}`}>{item.memberName}</span>
-                                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${item.status === 1 ? "bg-slate-100 text-slate-400" : "bg-amber-100 text-amber-700"}`}>
-                                                {SUPPORT_STATUS_LABEL[item.status] ?? item.status}
-                                            </span>
-                                        </div>
-                                        <p className={`mt-1 truncate text-sm ${item.status === 1 ? "text-slate-400" : "text-slate-500"}`}>{item.message}</p>
-                                        <p className="mt-1 text-xs text-slate-400">
-                                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString("ko-KR") : "—"}
-                                        </p>
-                                    </button>
-                                </li>
-                            ))}
+                            {inquiries.map((item) => {
+                                const inquiryTitle = item.message.split(/\r?\n/)[0]?.trim() || "내용 없음";
+
+                                return (
+                                    <li key={item.supportId}>
+                                        <button
+                                            onClick={() => setSelected(item)}
+                                            className={`w-full px-5 py-4 text-left transition-colors hover:bg-slate-50 ${item.status === 1 ? "opacity-60" : ""}`}
+                                        >
+                                            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_140px_120px_88px] items-center gap-4">
+                                                <p className={`truncate text-sm font-black ${item.status === 1 ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                                                    {inquiryTitle}
+                                                </p>
+                                                <span className={`truncate text-sm font-semibold ${item.status === 1 ? "text-slate-400" : "text-slate-600"}`}>{item.memberName}</span>
+                                                <span className="whitespace-nowrap text-sm font-semibold text-slate-400">
+                                                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString("ko-KR") : "—"}
+                                                </span>
+                                                <span className="flex justify-center">
+                                                    <span className={`inline-flex h-6 min-w-[72px] shrink-0 items-center justify-center rounded-full px-3 text-xs font-bold leading-none ${item.status === 1 ? "bg-slate-100 text-slate-400" : "bg-amber-100 text-amber-700"}`}>
+                                                        {SUPPORT_STATUS_LABEL[item.status] ?? item.status}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
-                </section>
+            </section>
 
-                <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
-                    {selected ? (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="font-black text-slate-900">문의 상세</h2>
+            {selected && (
+                <div
+                    className="fixed inset-0 z-20 flex items-center justify-center bg-slate-950/35 px-4 py-6 backdrop-blur-[2px]"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="inquiry-detail-title"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) setSelected(null);
+                    }}
+                >
+                    <section className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+                            <div>
+                                <h2 id="inquiry-detail-title" className="font-black text-slate-900">문의 상세</h2>
+                                <p className="mt-1 text-xs font-semibold text-slate-400">
+                                    문의자 정보와 접수 내용을 확인합니다.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${selected.status === 1 ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700"}`}>
                                     {SUPPORT_STATUS_LABEL[selected.status] ?? selected.status}
                                 </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelected(null)}
+                                    className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                                    aria-label="문의 상세 닫기"
+                                >
+                                    <X className="size-4" />
+                                </button>
                             </div>
-                            <div className="space-y-3 text-sm">
-                                <div>
+                        </div>
+                        <div className="space-y-5 px-5 py-5">
+                            <div className="grid gap-4 text-sm sm:grid-cols-3">
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
                                     <p className="text-xs font-bold text-slate-400">이름</p>
-                                    <p className="mt-0.5 font-semibold text-slate-800">{selected.memberName}</p>
+                                    <p className="mt-1 font-semibold text-slate-800">{selected.memberName}</p>
                                 </div>
-                                <div>
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
                                     <p className="text-xs font-bold text-slate-400">연락처</p>
-                                    <p className="mt-0.5 font-semibold text-slate-800">{selected.contact}</p>
+                                    <p className="mt-1 font-semibold text-slate-800">{selected.contact}</p>
                                 </div>
-                                <div>
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-3">
                                     <p className="text-xs font-bold text-slate-400">접수일</p>
-                                    <p className="mt-0.5 font-semibold text-slate-800">
+                                    <p className="mt-1 font-semibold text-slate-800">
                                         {selected.createdAt ? new Date(selected.createdAt).toLocaleDateString("ko-KR") : "—"}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400">내용</p>
-                                    <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 leading-relaxed text-slate-700">{selected.message}</p>
-                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-400">내용</p>
+                                <p className="mt-2 max-h-[460px] overflow-y-auto whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+                                    {selected.message}
+                                </p>
                             </div>
                             {selected.status !== 1 && (
                                 <button
                                     onClick={handleResolve}
                                     disabled={resolving}
-                                    className="mt-2 w-full rounded-lg bg-[var(--primary)] py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                                    className="h-10 w-full rounded-lg bg-[var(--primary)] text-sm font-bold text-white shadow-sm shadow-primary/10 transition-colors hover:bg-primary/90 disabled:opacity-50"
                                 >
                                     {resolving ? "처리 중..." : "처리완료로 변경"}
                                 </button>
                             )}
                         </div>
-                    ) : (
-                        <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-slate-400">
-                            <MessageSquareText className="size-8" />
-                            <p className="text-sm font-bold">문의를 선택하면 상세 내용이 표시됩니다.</p>
-                        </div>
-                    )}
-                </section>
-            </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

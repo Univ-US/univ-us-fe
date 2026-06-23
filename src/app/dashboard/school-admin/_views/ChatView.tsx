@@ -3,7 +3,9 @@
 import { Client, type IStompSocket } from "@stomp/stompjs";
 import {
     ArrowLeft,
+    Check,
     CheckCircle2,
+    ChevronDown,
     Clock3,
     FileText,
     MessageSquareText,
@@ -91,6 +93,75 @@ function mergeRoom(rooms: InquiryRoom[], next: InquiryRoom) {
         : [next, ...rooms]);
 }
 
+type DropdownOption<T extends string> = {
+    value: T;
+    label: string;
+};
+
+function SelectDropdown<T extends string>({
+    label,
+    options,
+    value,
+    open,
+    onToggle,
+    onChange,
+    className = "w-full sm:w-32",
+}: {
+    label?: string;
+    options: DropdownOption<T>[];
+    value: T;
+    open: boolean;
+    onToggle: () => void;
+    onChange: (value: T) => void;
+    className?: string;
+}) {
+    const selected = options.find((option) => option.value === value) ?? options[0];
+
+    return (
+        <div className={`relative ${className}`} data-chat-dropdown>
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`flex h-10 w-full items-center justify-between gap-3 rounded-lg border px-3 text-sm font-bold transition-all ${
+                    open
+                        ? "border-primary bg-white text-primary ring-2 ring-primary/15"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary/20 hover:bg-white"
+                }`}
+                aria-expanded={open}
+            >
+                <span className="flex min-w-0 items-center gap-2">
+                    {label && <span className="text-xs font-black text-slate-400">{label}</span>}
+                    <span className="truncate">{selected?.label}</span>
+                </span>
+                <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180 text-primary" : ""}`} />
+            </button>
+
+            {open && (
+                <div className="absolute left-0 top-12 z-30 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-top-1 duration-150">
+                    {options.map((option) => {
+                        const selectedOption = option.value === value;
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => onChange(option.value)}
+                                className={`flex h-9 w-full items-center justify-between rounded-lg px-2.5 text-left text-sm font-bold transition-colors ${
+                                    selectedOption
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                                }`}
+                            >
+                                <span className="truncate">{option.label}</span>
+                                {selectedOption && <Check className="size-4 shrink-0" />}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function getFileExtension(file: File) {
     const name = file.name.trim();
     const dotIndex = name.lastIndexOf(".");
@@ -117,6 +188,7 @@ export default function ChatView() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("disconnected");
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const newFileInputRef = useRef<HTMLInputElement | null>(null);
     const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -226,6 +298,18 @@ export default function ChatView() {
     useEffect(() => {
         void loadRooms();
     }, [loadRooms]);
+
+    useEffect(() => {
+        const closeDropdown = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest("[data-chat-dropdown]")) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener("mousedown", closeDropdown);
+        return () => document.removeEventListener("mousedown", closeDropdown);
+    }, []);
 
     useEffect(() => {
         if (selectedRoomId == null) {
@@ -469,7 +553,7 @@ export default function ChatView() {
                     { label: "진행 중", value: summary.inProgress, icon: MessageSquareText, color: "text-primary" },
                     { label: "종료", value: summary.closed, icon: CheckCircle2, color: "text-slate-500" },
                 ].map(({ label, value, icon: Icon, color }) => (
-                    <section key={label} className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
+                    <section key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between">
                             <p className="text-sm font-extrabold text-slate-500">{label}</p>
                             <Icon className={`size-5 ${color}`} />
@@ -479,7 +563,7 @@ export default function ChatView() {
                 ))}
             </div>
 
-            <section className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+            <section className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 {newOpen && (
                     <div className="flex min-h-0 w-full min-w-0 flex-col">
                         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
@@ -495,13 +579,22 @@ export default function ChatView() {
                         </header>
 
                         <form onSubmit={handleCreate} className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50/60 p-5">
-                            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                                 <div className="grid shrink-0 gap-3 lg:grid-cols-[160px_minmax(0,1fr)]">
-                                    <select value={newCategory} onChange={(event) => setNewCategory(event.target.value as InquiryCategory)} className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold outline-none focus:border-primary">
-                                        {CATEGORY_OPTIONS.map((category) => (
-                                            <option key={category} value={category}>{CATEGORY_LABEL[category]}</option>
-                                        ))}
-                                    </select>
+                                    <SelectDropdown
+                                        value={newCategory}
+                                        open={openDropdown === "new-category"}
+                                        onToggle={() => setOpenDropdown((current) => current === "new-category" ? null : "new-category")}
+                                        onChange={(nextValue) => {
+                                            setNewCategory(nextValue);
+                                            setOpenDropdown(null);
+                                        }}
+                                        className="w-full sm:w-40"
+                                        options={CATEGORY_OPTIONS.map((category) => ({
+                                            value: category,
+                                            label: CATEGORY_LABEL[category],
+                                        }))}
+                                    />
                                     <input value={newTitle} onChange={(event) => setNewTitle(event.target.value.slice(0, 50))} maxLength={50} placeholder="문의 제목" className="h-11 rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-primary" />
                                 </div>
                                 <textarea value={newMessage} onChange={(event) => setNewMessage(event.target.value.slice(0, 1000))} placeholder="문의 내용을 입력하세요." className="mt-3 min-h-0 flex-1 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
@@ -540,18 +633,41 @@ export default function ChatView() {
                             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="학교명, 제목, 메시지 검색" className="h-10 w-full rounded-lg border border-slate-200 pl-10 pr-3 text-sm font-semibold outline-none focus:border-primary" />
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                            <select value={status} onChange={(event) => setStatus(event.target.value as "ALL" | InquiryStatus)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
-                                <option value="ALL">전체 상태</option>
-                                <option value="WAITING">답변 대기</option>
-                                <option value="IN_PROGRESS">진행 중</option>
-                                <option value="CLOSED">종료</option>
-                            </select>
-                            <select value={category} onChange={(event) => setCategory(event.target.value as "ALL" | InquiryCategory)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold outline-none focus:border-primary">
-                                <option value="ALL">전체 분류</option>
-                                {CATEGORY_OPTIONS.map((value) => (
-                                    <option key={value} value={value}>{CATEGORY_LABEL[value]}</option>
-                                ))}
-                            </select>
+                            <SelectDropdown
+                                label="상태"
+                                value={status}
+                                open={openDropdown === "status-filter"}
+                                onToggle={() => setOpenDropdown((current) => current === "status-filter" ? null : "status-filter")}
+                                onChange={(nextValue) => {
+                                    setStatus(nextValue);
+                                    setOpenDropdown(null);
+                                }}
+                                className="w-full sm:w-36"
+                                options={[
+                                    { value: "ALL", label: "전체 상태" },
+                                    { value: "WAITING", label: "답변 대기" },
+                                    { value: "IN_PROGRESS", label: "진행 중" },
+                                    { value: "CLOSED", label: "종료" },
+                                ]}
+                            />
+                            <SelectDropdown
+                                label="분류"
+                                value={category}
+                                open={openDropdown === "category-filter"}
+                                onToggle={() => setOpenDropdown((current) => current === "category-filter" ? null : "category-filter")}
+                                onChange={(nextValue) => {
+                                    setCategory(nextValue);
+                                    setOpenDropdown(null);
+                                }}
+                                className="w-full sm:w-36"
+                                options={[
+                                    { value: "ALL", label: "전체 분류" },
+                                    ...CATEGORY_OPTIONS.map((categoryValue) => ({
+                                        value: categoryValue,
+                                        label: CATEGORY_LABEL[categoryValue],
+                                    })),
+                                ]}
+                            />
                         </div>
                     </div>
                     <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-slate-50/60 p-3">

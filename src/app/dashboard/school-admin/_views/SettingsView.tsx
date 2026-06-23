@@ -99,7 +99,7 @@ export default function SettingsView() {
             {tab === "info" && (
                 <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
                     <div className="space-y-5">
-                        <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Building2 className="size-4" /> 기본 정보
                             </div>
@@ -117,7 +117,7 @@ export default function SettingsView() {
                                     ].map(({ label, value }) => (
                                         <div key={label}>
                                             <p className="text-xs font-black text-slate-500">{label}</p>
-                                            <p className="mt-1 rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
+                                            <p className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">{value}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -128,7 +128,7 @@ export default function SettingsView() {
                             </p>
                         </section>
 
-                        <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-500">
                                 <Play className="size-4" /> 링크·바로가기
                             </div>
@@ -146,7 +146,7 @@ export default function SettingsView() {
                                             value={links[key]}
                                             onChange={(e) => setLinks({ ...links, [key]: e.target.value })}
                                             placeholder={placeholder}
-                                            className="mt-1 w-full rounded-lg border border-border bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-primary focus:bg-white"
+                                            className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary focus:bg-white"
                                         />
                                     </div>
                                 ))}
@@ -154,7 +154,7 @@ export default function SettingsView() {
                             <button
                                 onClick={handleSaveLinks}
                                 disabled={linksSaving}
-                                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                                className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-black text-white shadow-sm shadow-primary/10 transition-colors hover:bg-primary/90 disabled:opacity-50"
                             >
                                 <Save className="size-4" />
                                 {linksSaved ? "저장됨!" : linksSaving ? "저장 중..." : "링크 저장"}
@@ -163,7 +163,7 @@ export default function SettingsView() {
                     </div>
 
                     <div className="space-y-5">
-                        <section className="rounded-2xl border border-primary/10 bg-white p-5 shadow-sm">
+                        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                             <div className="text-sm font-extrabold text-slate-500">운영 상태</div>
                             <div className="mt-3 space-y-2 text-sm">
                                 <div className="flex justify-between">
@@ -182,7 +182,7 @@ export default function SettingsView() {
 
             {tab === "home" && (
                 <div className="grid gap-5 lg:grid-cols-2">
-                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex items-center gap-2">
                             <Grid2x2 className="size-4 text-primary" />
                             <h2 className="font-black">홈 위젯 노출</h2>
@@ -224,13 +224,13 @@ export default function SettingsView() {
                                 }
                             }}
                             disabled={widgetsSaving}
-                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
+                            className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90 disabled:opacity-50"
                         >
                             {widgetsSaved ? <><Check className="size-4" /> 저장됨!</> : widgetsSaving ? "저장 중..." : <><Save className="size-4" /> 변경사항 저장</>}
                         </button>
                     </section>
 
-                    <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex items-center gap-2">
                             <Megaphone className="size-4 text-primary" />
                             <h2 className="font-black">공지 기본값</h2>
@@ -239,7 +239,7 @@ export default function SettingsView() {
 
                         <div className="mt-5">
                             <p className="text-sm font-black">기본 공지 대상</p>
-                            <div className="mt-2 flex gap-2 rounded-lg border border-border p-1">
+                            <div className="mt-2 flex gap-2 rounded-lg border border-slate-200 p-1">
                                 {(["ALL", "STU", "PROF"] as const).map((t) => (
                                     <button
                                         key={t}
@@ -285,7 +285,7 @@ export default function SettingsView() {
                                 }
                             }}
                             disabled={noticeSaving}
-                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
+                            className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90 disabled:opacity-50"
                         >
                             {noticeSaved ? <><Check className="size-4" /> 저장됨!</> : noticeSaving ? "저장 중..." : <><Save className="size-4" /> 변경사항 저장</>}
                         </button>
@@ -294,7 +294,7 @@ export default function SettingsView() {
             )}
 
             {tab === "api" && (
-                <section className="rounded-2xl border border-primary/10 bg-white p-6 shadow-sm">
+                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
                     <div className="flex items-center gap-2">
                         <Link2 className="size-4 text-primary" />
                         <h2 className="font-black">외부 서비스 연동</h2>
@@ -303,7 +303,7 @@ export default function SettingsView() {
                     <div className="mt-5 divide-y divide-slate-100">
                         {apis.map(({ name, desc, connected, icon: Icon }) => (
                             <div key={name} className="flex items-center gap-4 py-4">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-slate-50">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
                                     <Icon className="size-5 text-slate-500" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -316,11 +316,11 @@ export default function SettingsView() {
                                     <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
                                 </div>
                                 {connected ? (
-                                    <button className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-slate-50">
+                                    <button className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-bold hover:bg-slate-50">
                                         <Settings className="size-3" /> 설정
                                     </button>
                                 ) : (
-                                    <button className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-black text-white hover:bg-primary/90">
+                                    <button className="flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-black text-white hover:bg-primary/90">
                                         <Link2 className="size-3" /> 연결
                                     </button>
                                 )}

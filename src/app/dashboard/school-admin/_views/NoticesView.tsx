@@ -104,7 +104,7 @@ export default function NoticesView() {
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-black tracking-tight">공지 관리</h1>
@@ -112,15 +112,15 @@ export default function NoticesView() {
                 </div>
                 <button
                     onClick={openCreate}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90"
+                    className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 transition-all hover:bg-primary/90"
                 >
                     + 공지 작성
                 </button>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-xs font-extrabold text-slate-500">
+                    <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-extrabold text-slate-500">
                         <tr>
                             <th className="px-5 py-3">제목</th>
                             <th className="px-5 py-3">대상</th>
@@ -187,7 +187,7 @@ export default function NoticesView() {
                     onClick={() => setViewNotice(null)}
                 >
                     <div
-                        className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-4"
+                        className="flex w-full max-w-lg flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-start justify-between gap-3">
@@ -212,7 +212,7 @@ export default function NoticesView() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+                    <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
                         <h2 className="text-lg font-black">{editTarget ? "공지 수정" : "공지 작성"}</h2>
                         <p className="mt-1 text-xs text-slate-500">작성된 공지는 홈-LMS의 최근 공지에 노출됩니다.</p>
 
@@ -222,7 +222,7 @@ export default function NoticesView() {
                                 <select
                                     value={form.target}
                                     onChange={(e) => setForm((prev) => ({ ...prev, target: e.target.value as "ALL" | "STU" | "PROF" }))}
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 >
                                     <option value="ALL">전체</option>
                                     <option value="STU">학생</option>
@@ -237,7 +237,7 @@ export default function NoticesView() {
                                     value={form.title}
                                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                                     placeholder="예) 2026-1학기 기말고사 안내"
-                                    className="mt-2 h-10 w-full rounded-lg border border-border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 />
                             </div>
 
@@ -248,7 +248,7 @@ export default function NoticesView() {
                                     onChange={(e) => setForm({ ...form, content: e.target.value })}
                                     placeholder="공지 내용을 입력하세요."
                                     rows={5}
-                                    className="mt-2 w-full resize-none rounded-lg border border-border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="mt-2 w-full resize-none rounded-lg border border-slate-200 p-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15"
                                 />
                             </div>
                         </div>
@@ -256,14 +256,14 @@ export default function NoticesView() {
                         <div className="mt-6 flex justify-end gap-3">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="rounded-lg border border-border px-4 py-2 text-sm font-bold hover:bg-slate-50"
+                                className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={submit}
                                 disabled={submitting || !form.title.trim()}
-                                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-50"
+                                className="flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white shadow-sm shadow-primary/10 hover:bg-primary/90 disabled:opacity-50"
                             >
                                 {submitting ? "저장 중..." : editTarget ? "수정 완료" : "▶ 공지 등록"}
                             </button>
