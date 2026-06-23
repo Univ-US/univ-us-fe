@@ -27,7 +27,15 @@ export interface EnrollSummary {
   maxCredit: number;
 }
 
-export interface EnrollSubmitResult {
+/** POST /api/lms/student/enroll 응답 (202 Accepted) — 결과는 비동기로 STOMP 푸시됨 */
+export interface EnrollSubmitAccepted {
+  requestId: string;
+  message: string;
+}
+
+/** /user/queue/lms/enroll-result 로 푸시되는 처리 결과 */
+export interface EnrollResult {
+  requestId: string;
   success: number[];
   failed: { lecId: number; reason: string }[];
 }

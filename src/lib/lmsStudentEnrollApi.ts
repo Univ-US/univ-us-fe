@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import type { EnrollLectureRow, EnrollSummary, EnrollSubmitResult } from "@/types/lmsStudentEnroll";
+import type { EnrollLectureRow, EnrollSummary, EnrollSubmitAccepted } from "@/types/lmsStudentEnroll";
 
 /** GET /api/lms/student/enroll/summary — 신청 가능 학점 한도 등 */
 export const getEnrollSummary = async (): Promise<EnrollSummary> => {
@@ -13,9 +13,14 @@ export const getOpenLectures = async (): Promise<EnrollLectureRow[]> => {
   return res.data;
 };
 
-/** POST /api/lms/student/enroll — 장바구니 일괄 신청 (정원/충돌 최종 검증은 서버 책임) */
-export const submitEnrollment = async (lecIds: number[]): Promise<EnrollSubmitResult> => {
-  const res = await api.post<EnrollSubmitResult>("/api/lms/student/enroll", { lecIds });
+/**
+ * POST /api/lms/student/enroll — 장바구니 일괄 신청 접수.
+ * 202 Accepted + {requestId, message}만 즉시 반환되고, 실제 성공/실패는
+ * STOMP `/user/queue/lms/enroll-result` 로 비동기 푸시됨(정원 동시성 제어를 큐로 처리).
+ * 큐가 꽉 차면 503.
+ */
+export const submitEnrollment = async (lecIds: number[]): Promise<EnrollSubmitAccepted> => {
+  const res = await api.post<EnrollSubmitAccepted>("/api/lms/student/enroll", { lecIds });
   return res.data;
 };
 
