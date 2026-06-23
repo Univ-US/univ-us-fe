@@ -101,7 +101,7 @@ const RESERVATION_HISTORY_PAGE_SIZE = 9;
 const S = {
   pageContainer: 'min-h-screen bg-slate-50 px-[30px] py-6',
   contentWrapper: 'mx-auto max-w-[1140px]',
-  toast: 'fixed right-6 top-6 z-[80] max-w-[360px] rounded-xl border px-4 py-3 text-[13px] font-bold shadow-lg',
+  toast: 'fixed right-6 top-6 z-[100] max-w-[360px] rounded-xl border px-4 py-3 text-[13px] font-bold shadow-lg',
   toastSuccess: 'border-primary/20 bg-white text-primary',
   toastError: 'border-red-100 bg-white text-red-500',
   headerGroup: 'mb-6 flex flex-wrap items-end justify-between gap-4',
@@ -1326,6 +1326,9 @@ export default function CommunityReservation() {
               setPenaltyError('');
             }}
             onSubmit={handleSubmitPenaltyPledge}
+            onValidationError={(message) =>
+              setToast({ type: 'error', message })
+            }
           />
         )}
 
