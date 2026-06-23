@@ -3,19 +3,24 @@
 // 수강신청 — 홈 바로가기로 진입하는 독립 페이지(LMS 사이드바 레이아웃 미사용).
 // 개설 강좌 검색 + 장바구니 방식 신청/취소 + 시간표 충돌 검사 + 정원·학점 제한 표시.
 // mock-first: lib(lmsStudentEnrollApi)가 mock 반환 — BE 명세 오면 lib만 실연결.
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { ROLE } from "@/lib/rolecode";
+import { isApiErrorStatus } from "@/lib/apiError";
+import { useEnrollResultRealtime } from "@/hooks/useEnrollResultRealtime";
 import {
   getEnrollSummary,
   getOpenLectures,
   submitEnrollment,
   cancelEnrollment,
 } from "@/lib/lmsStudentEnrollApi";
-import type { EnrollLectureRow, EnrollSummary, ScheduleSlot } from "@/types/lmsStudentEnroll";
+import type { EnrollLectureRow, EnrollResult, EnrollSummary, ScheduleSlot } from "@/types/lmsStudentEnroll";
+
+const ENROLL_RESULT_TIMEOUT_MS = 10000;
+const ENROLL_PAGE_SIZE = 10;
 
 const selectClass =
   "h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-100";
@@ -170,8 +175,12 @@ export default function HomeEnrollPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resultDelayed, setResultDelayed] = useState(false);
+  const pendingRequestIdRef = useRef<string | null>(null);
+  const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [keyword, setKeyword] = useState("");
   const [deptFilter, setDeptFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [captchaCode, setCaptchaCode] = useState("");
   const [captchaInput, setCaptchaInput] = useState("");
@@ -203,6 +212,39 @@ export default function HomeEnrollPage() {
     if (isLoggedIn && allowed) void load();
   }, [isLoggedIn, allowed, load]);
 
+  const clearResultTimeout = useCallback(() => {
+    if (resultTimeoutRef.current) {
+      clearTimeout(resultTimeoutRef.current);
+      resultTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearResultTimeout, [clearResultTimeout]);
+
+  const handleEnrollResult = useCallback(
+    (result: EnrollResult) => {
+      if (result.requestId !== pendingRequestIdRef.current) return; // 다른 요청(타임아웃 후 재시도 등)의 응답은 무시
+      pendingRequestIdRef.current = null;
+      clearResultTimeout();
+      setLectures((prev) =>
+        prev.map((l) =>
+          result.success.includes(l.lecId)
+            ? { ...l, alreadyEnrolled: true, enrolledCount: l.enrolledCount + 1 }
+            : l,
+        ),
+      );
+      setCartIds(new Set());
+      setSubmitting(false);
+      setResultDelayed(false);
+      if (result.failed.length > 0) {
+        alert(`일부 강좌는 신청에 실패했습니다.\n${result.failed.map((f) => f.reason).join("\n")}`);
+      }
+    },
+    [clearResultTimeout],
+  );
+
+  useEnrollResultRealtime(handleEnrollResult);
+
   const isEnrollPeriod = summary != null && summary.semesterLabel != null;
 
   const enrolled = useMemo(() => lectures.filter((l) => l.alreadyEnrolled), [lectures]);
@@ -225,6 +267,17 @@ export default function HomeEnrollPage() {
         return l.courseName.includes(q) || l.courseCode.toUpperCase().includes(q.toUpperCase()) || l.professor.includes(q);
       }),
     [lectures, deptFilter, keyword],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, deptFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / ENROLL_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedVisible = useMemo(
+    () => visible.slice((currentPage - 1) * ENROLL_PAGE_SIZE, currentPage * ENROLL_PAGE_SIZE),
+    [visible, currentPage],
   );
 
   const addToCart = (lecture: EnrollLectureRow) => {
@@ -267,23 +320,20 @@ export default function HomeEnrollPage() {
   const handleSubmit = async () => {
     if (cart.length === 0 || overLimit) return;
     setSubmitting(true);
+    setResultDelayed(false);
     try {
-      const res = await submitEnrollment(cart.map((l) => l.lecId));
-      setLectures((prev) =>
-        prev.map((l) =>
-          res.success.includes(l.lecId)
-            ? { ...l, alreadyEnrolled: true, enrolledCount: l.enrolledCount + 1 }
-            : l,
-        ),
-      );
-      setCartIds(new Set());
-      if (res.failed.length > 0) {
-        alert(`일부 강좌는 신청에 실패했습니다.\n${res.failed.map((f) => f.reason).join("\n")}`);
-      }
-    } catch {
-      alert("신청에 실패했습니다. 잠시 후 다시 시도해 주세요.");
-    } finally {
+      // 202 Accepted만 즉시 응답으로 오고, 실제 성공/실패는 STOMP로 비동기 푸시됨(handleEnrollResult)
+      const { requestId } = await submitEnrollment(cart.map((l) => l.lecId));
+      pendingRequestIdRef.current = requestId;
+      clearResultTimeout();
+      resultTimeoutRef.current = setTimeout(() => setResultDelayed(true), ENROLL_RESULT_TIMEOUT_MS);
+    } catch (err) {
       setSubmitting(false);
+      if (isApiErrorStatus(err, 503)) {
+        alert("수강신청이 몰리고 있습니다. 잠시 후 다시 시도해주세요.");
+      } else {
+        alert("신청에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+      }
     }
   };
 
@@ -403,7 +453,7 @@ export default function HomeEnrollPage() {
                           </td>
                         </tr>
                       ) : (
-                        visible.map((lecture) => {
+                        paginatedVisible.map((lecture) => {
                           const full = lecture.enrolledCount >= lecture.capacity;
                           const inCart = cartIds.has(lecture.lecId);
                           const conflict = !lecture.alreadyEnrolled && !inCart && hasConflict(lecture, enrolledOrCart);
@@ -447,6 +497,30 @@ export default function HomeEnrollPage() {
                       )}
                     </tbody>
                   </table>
+
+                  {!loading && visible.length > 0 && (
+                    <div className="flex items-center justify-center gap-1 border-t border-slate-100 px-5 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        className="h-7 w-7 rounded-lg text-sm text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        ‹
+                      </button>
+                      <span className="px-2 text-xs text-slate-500">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="h-7 w-7 rounded-lg text-sm text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
                 </section>
 
                 {/* 우측: 시간표 + 신청 현황(장바구니 + 신청 완료) */}
@@ -499,8 +573,16 @@ export default function HomeEnrollPage() {
                       disabled={cart.length === 0 || overLimit || submitting}
                       className="mt-4 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                     >
-                      {submitting ? "신청 중..." : `${cart.length}개 강좌 신청하기`}
+                      {submitting ? "접수 처리 중..." : `${cart.length}개 강좌 신청하기`}
                     </button>
+                    {resultDelayed && (
+                      <p className="mt-2 text-xs text-amber-600">
+                        처리가 지연되고 있습니다.{" "}
+                        <button type="button" onClick={() => void handleSubmit()} className="font-semibold underline">
+                          다시 시도
+                        </button>
+                      </p>
+                    )}
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
