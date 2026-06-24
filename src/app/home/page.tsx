@@ -37,22 +37,22 @@ const DEFAULT_CONFIG: HomeWidgetConfig = {
 };
 
 const BASE_SHORTCUTS = [
-    { label: "도서관", icon: BookOpen, bg: "bg-primary" },
-    { label: "증명서발급", icon: FileText, bg: "bg-primary", href: "https://www.certpia.com" },
-    { label: "학교홈", icon: GraduationCap, bg: "bg-slate-700" },
-    { label: "시설 이용", icon: Monitor, bg: "bg-primary" },
-    { label: "캠퍼스앱", icon: Smartphone, bg: "bg-slate-700", href: "/home" },
-    { label: "Office 365", icon: Cloud, bg: "bg-red-500", href: "https://www.office.com" },
-    { label: "학교 SNS", icon: Hash, bg: "bg-primary" },
-    { label: "YouTube", icon: Play, bg: "bg-red-600" },
-    { label: "동아리", icon: Users, bg: "bg-amber-500" },
-    { label: "커뮤니티", icon: MessageSquare, bg: "bg-primary", href: "/community" },
-    { label: "LMS", icon: LayoutDashboard, bg: "bg-primary", href: "#" },
-    { label: "수강신청", icon: ClipboardList, bg: "bg-primary", href: "#" },
+    { label: "도서관", icon: BookOpen, bg: "bg-gradient-to-br from-teal-400 to-teal-600" },
+    { label: "증명서발급", icon: FileText, bg: "bg-gradient-to-br from-sky-400 to-sky-600", href: "https://www.certpia.com" },
+    { label: "학교홈", icon: GraduationCap, bg: "bg-gradient-to-br from-slate-600 to-slate-800" },
+    { label: "시설 이용", icon: Monitor, bg: "bg-gradient-to-br from-violet-400 to-violet-600" },
+    { label: "캠퍼스앱", icon: Smartphone, bg: "bg-gradient-to-br from-emerald-400 to-emerald-600", href: "/home" },
+    { label: "Office 365", icon: Cloud, bg: "bg-gradient-to-br from-red-400 to-red-600", href: "https://www.office.com" },
+    { label: "학교 SNS", icon: Hash, bg: "bg-gradient-to-br from-fuchsia-400 to-fuchsia-600" },
+    { label: "YouTube", icon: Play, bg: "bg-gradient-to-br from-rose-500 to-red-600" },
+    { label: "동아리", icon: Users, bg: "bg-gradient-to-br from-amber-400 to-orange-500" },
+    { label: "커뮤니티", icon: MessageSquare, bg: "bg-gradient-to-br from-cyan-400 to-cyan-600", href: "/community" },
+    { label: "LMS", icon: LayoutDashboard, bg: "bg-gradient-to-br from-indigo-400 to-indigo-600", href: "#" },
+    { label: "수강신청", icon: ClipboardList, bg: "bg-gradient-to-br from-lime-400 to-green-600", href: "#" },
 ];
 
 const EXTRA_SHORTCUTS = [
-    { label: "취업정보", icon: Briefcase, bg: "bg-orange-500", href: "https://www.jobkorea.co.kr" },
+    { label: "취업정보", icon: Briefcase, bg: "bg-gradient-to-br from-orange-400 to-orange-600", href: "https://www.jobkorea.co.kr" },
 ];
 
 
@@ -317,12 +317,12 @@ export default function CampusHomePage() {
             </header>
 
             {/* 히어로 배너 */}
-            <div className="bg-slate-50 px-5 pt-5">
-                <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 via-primary/5 to-primary/5 px-5 py-7 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
+            <div className="mx-auto max-w-[1180px] bg-slate-50 px-5 pt-5">
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-primary/15 bg-[linear-gradient(135deg,rgba(15,168,150,0.16)_0%,rgba(255,255,255,0.92)_44%,rgba(204,251,241,0.32)_100%)] px-5 py-8 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
                     <div>
                         <p className="mb-1.5 text-xs font-bold text-primary/80">{univName ?? 'Univ·us'} 통합 포털</p>
                         <h1 className="text-xl sm:text-2xl font-extrabold leading-tight">
-                            오늘도 캠퍼스의 모든 것을 한 곳에서 👋
+                            오늘의 캠퍼스 일정을 한눈에 확인하세요
                         </h1>
                     </div>
                     <div className="text-right hidden md:block shrink-0">
@@ -370,7 +370,7 @@ export default function CampusHomePage() {
                             {[...BASE_SHORTCUTS, ...(showExtra ? EXTRA_SHORTCUTS : [])].map((s) => {
                                 const Icon = s.icon;
                                 const iconEl = (
-                                    <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>
+                                    <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center text-white shadow-[0_10px_18px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.28)] ring-1 ring-white/40 transition-transform group-hover:-translate-y-0.5 group-hover:scale-105`}>
                                         <Icon className="w-5 h-5" />
                                     </div>
                                 );
@@ -669,8 +669,8 @@ export default function CampusHomePage() {
                     )}
 
                     {/* 최근 공지 */}
-                    {homeConfig.notice && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
-                        <div className="flex items-center justify-between mb-3">
+                    {homeConfig.notice && <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
                             <h2 className="font-extrabold text-slate-800 text-sm">최근 공지</h2>
                             {isLoggedIn && (
                                 <Link href="/home/notices" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
@@ -679,18 +679,18 @@ export default function CampusHomePage() {
                             )}
                         </div>
                         {!isLoggedIn ? (
-                            <p className="text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>
+                            <p className="px-5 py-4 text-sm text-slate-400">로그인 후 확인할 수 있어요.</p>
                         ) : notices.length === 0 ? (
-                            <p className="text-sm text-slate-400">등록된 공지가 없어요.</p>
+                            <p className="px-5 py-4 text-sm text-slate-400">등록된 공지가 없어요.</p>
                         ) : (
                             <ul className="divide-y divide-slate-100">
                                 {notices.slice(0, 6).map((n) => (
                                     <li
                                         key={n.noticeId}
                                         onClick={() => setSelectedNotice(n)}
-                                        className="flex items-center gap-2 py-2 text-xs cursor-pointer hover:bg-slate-50 rounded transition-colors"
+                                        className="flex min-h-9 cursor-pointer items-center gap-2 px-5 text-xs transition-colors hover:bg-slate-50"
                                     >
-                                        <span className="shrink-0 bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 font-semibold">
+                                        <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-500">
                                             공지
                                         </span>
                                         <span className="flex-1 text-slate-700 truncate">{n.title}</span>
@@ -704,22 +704,20 @@ export default function CampusHomePage() {
                     </section>}
 
                     {/* 오늘의 학식 */}
-                    {homeConfig.meal && <section className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
-                        <div className="flex items-center justify-between mb-4">
+                    {homeConfig.meal && <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition-all duration-300 hover:border-primary/30 hover:shadow-md">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
                             <div className="flex items-center gap-2">
-                                <Utensils className="w-4 h-4 text-primary" />
+                                <Utensils className="w-4 h-4 text-amber-500" />
                                 <h2 className="font-extrabold text-slate-800 text-sm">오늘의 학식</h2>
                             </div>
                             <span className="text-xs text-slate-400">{dayStr}</span>
                         </div>
-                        <div className="flex flex-col gap-3">
+                        <div className="divide-y divide-slate-100">
                             {MOCK_MEALS.map((meal) => (
-                                <div key={meal.type} className="rounded-lg bg-slate-50 p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-extrabold text-slate-700">{meal.type}</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-slate-400">{meal.time}</span>
-                                        </div>
+                                <div key={meal.type} className="px-5 py-3">
+                                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-extrabold text-amber-600">{meal.type}</span>
+                                        <span className="shrink-0 text-[10px] font-semibold text-slate-400">{meal.time}</span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 leading-relaxed">
                                         {meal.items.join(" · ")}

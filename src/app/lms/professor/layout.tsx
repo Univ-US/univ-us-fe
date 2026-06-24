@@ -198,7 +198,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤.
           토글 버튼으로 접기/펼치기(데스크톱 w-60↔w-16 · 모바일 오버레이) — 학생 사이드바와 동일 동작 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen shrink-0 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding,transform] duration-300 ease-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen shrink-0 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#12b8a6_0%,#0d9488_48%,#0f766e_100%)] py-5 text-slate-950 shadow-2xl shadow-primary/10 transition-[width,padding,transform] duration-300 ease-out md:translate-x-0 ${
           sidebarOpen
             ? "w-[256px] translate-x-0 px-4"
             : "-translate-x-full px-4 md:w-[104px] md:px-4"
@@ -215,21 +215,24 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
         </button>
 
         {/* 브랜드: 학교명(API) + UniVUs — 펼침=강의 내역 이동 / 접힘=로고 클릭 시 펼치기 */}
-        <div className={`flex items-center gap-2 ${sidebarOpen ? "justify-between" : "justify-center"}`}>
+        <div className={`flex items-center ${sidebarOpen ? "" : "justify-center"}`}>
           {sidebarOpen ? (
             <Link
               href="/lms/professor/courses"
               title="강의 내역"
-              className="group flex h-12 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] px-3 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14]"
+              className="group flex h-12 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 px-3 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                 <img src="/univusicon.png" alt="UniVUs" className="size-6 rounded-lg object-contain" />
               </span>
-              <span className="ml-2 min-w-0 text-left">
-                <span className="block text-sm font-black leading-4 text-white">UniVUs</span>
-                <span className="block truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              <span className="ml-2 min-w-0 flex-1 text-left">
+                <span className="block text-sm font-black leading-4 text-slate-950">UniVUs</span>
+                <span className="block truncate text-[10px] font-bold uppercase tracking-widest text-slate-800/65">
                   {profile?.universityName || "Professor LMS"}
                 </span>
+              </span>
+              <span className="ml-2 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                {profile?.role || "교수"}
               </span>
             </Link>
           ) : (
@@ -238,23 +241,18 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
               onClick={() => setSidebarOpen(true)}
               aria-label="사이드바 펼치기"
               title="사이드바 펼치기"
-              className="group flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14]"
+              className="group flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                 <img src="/univusicon.png" alt="" className="size-6 rounded-lg object-contain" />
               </span>
             </button>
           )}
-          {sidebarOpen && (
-            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
-              {profile?.role || "교수"}
-            </span>
-          )}
         </div>
 
         {/* 사용자 카드 */}
         <div
-          className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${
+          className={`mt-6 rounded-2xl border border-white/70 bg-white/80 shadow-sm transition-all duration-300 ${
             sidebarOpen ? "p-4" : "p-2"
           }`}
         >
@@ -268,10 +266,10 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
             </div>
             {sidebarOpen && (
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold text-white">
+                <p className="truncate text-sm font-extrabold text-slate-950">
                   {profile?.name ?? "교수"}
                 </p>
-                <p className="mt-0.5 truncate text-xs font-medium text-slate-300">
+                <p className="mt-0.5 truncate text-xs font-medium text-slate-800/65">
                   {profile?.department ?? "-"}
                   {profile?.employeeNo ? ` · ${profile.employeeNo}` : ""}
                 </p>
@@ -292,7 +290,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className={sidebarOpen ? "mb-4 space-y-0.5" : "mb-2 space-y-2"}>
               {sidebarOpen && (
-                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
+                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
                   {section.title}
                 </p>
               )}
@@ -331,7 +329,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                     className={`${base} ${
                       active
                         ? "bg-white text-primary shadow-sm"
-                        : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                        : "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
                     } ${sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"}`}
                   >
                     {content}
@@ -340,7 +338,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-white/35 ${
+                    className={`${base} cursor-not-allowed text-slate-950/35 ${
                       sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"
                     }`}
                   >
@@ -357,7 +355,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           <Link
             href="/home"
             title="홈으로"
-            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${
+            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${
               sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >
@@ -368,7 +366,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
             type="button"
             onClick={() => setLogoutOpen(true)}
             title="로그아웃"
-            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${
+            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${
               sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >
