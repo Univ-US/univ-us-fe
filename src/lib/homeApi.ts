@@ -39,13 +39,42 @@ export const getUniversities = async (): Promise<University[]> => {
 };
 
 async function refreshAccessToken(): Promise<void> {
-    const csrfToken = await getCsrfToken();
-    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: csrfToken ? { "X-XSRF-TOKEN": csrfToken } : undefined,
-    });
+    const requestRefresh = async () => {
+        const csrfToken = await getCsrfToken();
+        return fetch(`${API_BASE_URL}/api/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+            headers: csrfToken ? { "X-XSRF-TOKEN": csrfToken } : undefined,
+        });
+    };
+
+    let res = await requestRefresh();
+    if (await isCsrfInvalidResponse(res)) {
+        res = await requestRefresh();
+    }
+
     if (!res.ok) throw new Error("Refresh failed");
+}
+
+async function isCsrfInvalidResponse(response: Response): Promise<boolean> {
+    if (response.status !== 403) {
+        return false;
+    }
+
+    try {
+        const body = await response.clone().json() as { code?: string };
+        return body.code === "CSRF_INVALID";
+    } catch {
+        return false;
+    }
+}
+
+async function fetchWithCsrfRetry(buildRequest: () => Promise<Request>): Promise<Response> {
+    let response = await fetch(await buildRequest());
+    if (await isCsrfInvalidResponse(response)) {
+        response = await fetch(await buildRequest());
+    }
+    return response;
 }
 
 async function buildStreamRequest(message: string): Promise<Request> {
@@ -62,12 +91,12 @@ async function buildStreamRequest(message: string): Promise<Request> {
 }
 
 export async function* streamChatMessage(message: string): AsyncGenerator<string> {
-    let res = await fetch(await buildStreamRequest(message));
+    let res = await fetchWithCsrfRetry(() => buildStreamRequest(message));
 
     if (res.status === 401) {
         try {
             await refreshAccessToken();
-            res = await fetch(await buildStreamRequest(message));
+            res = await fetchWithCsrfRetry(() => buildStreamRequest(message));
         } catch {
             throw new Error("UNAUTHORIZED");
         }
