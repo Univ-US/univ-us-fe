@@ -158,7 +158,7 @@ function SchoolAdminDashboard() {
     return (
         <RoleGuard allowedRoles={["ADM"]}>
             <main className={view === "chat" ? "h-screen overflow-hidden bg-[#f7f8fb] text-slate-950" : "min-h-screen bg-[#f7f8fb] text-slate-950"}>
-                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
+                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#12b8a6_0%,#0d9488_48%,#0f766e_100%)] py-5 text-slate-950 shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
                     <button
                         type="button"
                         onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
@@ -168,28 +168,28 @@ function SchoolAdminDashboard() {
                         {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
                     </button>
 
-                    <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+                    <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : ""}`}>
                         <button
                             type="button"
                             onClick={() => router.push("/landing")}
-                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14] ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
+                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
                         >
                             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                                 <img src="/univusicon.png" alt="UnivUs" className="size-6 rounded-lg object-contain" />
                             </span>
-                            <span className={`min-w-0 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
-                                <span className="block text-sm font-black leading-4 text-white">UnivUs</span>
-                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Admin</span>
+                            <span className={`min-w-0 flex-1 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
+                                <span className="block text-sm font-black leading-4 text-slate-950">UnivUs</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-800/65">Admin</span>
                             </span>
+                            {!sidebarCollapsed && (
+                                <span className="ml-2 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                    관리자
+                                </span>
+                            )}
                         </button>
-                        {!sidebarCollapsed && (
-                            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
-                                관리자
-                            </span>
-                        )}
                     </div>
 
-                    <div className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
+                    <div className={`mt-6 rounded-2xl border border-white/70 bg-white/80 shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
                         <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
                                 {memberName?.slice(0, 1) ?? "\uAD00"}
@@ -197,33 +197,33 @@ function SchoolAdminDashboard() {
                             {!sidebarCollapsed && (
                                 <div className="min-w-0">
                                     <p className="truncate text-sm font-extrabold">{memberName ?? "관리자"}</p>
-                                    <p className="mt-0.5 text-xs font-medium text-slate-300">학교 관리자</p>
+                                    <p className="mt-0.5 text-xs font-medium text-slate-800/65">학교 관리자</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {!sidebarCollapsed && <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">운영</p>}
+                    {!sidebarCollapsed && <p className="mt-6 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">운영</p>}
                     <nav className={`mt-2 flex-1 ${sidebarCollapsed ? "space-y-2" : "space-y-0.5"}`}>
                         {NAV_ITEMS.slice(0, 8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
                                 title={label}
-                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
+                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
                                 <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
                             </button>
                         ))}
 
-                        {!sidebarCollapsed && <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">시스템</p>}
+                        {!sidebarCollapsed && <p className="px-2 pt-4 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">시스템</p>}
                         {NAV_ITEMS.slice(8).map(({ label, view: v, icon: Icon }) => (
                             <button
                                 key={v}
                                 onClick={() => setView(v)}
                                 title={label}
-                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"}`}
+                                className={`flex h-10 items-center rounded-xl text-sm font-bold transition-all duration-200 ${sidebarCollapsed ? "mx-auto w-10 justify-center px-0" : "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left"} ${view === v ? "bg-white text-primary shadow-sm" : "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"}`}
                             >
                                 <Icon className="size-4 shrink-0" />
                                 <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{label}</span>
@@ -235,7 +235,7 @@ function SchoolAdminDashboard() {
                         <button
                             onClick={() => router.push("/home")}
                             title="학생 홈으로 전환"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <Home className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>학생 홈으로 전환</span>
@@ -243,7 +243,7 @@ function SchoolAdminDashboard() {
                         <button
                             onClick={handleLogout}
                             title="로그아웃"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <LogOut className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>로그아웃</span>

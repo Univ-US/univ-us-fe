@@ -217,7 +217,7 @@ function ServiceAdminDashboardContent() {
     return (
         <RoleGuard allowedRoles={["SUA"]}>
             <main className={view === "inquiries" ? "h-screen overflow-hidden bg-[#f7f8fb] text-slate-950" : "min-h-screen bg-[#f7f8fb] text-slate-950"}>
-                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/30 bg-[linear-gradient(180deg,var(--primary)_0%,#063d30_48%,#05251f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
+                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#12b8a6_0%,#0d9488_48%,#0f766e_100%)] py-5 text-slate-950 shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
                     <button
                         type="button"
                         onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
@@ -227,27 +227,27 @@ function ServiceAdminDashboardContent() {
                         {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
                     </button>
 
-                    <div className={`flex items-center gap-2 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
+                    <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : ""}`}>
                         <Link
                             href="/landing"
-                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/15 bg-white/[0.1] shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.14] ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
+                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
                         >
                             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                                 <Image src="/univusicon.png" alt="UnivUs" width={24} height={24} className="size-6 rounded-lg object-contain" />
                             </span>
-                            <span className={`min-w-0 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
-                                <span className="block text-sm font-black leading-4 text-white">UnivUs</span>
-                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-400">Platform</span>
+                            <span className={`min-w-0 flex-1 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
+                                <span className="block text-sm font-black leading-4 text-slate-950">UnivUs</span>
+                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-800/65">Platform</span>
                             </span>
+                            {!sidebarCollapsed && (
+                                <span className="ml-2 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                    SUA
+                                </span>
+                            )}
                         </Link>
-                        {!sidebarCollapsed && (
-                            <span className="rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-200">
-                                SUA
-                            </span>
-                        )}
                     </div>
 
-                    <div className={`mt-6 rounded-2xl border border-white/15 bg-white/[0.08] shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
+                    <div className={`mt-6 rounded-2xl border border-white/70 bg-white/80 shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
                         <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
                                 {memberName?.slice(0, 1) ?? "\uC11C"}
@@ -255,14 +255,14 @@ function ServiceAdminDashboardContent() {
                             {!sidebarCollapsed && (
                                 <div className="min-w-0">
                                     <p className="truncate text-sm font-extrabold">{memberName ?? "서비스 관리자"}</p>
-                                    <p className="mt-0.5 text-xs font-medium text-slate-300">플랫폼 최고 관리자</p>
+                                    <p className="mt-0.5 text-xs font-medium text-slate-800/65">플랫폼 최고 관리자</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {!sidebarCollapsed && (
-                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
+                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
                             플랫폼 운영
                         </p>
                     )}
@@ -285,7 +285,7 @@ function ServiceAdminDashboardContent() {
                                         isActive
                                             ? "bg-white text-primary shadow-sm"
                                             : isReady
-                                                ? "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                                                ? "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
                                                 : "cursor-not-allowed text-slate-600"
                                     }`}
                                 >
@@ -297,7 +297,7 @@ function ServiceAdminDashboardContent() {
                         </div>
 
                         {!sidebarCollapsed && (
-                            <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-emerald-100/65">
+                            <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
                                 상세 관리
                             </p>
                         )}
@@ -314,7 +314,7 @@ function ServiceAdminDashboardContent() {
                                             itemView === view
                                                 ? "bg-white text-primary shadow-sm"
                                                 : isReady
-                                                    ? "text-emerald-50/80 hover:translate-x-0.5 hover:bg-white/12 hover:text-white"
+                                                     ? "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
                                                     : "cursor-not-allowed text-slate-600"
                                         }`}
                                     >
@@ -330,7 +330,7 @@ function ServiceAdminDashboardContent() {
                         <Link
                             href="/landing"
                             title="서비스 홈"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <Home className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>서비스 홈</span>
@@ -338,7 +338,7 @@ function ServiceAdminDashboardContent() {
                         <button
                             onClick={handleLogout}
                             title="로그아웃"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/15 bg-white/[0.08] text-sm font-bold text-emerald-50 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/12 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <LogOut className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>로그아웃</span>
