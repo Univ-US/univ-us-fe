@@ -96,7 +96,14 @@ const normalizeThread = (thread: InquiryThread): InquiryThread => ({
 
 export const getAttachmentDownloadHref = (attachment: InquiryAttachment) => {
     if (!attachment.downloadUrl) return "#";
-    return new URL(attachment.downloadUrl, API_BASE_URL).toString();
+
+    const baseUrl = /^https?:\/\//.test(API_BASE_URL)
+        ? API_BASE_URL
+        : typeof window !== "undefined"
+            ? window.location.origin
+            : "http://localhost:9090";
+
+    return new URL(attachment.downloadUrl, baseUrl).toString();
 };
 
 export const getAdminInquiryRooms = async () => {
