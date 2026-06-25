@@ -6,6 +6,13 @@ import { getPostList } from '@/lib/postApi';
 import { getProductList } from '@/lib/marketApi';
 import type { Post, Product } from '@/types/community';
 
+const HOME_BOARD_SIZE = 5;
+const HOME_BOARD_FETCH_SIZE = 10;
+
+function isAdminNoticePost(post: Post) {
+  return post.isAdminNotice === 1 || post.isPinned === 1;
+}
+
 export default function CommunityHomePage() {
   const [freePosts, setFreePosts] = useState<Post[]>([]);
   const [secretPosts, setSecretPosts] = useState<Post[]>([]);
@@ -18,14 +25,18 @@ export default function CommunityHomePage() {
     const fetchAll = async () => {
       try {
         const [freeData, secretData, noticeData, productData] = await Promise.all([
-          getPostList({ boardId: 1, page: 1, size: 5 }),
-          getPostList({ boardId: 2, page: 1, size: 5 }),
+          getPostList({ boardId: 1, page: 1, size: HOME_BOARD_FETCH_SIZE }),
+          getPostList({ boardId: 2, page: 1, size: HOME_BOARD_FETCH_SIZE }),
           getPostList({ boardId: 3, page: 1, size: 3 }),
           getProductList({ page: 0, size: 6 }),
         ]);
 
-        const free: Post[]   = (freeData.postList   ?? []).filter((post) => !post.isBlind);
-        const secret: Post[] = (secretData.postList ?? []).filter((post) => !post.isBlind);
+        const free: Post[] = (freeData.postList ?? [])
+          .filter((post) => !post.isBlind && !isAdminNoticePost(post))
+          .slice(0, HOME_BOARD_SIZE);
+        const secret: Post[] = (secretData.postList ?? [])
+          .filter((post) => !post.isBlind && !isAdminNoticePost(post))
+          .slice(0, HOME_BOARD_SIZE);
         const notice: Post[] = (noticeData.postList ?? []).filter((post) => !post.isBlind);
         const products: Product[] = (productData.list ?? []).filter((product) => !product.isBlind);
 
