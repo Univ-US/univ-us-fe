@@ -115,7 +115,7 @@ export default function PrivacyPage() {
                 </div>
             </header>
 
-            <section className="border-b border-primary/10 bg-[radial-gradient(circle_at_80%_0%,rgba(15,168,150,0.14),transparent_30%),radial-gradient(circle_at_6%_100%,rgba(45,212,191,0.08),transparent_30%)]">
+            <section className="border-b border-primary/10 bg-[radial-gradient(circle_at_80%_0%,rgba(15,118,110,0.14),transparent_30%),radial-gradient(circle_at_6%_100%,rgba(19,78,74,0.08),transparent_30%)]">
                 <div className="mx-auto max-w-[1080px] px-5 py-20 sm:px-6 sm:py-24">
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3.5 py-2 text-xs font-extrabold text-primary shadow-sm"><ShieldCheck className="size-3.5" />PRIVACY POLICY</div>
                     <h1 className="mt-6 text-4xl font-black tracking-[-0.05em] text-slate-950 sm:text-5xl">개인정보처리방침</h1>

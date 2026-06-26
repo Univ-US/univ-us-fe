@@ -341,7 +341,7 @@ export default function CampusHomePage() {
 
             {/* 히어로 배너 */}
             <div className="mx-auto max-w-[1180px] bg-slate-50 px-5 pt-5">
-                <div className="flex items-center justify-between gap-4 rounded-2xl border border-primary/15 bg-[linear-gradient(135deg,rgba(15,168,150,0.16)_0%,rgba(255,255,255,0.92)_44%,rgba(204,251,241,0.32)_100%)] px-5 py-8 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
+                <div className="flex items-center justify-between gap-4 rounded-2xl border border-primary/15 bg-[linear-gradient(135deg,rgba(15,118,110,0.18)_0%,rgba(255,255,255,0.92)_44%,rgba(19,78,74,0.18)_100%)] px-5 py-8 text-slate-900 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:px-8">
                     <div>
                         <p className="mb-1.5 text-xs font-bold text-primary/80">{univName ?? 'Univ·us'} 통합 포털</p>
                         <h1 className="text-xl sm:text-2xl font-extrabold leading-tight">
