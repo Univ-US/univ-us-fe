@@ -456,16 +456,17 @@ export default function CommunityMarketWrite() {
                 <div className="space-y-2">
                   <div
                     className={cn(
-                      'flex h-11 items-center gap-2 rounded-lg border border-input bg-white px-3.5 transition-all duration-200 focus-within:border-primary focus-within:shadow-sm focus-within:ring-2 focus-within:ring-primary/10',
+                      'flex h-11 items-center gap-2 overflow-hidden rounded-lg border border-input bg-white px-3.5 transition-all duration-200 focus-within:border-primary focus-within:shadow-sm focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary/10',
                       isFree && 'bg-slate-100',
                     )}
                   >
                     <input
+                      inputMode="numeric"
                       disabled={isFree}
                       value={isFree ? '' : price}
                       onChange={handlePriceChange}
                       placeholder="0"
-                      className="flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
+                      className="min-w-0 flex-1 bg-transparent text-right text-[14px] tabular-nums outline-none disabled:cursor-not-allowed"
                     />
                     <span className="text-[13px] font-semibold text-muted-foreground">
                       원
