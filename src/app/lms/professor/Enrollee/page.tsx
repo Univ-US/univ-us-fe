@@ -591,9 +591,6 @@ export default function ProfessorStudentsPage() {
         report={report}
         error={reportError}
         onClose={() => setReportOpen(false)}
-        onSendMessage={() => {
-          /* 메시지 기능은 이 API 범위 밖(별도 설계) */
-        }}
       />
     </main>
   );
