@@ -217,7 +217,7 @@ function ServiceAdminDashboardContent() {
     return (
         <RoleGuard allowedRoles={["SUA"]}>
             <main className={view === "inquiries" ? "h-screen overflow-hidden bg-[#f7f8fb] text-slate-950" : "min-h-screen bg-[#f7f8fb] text-slate-950"}>
-                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#12b8a6_0%,#0d9488_48%,#0f766e_100%)] py-5 text-slate-950 shadow-2xl shadow-primary/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
+                <aside className={`fixed inset-y-0 left-0 z-30 hidden animate-in fade-in slide-in-from-left-2 flex-col overflow-visible border-r border-white/15 bg-[linear-gradient(180deg,#0f8f83_0%,#0b6b63_46%,#06443f_100%)] py-5 text-white shadow-[10px_0_32px_rgba(15,23,42,0.22)] ring-1 ring-white/10 transition-[width,padding] duration-300 ease-out md:flex ${sidebarCollapsed ? "w-[104px] px-4" : "w-[256px] px-4"}`}>
                     <button
                         type="button"
                         onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
@@ -227,46 +227,42 @@ function ServiceAdminDashboardContent() {
                         {sidebarCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
                     </button>
 
-                    <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : ""}`}>
-                        <Link
-                            href="/landing"
-                            className={`group flex h-12 items-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white ${sidebarCollapsed ? "mx-auto w-12 justify-center p-0" : "flex-1 px-3"}`}
-                        >
+                    <div
+                        className={`overflow-hidden rounded-2xl border border-white/60 bg-white/75 shadow-sm shadow-black/10 transition-all duration-300 ${
+                            sidebarCollapsed ? "mx-auto mt-1 flex h-12 w-12 items-center justify-center p-0" : "mt-2 p-4"
+                        }`}
+                    >
+                        {sidebarCollapsed ? (
                             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                                 <Image src="/univusicon.png" alt="UnivUs" width={24} height={24} className="size-6 rounded-lg object-contain" />
                             </span>
-                            <span className={`min-w-0 flex-1 text-left transition-all duration-200 ${sidebarCollapsed ? "ml-0 w-0 opacity-0" : "ml-2 w-auto opacity-100"}`}>
-                                <span className="block text-sm font-black leading-4 text-slate-950">UnivUs</span>
-                                <span className="block text-[10px] font-bold uppercase tracking-widest text-slate-800/65">Platform</span>
-                            </span>
-                            {!sidebarCollapsed && (
-                                <span className="ml-2 shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                                    SUA
-                                </span>
-                            )}
-                        </Link>
-                    </div>
-
-                    <div className={`mt-6 rounded-2xl border border-white/70 bg-white/80 shadow-sm transition-all duration-300 ${sidebarCollapsed ? "p-2" : "p-4"}`}>
-                        <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
-                                {memberName?.slice(0, 1) ?? "\uC11C"}
-                            </div>
-                            {!sidebarCollapsed && (
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-extrabold">{memberName ?? "서비스 관리자"}</p>
-                                    <p className="mt-0.5 text-xs font-medium text-slate-800/65">플랫폼 최고 관리자</p>
+                        ) : (
+                            <div className="relative flex w-full items-center gap-3 text-left">
+                                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-lg font-black text-slate-950">
+                                    {memberName?.slice(0, 1) ?? "\uC11C"}
                                 </div>
-                            )}
-                        </div>
+                                <div className="min-w-0">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <p className="truncate text-sm font-extrabold text-slate-950">{memberName ?? "서비스 관리자"}</p>
+                                        <span className="inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                                            서비스 관리자
+                                        </span>
+                                    </div>
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-bold text-slate-700/70">
+                                        <span className="size-1.5 rounded-full bg-primary" />
+                                        <span>관리자 콘솔</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {!sidebarCollapsed && (
-                        <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
+                        <p className="mt-8 px-2 text-[10px] font-bold uppercase tracking-widest text-white/45">
                             플랫폼 운영
                         </p>
                     )}
-                    <nav className={`mt-2 min-h-0 flex-1 overflow-y-auto ${sidebarCollapsed ? "space-y-2 pr-0" : "pr-1"}`}>
+                    <nav className={`mt-3 min-h-0 flex-1 overflow-y-auto ${sidebarCollapsed ? "space-y-2 pr-0 pt-6" : "pr-1"}`}>
                         <div className={sidebarCollapsed ? "space-y-2" : "space-y-0.5"}>
                         {PLATFORM_NAV_ITEMS.map(({ label, icon: Icon, view: itemView }) => {
                             const isActive =
@@ -285,8 +281,8 @@ function ServiceAdminDashboardContent() {
                                         isActive
                                             ? "bg-white text-primary shadow-sm"
                                             : isReady
-                                                ? "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
-                                                : "cursor-not-allowed text-slate-600"
+                                                ? "text-white/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-white"
+                                                : "cursor-not-allowed text-white/45"
                                     }`}
                                 >
                                     <Icon className="size-4 shrink-0" />
@@ -297,7 +293,7 @@ function ServiceAdminDashboardContent() {
                         </div>
 
                         {!sidebarCollapsed && (
-                            <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
+                            <p className="mt-5 px-2 text-[10px] font-bold uppercase tracking-widest text-white/45">
                                 상세 관리
                             </p>
                         )}
@@ -314,8 +310,8 @@ function ServiceAdminDashboardContent() {
                                             itemView === view
                                                 ? "bg-white text-primary shadow-sm"
                                                 : isReady
-                                                     ? "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
-                                                    : "cursor-not-allowed text-slate-600"
+                                                     ? "text-white/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-white"
+                                                    : "cursor-not-allowed text-white/45"
                                         }`}
                                     >
                                         <Icon className="size-4 shrink-0" />
@@ -330,7 +326,7 @@ function ServiceAdminDashboardContent() {
                         <Link
                             href="/landing"
                             title="서비스 홈"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-white/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <Home className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>서비스 홈</span>
@@ -338,7 +334,7 @@ function ServiceAdminDashboardContent() {
                         <button
                             onClick={handleLogout}
                             title="로그아웃"
-                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+                            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-white/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-white ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"}`}
                         >
                             <LogOut className="size-4" />
                             <span className={sidebarCollapsed ? "sr-only" : "truncate"}>로그아웃</span>

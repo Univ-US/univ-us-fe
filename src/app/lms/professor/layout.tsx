@@ -198,7 +198,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           높이는 h-screen 고정(명시 높이라 flex stretch에 안 늘어남), 메뉴(nav)만 내부 스크롤.
           토글 버튼으로 접기/펼치기(데스크톱 w-60↔w-16 · 모바일 오버레이) — 학생 사이드바와 동일 동작 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen shrink-0 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#12b8a6_0%,#0d9488_48%,#0f766e_100%)] py-5 text-slate-950 shadow-2xl shadow-primary/10 transition-[width,padding,transform] duration-300 ease-out md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen shrink-0 flex-col overflow-visible border-r border-primary/20 bg-[linear-gradient(180deg,#0f8f83_0%,#0b6b63_46%,#06443f_100%)] py-5 text-white shadow-2xl shadow-primary/10 transition-[width,padding,transform] duration-300 ease-out md:translate-x-0 ${
           sidebarOpen
             ? "w-[256px] translate-x-0 px-4"
             : "-translate-x-full px-4 md:w-[104px] md:px-4"
@@ -290,7 +290,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className={sidebarOpen ? "mb-4 space-y-0.5" : "mb-2 space-y-2"}>
               {sidebarOpen && (
-                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-900/45">
+                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-white/45">
                   {section.title}
                 </p>
               )}
@@ -329,7 +329,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                     className={`${base} ${
                       active
                         ? "bg-white text-primary shadow-sm"
-                        : "text-slate-950/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-slate-950"
+                        : "text-white/75 hover:translate-x-0.5 hover:bg-white/18 hover:text-white"
                     } ${sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"}`}
                   >
                     {content}
@@ -338,7 +338,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
                   <div
                     key={item.label}
                     title="준비 중"
-                    className={`${base} cursor-not-allowed text-slate-950/35 ${
+                    className={`${base} cursor-not-allowed text-white/35 ${
                       sidebarOpen ? "w-[calc(100%_-_2.75rem)] max-w-[calc(100%_-_2.75rem)] gap-3 px-3 text-left" : "mx-auto w-10 justify-center px-0"
                     }`}
                   >
@@ -355,7 +355,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           <Link
             href="/home"
             title="홈으로"
-            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${
+            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-white/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-white ${
               sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >
@@ -366,7 +366,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
             type="button"
             onClick={() => setLogoutOpen(true)}
             title="로그아웃"
-            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-slate-950/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-slate-950 ${
+            className={`flex h-10 w-full items-center rounded-xl border border-white/20 bg-white/15 text-sm font-bold text-white/75 transition-all duration-200 hover:translate-x-0.5 hover:bg-white/25 hover:text-white ${
               sidebarOpen ? "gap-3 px-3" : "justify-center px-0"
             }`}
           >

@@ -424,15 +424,11 @@ export default function OperationsLogsView() {
 
             <section className="overflow-hidden rounded-xl border border-primary/10 bg-white shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
+                    <table className="w-full min-w-[1260px] table-fixed text-center text-sm">
                         <colgroup>
-                            <col className="w-[190px]" />
-                            <col className="w-[120px]" />
-                            <col className="w-[140px]" />
-                            <col className="w-[110px]" />
-                            <col className="w-[150px]" />
-                            <col className="w-[190px]" />
-                            <col />
+                            {Array.from({ length: 7 }).map((_, index) => (
+                                <col key={index} className="w-[14.285%]" />
+                            ))}
                         </colgroup>
                         <thead className="bg-slate-50 text-xs font-black uppercase text-slate-400">
                             <tr>

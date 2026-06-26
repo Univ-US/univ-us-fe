@@ -1073,7 +1073,7 @@ export default function CommunityReservation() {
                 style={{
                   background: isRealtimeConnected ? 'var(--brand)' : '#CBD5E1',
                   boxShadow: isRealtimeConnected
-                    ? '0 0 0 3px rgba(15,168,150,.18)'
+                    ? '0 0 0 3px rgba(15,118,110,.18)'
                     : 'none',
                 }}
               />
