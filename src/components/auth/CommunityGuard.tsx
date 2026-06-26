@@ -63,7 +63,7 @@ export default function CommunityGuard({
         return null;
     }
 
-    if (status === 'SUSPENDED') {
+    if (status === 'INACTIVE' || status === 'SUSPENDED') {
         return (
             <>
                 <ReactivateModal
