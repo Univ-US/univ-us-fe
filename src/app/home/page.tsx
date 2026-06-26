@@ -158,19 +158,42 @@ function useSchoolInfo(isLoggedIn: boolean, univId: number | null) {
 
 function useWeather() {
     const [weather, setWeather] = useState<WeatherData | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!navigator.geolocation) return;
-        navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+        const fetchWeather = async (lat: number, lon: number) => {
             try {
-                const { latitude: lat, longitude: lon } = coords;
                 const res = await api.get<WeatherData>(`/api/weather`, { params: { lat, lon } });
                 setWeather(res.data);
             } catch {}
-        });
+            setLoading(false);
+        };
+
+        const fetchByIp = async () => {
+            try {
+                const res = await fetch("https://ipapi.co/json/");
+                const data = await res.json();
+                if (data.latitude && data.longitude) {
+                    await fetchWeather(data.latitude, data.longitude);
+                    return;
+                }
+            } catch {}
+            setLoading(false);
+        };
+
+        if (!navigator.geolocation) {
+            fetchByIp();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => fetchWeather(coords.latitude, coords.longitude),
+            () => fetchByIp(),
+            { timeout: 10000 },
+        );
     }, []);
 
-    return weather;
+    return { weather, loading };
 }
 
 export default function CampusHomePage() {
@@ -184,7 +207,7 @@ export default function CampusHomePage() {
     const logoutAction = useAuthStore((s) => s.logoutAction);
 
     const now = useNow();
-    const weather = useWeather();
+    const { weather, loading: weatherLoading } = useWeather();
     const schoolInfo = useSchoolInfo(isLoggedIn, univId);
     const [homeConfig, setHomeConfig] = useState<HomeWidgetConfig>(DEFAULT_CONFIG);
     const [notices, setNotices] = useState<Notice[]>([]);
@@ -326,7 +349,7 @@ export default function CampusHomePage() {
                         </h1>
                     </div>
                     <div className="text-right hidden md:block shrink-0">
-                        {homeConfig.weather && (weather ? (
+                        {weather ? (
                             <div className="mb-1 flex items-center justify-end gap-2 text-sm text-slate-500">
                                 <img
                                     src={`https://openweathermap.org/img/wn/${weather.icon}.png`}
@@ -340,9 +363,9 @@ export default function CampusHomePage() {
                         ) : (
                             <div className="mb-1 flex items-center justify-end gap-2 text-sm text-slate-500">
                                 <Sun className="w-4 h-4 text-amber-400" />
-                                <span>날씨 불러오는 중...</span>
+                                <span>{weatherLoading ? "날씨 불러오는 중..." : "날씨 정보 없음"}</span>
                             </div>
-                        ))}
+                        )}
                         <p className="text-2xl font-black tracking-tight">{timeStr}</p>
                         <p className="mt-0.5 text-xs text-slate-400">{dateStr}</p>
                     </div>
