@@ -1,7 +1,7 @@
 "use client";
 
 // LMS 교수 공용 레이아웃 (사이드바 + 콘텐츠 셸)
-// - 사이드바 상단: 학교명(API) + UniVUs 브랜드 + 사용자(이름/소속/아바타, API)
+// - 사이드바 상단: 학교명(API) + UnivUs 브랜드 + 사용자(이름/소속/아바타, API)
 // - 네비: '프로필'만 활성(PLM-001). 나머지 메뉴는 해당 화면 미구현이라 placeholder(비활성)
 // - children = 각 LMS 페이지(현재는 /lms/professor/profile)
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
@@ -214,7 +214,7 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </button>
 
-        {/* 브랜드: 학교명(API) + UniVUs — 펼침=강의 내역 이동 / 접힘=로고 클릭 시 펼치기 */}
+        {/* 브랜드: 학교명(API) + UnivUs — 펼침=강의 내역 이동 / 접힘=로고 클릭 시 펼치기 */}
         <div className={`flex items-center ${sidebarOpen ? "" : "justify-center"}`}>
           {sidebarOpen ? (
             <Link
@@ -223,10 +223,10 @@ function LmsProfessorLayoutInner({ children }: { children: ReactNode }) {
               className="group flex h-12 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border border-white/70 bg-white/90 px-3 shadow-sm shadow-black/10 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white"
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                <img src="/univusicon.png" alt="UniVUs" className="size-6 rounded-lg object-contain" />
+                <img src="/univusicon.png" alt="UnivUs" className="size-6 rounded-lg object-contain" />
               </span>
               <span className="ml-2 min-w-0 flex-1 text-left">
-                <span className="block text-sm font-black leading-4 text-slate-950">UniVUs</span>
+                <span className="block text-sm font-black leading-4 text-slate-950">UnivUs</span>
                 <span className="block truncate text-[10px] font-bold uppercase tracking-widest text-slate-800/65">
                   {profile?.universityName || "Professor LMS"}
                 </span>
