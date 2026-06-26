@@ -16,7 +16,6 @@ interface StudentReportDialogProps {
   report: StudentReport | null;
   error?: string | null; // 리포트 조회 실패 메시지 (BE 문제 표기)
   onClose: () => void;
-  onSendMessage?: (report: StudentReport) => void;
 }
 
 export default function StudentReportDialog({
@@ -25,7 +24,6 @@ export default function StudentReportDialog({
   report,
   error = null,
   onClose,
-  onSendMessage,
 }: StudentReportDialogProps) {
   useEscapeClose(open, onClose); // ESC = 닫기 버튼과 동일
 
@@ -134,14 +132,6 @@ export default function StudentReportDialog({
 
         {/* 푸터 */}
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => report && onSendMessage?.(report)}
-            disabled={!report}
-          >
-            💬 메시지 보내기
-          </Button>
           <Button
             size="lg"
             onClick={onClose}
