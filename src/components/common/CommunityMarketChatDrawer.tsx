@@ -726,11 +726,9 @@ export default function CommunityMarketChatDrawer({
       onTradeCompleted?.();
     } catch (paymentError) {
       console.error(paymentError);
-      setError(
-        paymentError instanceof Error
-          ? paymentError.message
-          : '결제 처리에 실패했습니다.',
-      );
+      const errorMessage = getApiErrorMessage(paymentError, '결제 처리에 실패했습니다.');
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setPaymentLoading(false);
     }
